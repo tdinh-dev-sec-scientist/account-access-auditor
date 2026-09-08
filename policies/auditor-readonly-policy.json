@@ -1,0 +1,108 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AuditorIdentity",
+      "Effect": "Allow",
+      "Action": [
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AuditorListPrincipals",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListGroups",
+        "iam:ListRoles",
+        "iam:ListUsers"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AuditorReadUsers",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetAccessKeyLastUsed",
+        "iam:GetLoginProfile",
+        "iam:GetUserPolicy",
+        "iam:ListAccessKeys",
+        "iam:ListAttachedUserPolicies",
+        "iam:ListGroupsForUser",
+        "iam:ListMFADevices",
+        "iam:ListUserPolicies"
+      ],
+      "Resource": "arn:aws:iam::*:user/*"
+    },
+    {
+      "Sid": "AuditorReadGroups",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetGroup",
+        "iam:GetGroupPolicy",
+        "iam:ListAttachedGroupPolicies",
+        "iam:ListGroupPolicies"
+      ],
+      "Resource": "arn:aws:iam::*:group/*"
+    },
+    {
+      "Sid": "AuditorReadRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRolePolicy",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies"
+      ],
+      "Resource": "arn:aws:iam::*:role/*"
+    },
+    {
+      "Sid": "AuditorReadPolicyDocuments",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:policy/*",
+        "arn:aws:iam::aws:policy/*"
+      ]
+    },
+    {
+      "Sid": "AuditorListBuckets",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AuditorReadBuckets",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketAcl",
+        "s3:GetBucketLocation",
+        "s3:GetBucketPolicy",
+        "s3:GetBucketPolicyStatus",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:GetEncryptionConfiguration"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    },
+    {
+      "Sid": "AuditorReadCloudTrail",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:DescribeTrails"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "AuditorReadTrailStatus",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:GetTrailStatus"
+      ],
+      "Resource": "arn:aws:cloudtrail:*:*:trail/*"
+    }
+  ]
+}

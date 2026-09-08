@@ -1,0 +1,128 @@
+{
+  "benchmark": {
+    "name": "CIS Amazon Web Services Foundations Benchmark",
+    "version": "3.0.0",
+    "published": "2024-02",
+    "note": "Control identifiers and titles below are quoted from CIS AWS Foundations Benchmark v3.0.0. Numbering differs between benchmark versions (for example the IAM section was renumbered between v1.4.0 and v3.0.0), so a mapping is only valid for the version named here."
+  },
+  "status_definitions": {
+    "mapped": "The rule's detection condition is materially equivalent to the CIS control's audit condition. Counted in the 'CIS-mapped rules' metric.",
+    "partial": "The rule is related to the control and shares its rationale, but the control's audit condition is narrower or broader than the rule's. Documented but NOT counted, so the headline metric is not inflated.",
+    "unmapped": "No control in this benchmark version has a defensible equivalence to this rule. Recorded explicitly rather than forced."
+  },
+  "counting_rule": "The 'CIS-mapped rules' metric counts rules with status == 'mapped' only.",
+  "rules": [
+    {
+      "rule_id": "IAM-001",
+      "finding": "IAM user with a console login profile has no MFA device registered.",
+      "control_id": "1.10",
+      "control_title": "Ensure multi-factor authentication (MFA) is enabled for all IAM users that have a console password",
+      "status": "mapped",
+      "rationale": "The control's audit step is exactly this rule's condition: enumerate IAM users with a login profile and assert an MFA device exists. The rule additionally records the unknown state (denied GetLoginProfile) as no finding rather than a false positive."
+    },
+    {
+      "rule_id": "IAM-002",
+      "finding": "Active IAM access key older than the configured rotation threshold (default 90 days).",
+      "control_id": "1.14",
+      "control_title": "Ensure access keys are rotated every 90 days or less",
+      "status": "mapped",
+      "rationale": "The control's threshold is 90 days and the rule's default threshold is 90 days, measured the same way (CreateDate of an Active key versus now). The rule adds a second, stricter tier at 180 days for prioritisation; that tier is a superset of the control condition, not a different one."
+    },
+    {
+      "rule_id": "IAM-003",
+      "finding": "Active access key never used, or unused beyond the configured dormancy threshold (default 45 days); or an Inactive key still present.",
+      "control_id": "1.12",
+      "control_title": "Ensure credentials unused for 45 days or greater are disabled",
+      "status": "mapped",
+      "rationale": "The control's audit condition is a credential whose last-used date is 45 days or more in the past (or which has never been used) while still enabled. The rule reads iam:GetAccessKeyLastUsed and applies the same 45-day default. Inactive keys are reported at a lower tier as residual credential material; that is an extension of the control, not a substitute for it."
+    },
+    {
+      "rule_id": "IAM-004",
+      "finding": "IAM policy contains an Allow statement for Action \"*\" on Resource \"*\".",
+      "control_id": "1.16",
+      "control_title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
+      "status": "mapped",
+      "rationale": "The control is defined literally in terms of a policy document with Effect Allow, Action \"*\" and Resource \"*\". That is the rule's detection condition verbatim, including the control's scope of attached policies (the collector only inspects policies actually attached to a user, group, or role)."
+    },
+    {
+      "rule_id": "IAM-005",
+      "finding": "IAM policy allows service-wide wildcard actions (for example s3:*) on Resource \"*\".",
+      "control_id": "1.16",
+      "control_title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
+      "status": "partial",
+      "rationale": "Shares the control's least-privilege rationale, but the control's audit condition is specifically Action \"*\" (full administrative privileges). A policy granting s3:* on * is broad but does not satisfy the control's stated test, so claiming a direct mapping would overstate it. Documented as related and deliberately excluded from the mapped count."
+    },
+    {
+      "rule_id": "IAM-006",
+      "finding": "IAM user with no console login profile and no MFA device (inventory record).",
+      "control_id": null,
+      "control_title": null,
+      "status": "unmapped",
+      "rationale": "CIS 1.10 is explicitly scoped to users that have a console password. A programmatic-only user is outside that control's scope by design, which is why this rule emits an INFO inventory record rather than a control failure. No other v3.0.0 control covers it."
+    },
+    {
+      "rule_id": "S3-001",
+      "finding": "One or more of the four bucket-level Block Public Access settings is disabled or absent.",
+      "control_id": "2.1.4",
+      "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+      "status": "mapped",
+      "rationale": "The control's audit step calls s3api get-public-access-block per bucket and requires all four settings to be true. That is the rule's condition exactly, including treating an absent configuration as all four disabled."
+    },
+    {
+      "rule_id": "S3-002",
+      "finding": "Bucket ACL grants a global group (AllUsers or AuthenticatedUsers).",
+      "control_id": "2.1.4",
+      "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+      "status": "mapped",
+      "rationale": "BlockPublicAcls and IgnorePublicAcls are two of the four settings this control requires, and their stated purpose is preventing exactly this ACL grant. The rule confirms the grant itself rather than only the setting, and downgrades severity when IgnorePublicAcls neutralises it, so it is a strict confirmation of the control's remediation objective."
+    },
+    {
+      "rule_id": "S3-003",
+      "finding": "Bucket policy contains an Allow statement with Principal \"*\".",
+      "control_id": "2.1.4",
+      "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+      "status": "mapped",
+      "rationale": "BlockPublicPolicy and RestrictPublicBuckets are the other two settings this control requires, and they exist to prevent a public bucket policy. The rule confirms the public policy statement itself and reflects whether those two settings currently neutralise it."
+    },
+    {
+      "rule_id": "S3-004",
+      "finding": "No explicit bucket-level default encryption configuration is set.",
+      "control_id": null,
+      "control_title": null,
+      "status": "partial",
+      "rationale": "Earlier benchmark versions carried an S3 encryption-at-rest control (v1.4.0 section 2.1.1). Amazon S3 has applied SSE-S3 to new objects by default since January 2023, and the audit condition of the v3.0.0 S3 section is not the absence of an explicit configuration. This rule reports a missing explicit, auditable configuration, which is a hardening and evidence concern rather than a v3.0.0 control failure, so it is not counted as mapped."
+    },
+    {
+      "rule_id": "CT-001",
+      "finding": "No CloudTrail trail is configured for the account/region.",
+      "control_id": "3.1",
+      "control_title": "Ensure CloudTrail is enabled in all regions",
+      "status": "mapped",
+      "rationale": "The control fails outright when describe-trails returns no trail. The rule emits this finding only when DescribeTrails succeeded and returned an empty list, so an access-denied response is never misreported as a control failure."
+    },
+    {
+      "rule_id": "CT-002",
+      "finding": "No trail has IsMultiRegionTrail set to true.",
+      "control_id": "3.1",
+      "control_title": "Ensure CloudTrail is enabled in all regions",
+      "status": "mapped",
+      "rationale": "The control's audit step requires at least one trail with IsMultiRegionTrail true (and IncludeGlobalServiceEvents true); a set of single-region trails fails it. CT-001 and CT-002 split the two distinct failure modes of the same control so that remediation guidance differs."
+    },
+    {
+      "rule_id": "CT-003",
+      "finding": "Trail has log file validation disabled.",
+      "control_id": "3.2",
+      "control_title": "Ensure CloudTrail log file validation is enabled",
+      "status": "mapped",
+      "rationale": "The control's audit step reads LogFileValidationEnabled from describe-trails and requires it to be true, per trail. That is the rule's condition verbatim."
+    },
+    {
+      "rule_id": "CT-004",
+      "finding": "Trail exists but GetTrailStatus reports logging stopped, or reports a latest delivery error.",
+      "control_id": "3.1",
+      "control_title": "Ensure CloudTrail is enabled in all regions",
+      "status": "mapped",
+      "rationale": "The control requires CloudTrail to be enabled, and a trail whose IsLogging is false is not enabled regardless of its configuration. The delivery-error branch is reported under the same control because undelivered logs mean the control's objective (retained management-event history) is not met."
+    }
+  ]
+}

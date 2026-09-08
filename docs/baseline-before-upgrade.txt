@@ -1,0 +1,34 @@
+................................                                         [100%]
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.11.15-final-0 _______________
+
+Name                                 Stmts   Miss  Cover
+--------------------------------------------------------
+auditor/__init__.py                      1      0   100%
+auditor/__main__.py                      3      3     0%
+auditor/aws_session.py                  25     25     0%
+auditor/cli.py                         109    109     0%
+auditor/collectors/__init__.py           3      0   100%
+auditor/collectors/_common.py           23     12    48%
+auditor/collectors/cloudtrail.py        35     25    29%
+auditor/collectors/iam.py               86     34    60%
+auditor/collectors/s3.py                76     58    24%
+auditor/config.py                       29     20    31%
+auditor/models/__init__.py               3      0   100%
+auditor/models/finding.py               39      6    85%
+auditor/models/report.py                13      6    54%
+auditor/reporters/__init__.py            2      2     0%
+auditor/reporters/csv_reporter.py       19     19     0%
+auditor/reporters/json_reporter.py      13     13     0%
+auditor/reporters/terminal.py           52     52     0%
+auditor/reporters/ticket.py             26     26     0%
+auditor/rules/__init__.py                3      0   100%
+auditor/rules/cloudtrail_rules.py       29      0   100%
+auditor/rules/iam_rules.py              60      3    95%
+auditor/rules/policy.py                 46      1    98%
+auditor/rules/s3_rules.py               56      0   100%
+auditor/utils/__init__.py                0      0   100%
+auditor/utils/dates.py                  16      2    88%
+auditor/utils/logging.py                13     13     0%
+--------------------------------------------------------
+TOTAL                                  780    429    45%

@@ -1,0 +1,235 @@
+{
+  "generated_by": "python -m lab.run_benchmark",
+  "tool_version": "0.1.0",
+  "profiles": [
+    {
+      "expected_count": 25,
+      "actual_count": 25,
+      "true_positives": 25,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "detection_rate": 1.0,
+      "true_positive_detail": [
+        {
+          "rule_id": "IAM-001",
+          "resource": "user:lab-admin-console-nomfa",
+          "severity": "HIGH",
+          "why_expected": "Login profile present with zero MFA devices."
+        },
+        {
+          "rule_id": "IAM-004",
+          "resource": "user:lab-admin-console-nomfa/lab-full-admin",
+          "severity": "CRITICAL",
+          "why_expected": "Inline policy with Action \"*\" on Resource \"*\"."
+        },
+        {
+          "rule_id": "IAM-006",
+          "resource": "user:lab-svc-stale-keys",
+          "severity": "INFO",
+          "why_expected": "No login profile and no MFA: inventory record, not a console weakness."
+        },
+        {
+          "rule_id": "IAM-002",
+          "resource": "user:lab-svc-stale-keys/AKIA\u2026D3UZ",
+          "severity": "HIGH",
+          "why_expected": "Active key aged 400 days, past the 180-day escalation threshold."
+        },
+        {
+          "rule_id": "IAM-003",
+          "resource": "user:lab-svc-stale-keys/AKIA\u2026D3UZ",
+          "severity": "MEDIUM",
+          "why_expected": "Active key never used in 400 days, past the 45-day dormancy threshold."
+        },
+        {
+          "rule_id": "IAM-006",
+          "resource": "user:lab-svc-rotating",
+          "severity": "INFO",
+          "why_expected": "No login profile and no MFA."
+        },
+        {
+          "rule_id": "IAM-002",
+          "resource": "user:lab-svc-rotating/AKIA\u2026G4FB",
+          "severity": "MEDIUM",
+          "why_expected": "Active key aged 120 days: past 90, below the 180-day escalation."
+        },
+        {
+          "rule_id": "IAM-003",
+          "resource": "user:lab-contractor-offboarded/AKIA\u2026LLJU",
+          "severity": "LOW",
+          "why_expected": "Inactive key still present; residual credential material."
+        },
+        {
+          "rule_id": "IAM-005",
+          "resource": "group:lab-developers/lab-broad-service-access",
+          "severity": "HIGH",
+          "why_expected": "s3:* and ec2:* on Resource \"*\" in a customer-managed policy."
+        },
+        {
+          "rule_id": "IAM-005",
+          "resource": "role:lab-ci-deploy-role/lab-iam-wildcard",
+          "severity": "HIGH",
+          "why_expected": "iam:* on Resource \"*\" in an inline role policy."
+        },
+        {
+          "rule_id": "S3-001",
+          "resource": "lab-public-assets",
+          "severity": "MEDIUM",
+          "why_expected": "No PAB configuration at all."
+        },
+        {
+          "rule_id": "S3-002",
+          "resource": "lab-public-assets",
+          "severity": "CRITICAL",
+          "why_expected": "AllUsers ACL grant with IgnorePublicAcls off."
+        },
+        {
+          "rule_id": "S3-003",
+          "resource": "lab-public-assets",
+          "severity": "CRITICAL",
+          "why_expected": "Unconditional Principal \"*\" Allow with nothing blocking it."
+        },
+        {
+          "rule_id": "S3-004",
+          "resource": "lab-public-assets",
+          "severity": "MEDIUM",
+          "why_expected": "No explicit default encryption configuration."
+        },
+        {
+          "rule_id": "S3-001",
+          "resource": "lab-partner-share",
+          "severity": "MEDIUM",
+          "why_expected": "PAB fully disabled."
+        },
+        {
+          "rule_id": "S3-003",
+          "resource": "lab-partner-share",
+          "severity": "MEDIUM",
+          "why_expected": "Public statement narrowed by aws:SourceIp."
+        },
+        {
+          "rule_id": "S3-001",
+          "resource": "lab-tls-only-public",
+          "severity": "MEDIUM",
+          "why_expected": "PAB fully disabled."
+        },
+        {
+          "rule_id": "S3-003",
+          "resource": "lab-tls-only-public",
+          "severity": "CRITICAL",
+          "why_expected": "The only condition (aws:SecureTransport) constrains nobody."
+        },
+        {
+          "rule_id": "S3-001",
+          "resource": "lab-latent-acl",
+          "severity": "MEDIUM",
+          "why_expected": "Three of the four PAB settings are off."
+        },
+        {
+          "rule_id": "S3-002",
+          "resource": "lab-latent-acl",
+          "severity": "LOW",
+          "why_expected": "AllUsers grant present but ignored by IgnorePublicAcls."
+        },
+        {
+          "rule_id": "S3-003",
+          "resource": "lab-blocked-public-policy",
+          "severity": "LOW",
+          "why_expected": "Public statement neutralised by BlockPublicPolicy."
+        },
+        {
+          "rule_id": "S3-004",
+          "resource": "lab-unencrypted-logs",
+          "severity": "MEDIUM",
+          "why_expected": "No explicit default encryption configuration."
+        },
+        {
+          "rule_id": "CT-002",
+          "resource": "aws-account",
+          "severity": "MEDIUM",
+          "why_expected": "The only trail is single-region."
+        },
+        {
+          "rule_id": "CT-003",
+          "resource": "lab-single-region-trail",
+          "severity": "MEDIUM",
+          "why_expected": "LogFileValidationEnabled is false."
+        },
+        {
+          "rule_id": "CT-004",
+          "resource": "lab-single-region-trail",
+          "severity": "HIGH",
+          "why_expected": "GetTrailStatus reports IsLogging false."
+        }
+      ],
+      "false_negative_detail": [],
+      "unexpected_finding_detail": [],
+      "profile": "misconfigured",
+      "rules_fired": [
+        "CT-002",
+        "CT-003",
+        "CT-004",
+        "IAM-001",
+        "IAM-002",
+        "IAM-003",
+        "IAM-004",
+        "IAM-005",
+        "IAM-006",
+        "S3-001",
+        "S3-002",
+        "S3-003",
+        "S3-004"
+      ]
+    },
+    {
+      "expected_count": 1,
+      "actual_count": 1,
+      "true_positives": 1,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "detection_rate": 1.0,
+      "true_positive_detail": [
+        {
+          "rule_id": "CT-001",
+          "resource": "aws-account",
+          "severity": "HIGH",
+          "why_expected": "DescribeTrails succeeded and returned zero trails."
+        }
+      ],
+      "false_negative_detail": [],
+      "unexpected_finding_detail": [],
+      "profile": "no-trail",
+      "rules_fired": [
+        "CT-001"
+      ]
+    }
+  ],
+  "totals": {
+    "expected": 26,
+    "actual": 26,
+    "true_positives": 26,
+    "false_negatives": 0,
+    "false_positives": 0,
+    "rules_fired": [
+      "CT-001",
+      "CT-002",
+      "CT-003",
+      "CT-004",
+      "IAM-001",
+      "IAM-002",
+      "IAM-003",
+      "IAM-004",
+      "IAM-005",
+      "IAM-006",
+      "S3-001",
+      "S3-002",
+      "S3-003",
+      "S3-004"
+    ]
+  },
+  "metadata": {
+    "redacted": {
+      "access_key_ids": true,
+      "account_ids": false
+    }
+  }
+}

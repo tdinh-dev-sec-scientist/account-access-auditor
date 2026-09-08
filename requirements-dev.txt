@@ -1,0 +1,7 @@
+-r requirements.txt
+pytest>=8.0
+pytest-cov>=5.0
+# In-process AWS emulation. Used by the lab environment and by the collector
+# tests that exercise the real boto3 request path. Never required to run the
+# auditor itself.
+moto[iam,s3,cloudtrail,sts]>=5.0

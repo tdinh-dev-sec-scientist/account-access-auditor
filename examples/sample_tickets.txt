@@ -1,0 +1,313 @@
+Ticket ID: AUTO-IAM-004-20260115-001
+
+Category:
+Access Management
+
+Priority:
+Critical
+
+AWS Account:
+123456789012
+
+Affected Resource:
+user:example-deploy/example-deploy-inline (iam-policy)
+
+Issue:
+IAM policy grants unrestricted actions on all resources
+
+Detail:
+The inline policy "example-deploy-inline" attached to user "example-deploy" contains an Allow statement for Action "*" on all resources.
+
+Why It Matters:
+The statement grants every action against every resource, including the IAM actions needed to grant further access and the CloudTrail actions needed to stop recording it. Compromise of any principal holding it is equivalent to compromise of the account.
+
+Evidence:
+  principal_type: user
+  principal_name: example-deploy
+  policy_name: example-deploy-inline
+  policy_type: inline
+  statements: [{'sid': 'FullAdmin', 'actions': ['*'], 'resource_scope': '*'}]
+
+Recommended Action:
+Replace the wildcard statement with the specific actions the workload calls, scoped to specific resource ARNs. Derive the action list from CloudTrail or IAM Access Analyzer policy generation rather than guessing.
+
+Compliance Reference:
+CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.16 - Ensure IAM policies that allow full "*:*" administrative privileges are not attached
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+IAM-004  (fingerprint 64a0cef758d268c0)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------
+
+Ticket ID: AUTO-S3-003-20260115-002
+
+Category:
+Data Storage Configuration
+
+Priority:
+Critical
+
+AWS Account:
+123456789012
+
+Affected Resource:
+example-public-assets (s3-bucket)
+
+Issue:
+Bucket policy grants access to a public principal
+
+Detail:
+The bucket policy on 'example-public-assets' contains an Allow statement with an anonymous principal. The statements grant access to anonymous callers without any condition.
+
+Why It Matters:
+An anonymous Allow in the resource policy grants access without any authentication, independently of IAM. Conditions can narrow it, but they have to be read: an aws:SourceIp condition constrains access while an aws:SecureTransport condition does not.
+
+Evidence:
+  bucket: example-public-assets
+  statements: [{'sid': 'PublicRead', 'actions': ['s3:GetObject'], 'is_effectively_constrained': False}]
+  get_bucket_policy_status_is_public: True
+
+Recommended Action:
+Scope the Principal to specific account or role ARNs. If the bucket must serve public content, front it with CloudFront and an origin access control rather than a public bucket policy.
+
+Compliance Reference:
+CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+S3-003  (fingerprint d01c8621a2beba83)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------
+
+Ticket ID: AUTO-CT-004-20260115-003
+
+Category:
+Audit Logging
+
+Priority:
+High
+
+AWS Account:
+123456789012
+
+Affected Resource:
+example-management-trail (cloudtrail-trail)
+
+Issue:
+CloudTrail trail exists but is not currently logging
+
+Detail:
+Trail 'example-management-trail' is configured but GetTrailStatus reports that logging is stopped.
+
+Why It Matters:
+A configured trail is not the same as an operating one. A stopped trail or a failing delivery leaves the same gap as having no trail at all, while still appearing correctly configured in every configuration-only review.
+
+Evidence:
+  trail: example-management-trail
+  is_logging: False
+
+Recommended Action:
+Start logging on the trail and investigate why it stopped. For delivery errors, check the destination bucket policy, the bucket's existence, and the KMS key policy if the trail is encrypted.
+
+Compliance Reference:
+CIS Amazon Web Services Foundations Benchmark v3.0.0 control 3.1 - Ensure CloudTrail is enabled in all regions
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+CT-004  (fingerprint 46fec6821ed6f10c)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------
+
+Ticket ID: AUTO-IAM-002-20260115-004
+
+Category:
+Access Management
+
+Priority:
+High
+
+AWS Account:
+123456789012
+
+Affected Resource:
+user:example-service/AKIA…MPLE (iam-access-key)
+
+Issue:
+Active IAM access key exceeds maximum age
+
+Detail:
+Access key AKIA…MPLE for user 'example-service' is 214 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days.
+
+Why It Matters:
+A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.
+
+Evidence:
+  username: example-service
+  age_days: 214
+  threshold_days: 90
+
+Recommended Action:
+Create a replacement key, migrate dependent workloads, then deactivate and delete the superseded key. Prefer IAM roles or IAM Identity Center over long-lived user keys where the workload allows it.
+
+Compliance Reference:
+CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.14 - Ensure access keys are rotated every 90 days or less
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+IAM-002  (fingerprint 9aa4a9d51c54af9c)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------
+
+Ticket ID: AUTO-S3-001-20260115-005
+
+Category:
+Data Storage Configuration
+
+Priority:
+Medium
+
+AWS Account:
+123456789012
+
+Affected Resource:
+example-reports (s3-bucket)
+
+Issue:
+S3 Public Access Block is not fully enabled
+
+Detail:
+Bucket 'example-reports' has no Public Access Block configuration, so all four protections are off.
+
+Why It Matters:
+Block Public Access is the backstop that makes a public ACL or bucket policy non-effective even when one is applied by mistake. With it off, a single careless PutBucketAcl call is enough to expose the bucket.
+
+Evidence:
+  bucket: example-reports
+  public_access_block_configured: False
+
+Recommended Action:
+Enable all four Block Public Access settings on the bucket, and enable the account-level block, unless the bucket is intentionally serving public content.
+
+Compliance Reference:
+CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+S3-001  (fingerprint f439a944df795b29)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------
+
+Ticket ID: AUTO-S3-002-20260115-006
+
+Category:
+Data Storage Configuration
+
+Priority:
+Low
+
+AWS Account:
+123456789012
+
+Affected Resource:
+example-legacy-static (s3-bucket)
+
+Issue:
+Bucket ACL grants public access (currently ignored by Public Access Block)
+
+Detail:
+The ACL on bucket 'example-legacy-static' grants READ to the global group(s) AllUsers. IgnorePublicAcls is enabled, so the grants are not currently effective, but they remain in the ACL.
+
+Why It Matters:
+AllUsers means anonymous callers on the internet. AuthenticatedUsers is commonly misread as 'my account' but means any AWS account holder, so both grants place the bucket outside the account's trust boundary.
+
+Evidence:
+  bucket: example-legacy-static
+  ignore_public_acls: True
+
+Recommended Action:
+Remove the global-group grants from the bucket ACL, then enable Block Public Access so the grant cannot be reintroduced.
+
+Compliance Reference:
+CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+S3-002  (fingerprint ee1d198be7040518)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------
+
+Ticket ID: AUTO-IAM-006-20260115-007
+
+Category:
+Access Management
+
+Priority:
+Informational
+
+AWS Account:
+123456789012
+
+Affected Resource:
+user:example-ci (iam-user)
+
+Issue:
+IAM user without MFA (no console access configured)
+
+Detail:
+IAM user 'example-ci' has no console login profile and no MFA device.
+
+Why It Matters:
+There is no interactive sign-in path to protect, so this is not a console authentication weakness. It is recorded so the inventory of MFA-less identities is complete and so the finding reappears at a higher tier if a login profile is added later.
+
+Evidence:
+  username: example-ci
+  console_access_enabled: False
+  mfa_device_count: 0
+
+Recommended Action:
+No MFA action is required while the identity remains programmatic-only. Re-evaluate if console access is enabled.
+
+Compliance Reference:
+No mapped control in the referenced benchmark version.
+
+Detected At:
+2026-01-15T09:00:00+00:00
+
+Detection Rule:
+IAM-006  (fingerprint d74210991a2df64d)
+
+Status:
+OPEN
+
+--------------------------------------------------------------------

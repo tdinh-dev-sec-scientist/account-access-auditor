@@ -1,0 +1,143 @@
+{
+  "metadata": {
+    "tool": "account-access-auditor",
+    "tool_version": "0.1.0",
+    "run_id": "lab-no-trail",
+    "generated_at": "2026-09-03T02:15:07+00:00",
+    "account_id": "123456789012",
+    "region": "us-east-1",
+    "environment": "lab/no-trail (moto emulated account, not a live AWS account)",
+    "services_scanned": [
+      "IAM",
+      "S3",
+      "CloudTrail"
+    ],
+    "rules_evaluated": [
+      "IAM-001",
+      "IAM-002",
+      "IAM-003",
+      "IAM-004",
+      "IAM-005",
+      "IAM-006",
+      "S3-001",
+      "S3-002",
+      "S3-003",
+      "S3-004",
+      "CT-001",
+      "CT-002",
+      "CT-003",
+      "CT-004"
+    ],
+    "compliance_framework": "CIS AWS Foundations Benchmark v3.0.0",
+    "cis_mapped_rule_count": 11,
+    "severity_model": [
+      "CRITICAL",
+      "HIGH",
+      "MEDIUM",
+      "LOW",
+      "INFO"
+    ],
+    "severity_disclaimer": "Severity is this project's internal prioritisation model. It is not a CVSS score, an AWS risk rating, or a formal industry classification.",
+    "read_only": true,
+    "python_version": "3.11.15",
+    "platform": "linux",
+    "redacted": {
+      "access_key_ids": true,
+      "account_ids": false
+    }
+  },
+  "summary": {
+    "total_findings": 1,
+    "by_severity": {
+      "CRITICAL": 0,
+      "HIGH": 1,
+      "MEDIUM": 0,
+      "LOW": 0,
+      "INFO": 0
+    },
+    "by_service": {
+      "CloudTrail": 1
+    },
+    "by_rule": {
+      "CT-001": 1
+    },
+    "by_resource_type": {
+      "aws-account": 1
+    },
+    "affected_resource_count": 1,
+    "resources_scanned": {
+      "iam_users": 0,
+      "iam_groups": 0,
+      "iam_roles": 0,
+      "iam_policies": 0,
+      "iam_access_keys": 0,
+      "s3_buckets": 1,
+      "cloudtrail_trails": 0
+    },
+    "collection_errors": 0,
+    "api_call_count": 12,
+    "duration_seconds": 0.06
+  },
+  "collection_errors": [],
+  "findings": [
+    {
+      "rule_id": "CT-001",
+      "severity": "HIGH",
+      "service": "CloudTrail",
+      "resource": "aws-account",
+      "title": "No CloudTrail trail configured",
+      "description": "DescribeTrails returned no trails for this account and region. Management-event history is therefore not being retained in a durable, tamper-evident form; the console Event history view keeps only 90 days and is not usable as incident evidence.",
+      "remediation": "Create a multi-region trail with log file validation enabled, delivering to a dedicated log bucket with Block Public Access on.",
+      "resource_type": "aws-account",
+      "rationale": "Without a trail there is no durable record of management-plane activity. The CloudTrail Event history console view retains only 90 days and cannot be used as tamper-evident evidence, so an incident older than that is uninvestigable.",
+      "evidence": {
+        "trail_count": 0,
+        "region": "us-east-1"
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "3.1",
+        "control_title": "Ensure CloudTrail is enabled in all regions",
+        "status": "mapped"
+      },
+      "detected_at": "2026-09-03T02:15:07+00:00",
+      "run_id": "no-trail",
+      "status": "OPEN",
+      "fingerprint": "a1c3c498a4152d8b"
+    }
+  ],
+  "lab": {
+    "profile": "no-trail",
+    "backend": "moto",
+    "provisioned": {
+      "profile": "no-trail",
+      "backend": "moto",
+      "suffix": "",
+      "buckets": {
+        "lab-notrail-data": "lab-notrail-data"
+      }
+    },
+    "caller_arn": "arn:aws:sts::123456789012:user/moto",
+    "api_calls_by_operation": {
+      "cloudtrail:DescribeTrails": 1,
+      "iam:ListGroups": 1,
+      "iam:ListRoles": 1,
+      "iam:ListUsers": 1,
+      "s3:GetBucketAcl": 1,
+      "s3:GetBucketEncryption": 1,
+      "s3:GetBucketLocation": 1,
+      "s3:GetBucketPolicy": 1,
+      "s3:GetBucketPolicyStatus": 1,
+      "s3:GetPublicAccessBlock": 1,
+      "s3:ListBuckets": 1,
+      "sts:GetCallerIdentity": 1
+    },
+    "negative_controls": [
+      {
+        "name": "lab-notrail-data",
+        "kind": "s3-bucket",
+        "intent": "Negative control so the profile is not empty: fully locked-down bucket."
+      }
+    ]
+  }
+}

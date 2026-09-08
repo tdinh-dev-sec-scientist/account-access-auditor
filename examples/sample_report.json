@@ -1,0 +1,282 @@
+{
+  "metadata": {
+    "tool": "account-access-auditor",
+    "tool_version": "0.1.0",
+    "run_id": "example00run0",
+    "generated_at": "2026-09-03T02:12:48+00:00",
+    "account_id": "123456789012",
+    "region": "us-east-1",
+    "environment": "synthetic example (no AWS account was contacted)",
+    "services_scanned": [
+      "IAM",
+      "S3",
+      "CloudTrail"
+    ],
+    "rules_evaluated": [],
+    "compliance_framework": "CIS AWS Foundations Benchmark v3.0.0",
+    "cis_mapped_rule_count": 11,
+    "severity_model": [
+      "CRITICAL",
+      "HIGH",
+      "MEDIUM",
+      "LOW",
+      "INFO"
+    ],
+    "severity_disclaimer": "Severity is this project's internal prioritisation model. It is not a CVSS score, an AWS risk rating, or a formal industry classification.",
+    "read_only": true,
+    "python_version": "3.11.15",
+    "platform": "linux"
+  },
+  "summary": {
+    "total_findings": 7,
+    "by_severity": {
+      "CRITICAL": 2,
+      "HIGH": 2,
+      "MEDIUM": 1,
+      "LOW": 1,
+      "INFO": 1
+    },
+    "by_service": {
+      "CloudTrail": 1,
+      "IAM": 3,
+      "S3": 3
+    },
+    "by_rule": {
+      "CT-004": 1,
+      "IAM-002": 1,
+      "IAM-004": 1,
+      "IAM-006": 1,
+      "S3-001": 1,
+      "S3-002": 1,
+      "S3-003": 1
+    },
+    "by_resource_type": {
+      "cloudtrail-trail": 1,
+      "iam-access-key": 1,
+      "iam-policy": 1,
+      "iam-user": 1,
+      "s3-bucket": 3
+    },
+    "affected_resource_count": 7,
+    "resources_scanned": {
+      "iam_users": 6,
+      "s3_buckets": 5,
+      "cloudtrail_trails": 1
+    },
+    "collection_errors": 1,
+    "api_call_count": 57,
+    "duration_seconds": 2.418
+  },
+  "collection_errors": [
+    {
+      "service": "S3",
+      "operation": "s3:GetBucketAcl",
+      "resource": "example-restricted",
+      "code": "AccessDenied",
+      "category": "access_denied",
+      "message": "An error occurred (AccessDenied) when calling the GetBucketAcl operation",
+      "required_permissions": [
+        "s3:GetBucketAcl"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "rule_id": "IAM-004",
+      "severity": "CRITICAL",
+      "service": "IAM",
+      "resource": "user:example-deploy/example-deploy-inline",
+      "title": "IAM policy grants unrestricted actions on all resources",
+      "description": "The inline policy \"example-deploy-inline\" attached to user \"example-deploy\" contains an Allow statement for Action \"*\" on all resources.",
+      "remediation": "Replace the wildcard statement with the specific actions the workload calls, scoped to specific resource ARNs. Derive the action list from CloudTrail or IAM Access Analyzer policy generation rather than guessing.",
+      "resource_type": "iam-policy",
+      "rationale": "The statement grants every action against every resource, including the IAM actions needed to grant further access and the CloudTrail actions needed to stop recording it. Compromise of any principal holding it is equivalent to compromise of the account.",
+      "evidence": {
+        "principal_type": "user",
+        "principal_name": "example-deploy",
+        "policy_name": "example-deploy-inline",
+        "policy_type": "inline",
+        "statements": [
+          {
+            "sid": "FullAdmin",
+            "actions": [
+              "*"
+            ],
+            "resource_scope": "*"
+          }
+        ]
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "1.16",
+        "control_title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
+        "status": "mapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "64a0cef758d268c0"
+    },
+    {
+      "rule_id": "S3-003",
+      "severity": "CRITICAL",
+      "service": "S3",
+      "resource": "example-public-assets",
+      "title": "Bucket policy grants access to a public principal",
+      "description": "The bucket policy on 'example-public-assets' contains an Allow statement with an anonymous principal. The statements grant access to anonymous callers without any condition.",
+      "remediation": "Scope the Principal to specific account or role ARNs. If the bucket must serve public content, front it with CloudFront and an origin access control rather than a public bucket policy.",
+      "resource_type": "s3-bucket",
+      "rationale": "An anonymous Allow in the resource policy grants access without any authentication, independently of IAM. Conditions can narrow it, but they have to be read: an aws:SourceIp condition constrains access while an aws:SecureTransport condition does not.",
+      "evidence": {
+        "bucket": "example-public-assets",
+        "statements": [
+          {
+            "sid": "PublicRead",
+            "actions": [
+              "s3:GetObject"
+            ],
+            "is_effectively_constrained": false
+          }
+        ],
+        "get_bucket_policy_status_is_public": true
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "2.1.4",
+        "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+        "status": "mapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "d01c8621a2beba83"
+    },
+    {
+      "rule_id": "CT-004",
+      "severity": "HIGH",
+      "service": "CloudTrail",
+      "resource": "example-management-trail",
+      "title": "CloudTrail trail exists but is not currently logging",
+      "description": "Trail 'example-management-trail' is configured but GetTrailStatus reports that logging is stopped.",
+      "remediation": "Start logging on the trail and investigate why it stopped. For delivery errors, check the destination bucket policy, the bucket's existence, and the KMS key policy if the trail is encrypted.",
+      "resource_type": "cloudtrail-trail",
+      "rationale": "A configured trail is not the same as an operating one. A stopped trail or a failing delivery leaves the same gap as having no trail at all, while still appearing correctly configured in every configuration-only review.",
+      "evidence": {
+        "trail": "example-management-trail",
+        "is_logging": false
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "3.1",
+        "control_title": "Ensure CloudTrail is enabled in all regions",
+        "status": "mapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "46fec6821ed6f10c"
+    },
+    {
+      "rule_id": "IAM-002",
+      "severity": "HIGH",
+      "service": "IAM",
+      "resource": "user:example-service/AKIA\u2026MPLE",
+      "title": "Active IAM access key exceeds maximum age",
+      "description": "Access key AKIA\u2026MPLE for user 'example-service' is 214 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days.",
+      "remediation": "Create a replacement key, migrate dependent workloads, then deactivate and delete the superseded key. Prefer IAM roles or IAM Identity Center over long-lived user keys where the workload allows it.",
+      "resource_type": "iam-access-key",
+      "rationale": "A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.",
+      "evidence": {
+        "username": "example-service",
+        "age_days": 214,
+        "threshold_days": 90
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "1.14",
+        "control_title": "Ensure access keys are rotated every 90 days or less",
+        "status": "mapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "9aa4a9d51c54af9c"
+    },
+    {
+      "rule_id": "S3-001",
+      "severity": "MEDIUM",
+      "service": "S3",
+      "resource": "example-reports",
+      "title": "S3 Public Access Block is not fully enabled",
+      "description": "Bucket 'example-reports' has no Public Access Block configuration, so all four protections are off.",
+      "remediation": "Enable all four Block Public Access settings on the bucket, and enable the account-level block, unless the bucket is intentionally serving public content.",
+      "resource_type": "s3-bucket",
+      "rationale": "Block Public Access is the backstop that makes a public ACL or bucket policy non-effective even when one is applied by mistake. With it off, a single careless PutBucketAcl call is enough to expose the bucket.",
+      "evidence": {
+        "bucket": "example-reports",
+        "public_access_block_configured": false
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "2.1.4",
+        "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+        "status": "mapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "f439a944df795b29"
+    },
+    {
+      "rule_id": "S3-002",
+      "severity": "LOW",
+      "service": "S3",
+      "resource": "example-legacy-static",
+      "title": "Bucket ACL grants public access (currently ignored by Public Access Block)",
+      "description": "The ACL on bucket 'example-legacy-static' grants READ to the global group(s) AllUsers. IgnorePublicAcls is enabled, so the grants are not currently effective, but they remain in the ACL.",
+      "remediation": "Remove the global-group grants from the bucket ACL, then enable Block Public Access so the grant cannot be reintroduced.",
+      "resource_type": "s3-bucket",
+      "rationale": "AllUsers means anonymous callers on the internet. AuthenticatedUsers is commonly misread as 'my account' but means any AWS account holder, so both grants place the bucket outside the account's trust boundary.",
+      "evidence": {
+        "bucket": "example-legacy-static",
+        "ignore_public_acls": true
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": "2.1.4",
+        "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
+        "status": "mapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "ee1d198be7040518"
+    },
+    {
+      "rule_id": "IAM-006",
+      "severity": "INFO",
+      "service": "IAM",
+      "resource": "user:example-ci",
+      "title": "IAM user without MFA (no console access configured)",
+      "description": "IAM user 'example-ci' has no console login profile and no MFA device.",
+      "remediation": "No MFA action is required while the identity remains programmatic-only. Re-evaluate if console access is enabled.",
+      "resource_type": "iam-user",
+      "rationale": "There is no interactive sign-in path to protect, so this is not a console authentication weakness. It is recorded so the inventory of MFA-less identities is complete and so the finding reappears at a higher tier if a login profile is added later.",
+      "evidence": {
+        "username": "example-ci",
+        "console_access_enabled": false,
+        "mfa_device_count": 0
+      },
+      "compliance": {
+        "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+        "control_id": null,
+        "control_title": null,
+        "status": "unmapped"
+      },
+      "detected_at": "2026-01-15T09:00:00+00:00",
+      "run_id": null,
+      "status": "OPEN",
+      "fingerprint": "d74210991a2df64d"
+    }
+  ]
+}

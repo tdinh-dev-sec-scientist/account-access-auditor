@@ -1,0 +1,1684 @@
+{
+  "generated_by": "pytest tests/test_fixture_manifest.py",
+  "total_cases": 98,
+  "total_expected_findings": 91,
+  "by_category": {
+    "clean": 17,
+    "vulnerable": 19,
+    "severity": 6,
+    "edge": 39,
+    "malformed": 8,
+    "multi": 9
+  },
+  "by_service": {
+    "iam": 48,
+    "s3": 35,
+    "cloudtrail": 15
+  },
+  "cases_per_rule": {
+    "CT-001": 3,
+    "CT-002": 7,
+    "CT-003": 6,
+    "CT-004": 7,
+    "IAM-001": 10,
+    "IAM-002": 12,
+    "IAM-003": 11,
+    "IAM-004": 18,
+    "IAM-005": 12,
+    "IAM-006": 8,
+    "S3-001": 10,
+    "S3-002": 10,
+    "S3-003": 16,
+    "S3-004": 6
+  },
+  "rules_covered": [
+    "CT-001",
+    "CT-002",
+    "CT-003",
+    "CT-004",
+    "IAM-001",
+    "IAM-002",
+    "IAM-003",
+    "IAM-004",
+    "IAM-005",
+    "IAM-006",
+    "S3-001",
+    "S3-002",
+    "S3-003",
+    "S3-004"
+  ],
+  "cases": [
+    {
+      "case_id": "iam-001-console-no-mfa",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-001"
+      ],
+      "description": "Console login profile with zero MFA devices is HIGH.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-001",
+          "user:alice",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-001-console-with-mfa",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-001"
+      ],
+      "description": "Console user with an MFA device produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-001-console-multiple-mfa",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-001"
+      ],
+      "description": "Two registered MFA devices still count as protected.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-006-programmatic-no-mfa",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-006"
+      ],
+      "description": "Programmatic-only user without MFA is INFO, never HIGH.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-006",
+          "user:svc",
+          "INFO"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-006-programmatic-with-mfa",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-006"
+      ],
+      "description": "Programmatic user that does have MFA produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-mfa-unknown-console-state",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-001",
+        "IAM-006"
+      ],
+      "description": "Denied GetLoginProfile leaves console state unknown, so neither MFA rule fires.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-mfa-unknown-device-count",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-001",
+        "IAM-006"
+      ],
+      "description": "Denied ListMFADevices leaves the device count unknown, so neither MFA rule fires.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-mfa-no-users-at-all",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-001",
+        "IAM-006"
+      ],
+      "description": "An account with no IAM users produces no IAM findings.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-002-key-under-threshold",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-002"
+      ],
+      "description": "A 30-day-old active key is below the 90-day threshold.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-002-key-exactly-at-threshold",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-002"
+      ],
+      "description": "A key exactly at 90 days does not fire: the rule is strictly greater-than.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-002-key-one-day-over",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-002"
+      ],
+      "description": "A key at 91 days is the first age that fires, at MEDIUM.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-002",
+          "user:svc/AKIAEXAMPLE",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-002-key-past-escalation",
+      "service": "iam",
+      "category": "severity",
+      "covers": [
+        "IAM-002"
+      ],
+      "description": "A key past 180 days escalates from MEDIUM to HIGH.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-002",
+          "user:svc/AKIAEXAMPLE",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-002-key-exactly-at-escalation",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-002"
+      ],
+      "description": "A key exactly at 180 days stays MEDIUM; escalation is strictly greater-than.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-002",
+          "user:svc/AKIAEXAMPLE",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-002-unknown-age",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-002"
+      ],
+      "description": "A key with an unknown creation date is not aged-out on a guess.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-002-inactive-old-key-not-aged",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-002",
+        "IAM-003"
+      ],
+      "description": "An ancient Inactive key is IAM-003 LOW only: rotation does not apply to a disabled key.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-003",
+          "user:svc/AKIAEXAMPLE",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-inactive-key",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-003"
+      ],
+      "description": "An Inactive key still present is LOW.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-003",
+          "user:svc/AKIAEXAMPLE",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-never-used-old-key",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-003",
+        "IAM-002"
+      ],
+      "description": "An active key never used in 400 days is dormant (MEDIUM) as well as overdue (HIGH).",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "IAM-002",
+          "user:svc/AKIAEXAMPLE",
+          "HIGH"
+        ],
+        [
+          "IAM-003",
+          "user:svc/AKIAEXAMPLE",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-never-used-young-key",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-003"
+      ],
+      "description": "A 10-day-old key that has not been used yet is newly issued, not dormant.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-003-unused-past-threshold",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-003"
+      ],
+      "description": "An active key last used 90 days ago is past the 45-day dormancy threshold.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-003",
+          "user:svc/AKIAEXAMPLE",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-unused-exactly-at-threshold",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-003"
+      ],
+      "description": "A key last used exactly 45 days ago fires: the CIS control is 45 days or greater.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-003",
+          "user:svc/AKIAEXAMPLE",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-recently-used-key",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-003"
+      ],
+      "description": "A key used yesterday is in active service and produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-003-last-used-unknown",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-003"
+      ],
+      "description": "Denied GetAccessKeyLastUsed means dormancy is unknowable, so the rule stays silent.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-002",
+          "user:svc/AKIAEXAMPLE",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-two-keys-one-dormant",
+      "service": "iam",
+      "category": "multi",
+      "covers": [
+        "IAM-002",
+        "IAM-003"
+      ],
+      "description": "Two keys on one user are attributed individually by key ID.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "IAM-002",
+          "user:svc/AKIADORMANT",
+          "HIGH"
+        ],
+        [
+          "IAM-003",
+          "user:svc/AKIADORMANT",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-003-no-keys",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-002",
+        "IAM-003"
+      ],
+      "description": "A user with no access keys produces no key findings.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-004-admin-wildcard",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "Action \"*\" on Resource \"*\" is CRITICAL.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/admin",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-004-star-colon-star",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "The CIS control's literal \"*:*\" spelling is treated as full admin too.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/admin",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-004-not-action",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "NotAction on Resource \"*\" grants everything except one service; still CRITICAL.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/almost-admin",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-004-not-resource",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "NotResource is an all-resources grant with a hole in it, so it counts.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/all-but-one",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-004-lowercase-effect",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "IAM treats Effect case-insensitively, and so does the analyser.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/admin",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-004-deny-is-not-a-grant",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "Deny \"*\" on \"*\" is one of the safest statements possible and must not fire.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-004-supersedes-005",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004",
+        "IAM-005"
+      ],
+      "description": "A policy with both an admin and a service-wide statement reports IAM-004 only.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/mixed",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-005-service-wide",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-005"
+      ],
+      "description": "Service-wide wildcards on Resource \"*\" in a customer policy are HIGH.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-005",
+          "user:dev/broad",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-005-aws-managed-downgraded",
+      "service": "iam",
+      "category": "severity",
+      "covers": [
+        "IAM-005"
+      ],
+      "description": "The same shape in an AWS-managed policy is LOW: reviewable, not a misconfiguration.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-005",
+          "user:dev/AmazonS3FullAccess",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-005-service-wide-scoped-resource",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-005"
+      ],
+      "description": "s3:* scoped to one bucket ARN is not an all-resources grant.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-005-prefix-wildcard-not-service-wide",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-005"
+      ],
+      "description": "\"s3:Get*\" is a prefix wildcard, not service-wide, and is out of scope for IAM-005.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-005-scoped-policy-clean",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-004",
+        "IAM-005"
+      ],
+      "description": "A least-privilege policy produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-005-unreadable-policy-document",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004",
+        "IAM-005"
+      ],
+      "description": "A policy whose document could not be read is a collection gap, not a clean policy.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-005-malformed-policy-document",
+      "service": "iam",
+      "category": "malformed",
+      "covers": [
+        "IAM-004",
+        "IAM-005"
+      ],
+      "description": "A policy document that is a string rather than an object degrades to no finding, not a crash.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-005-statement-not-a-list",
+      "service": "iam",
+      "category": "malformed",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "A single-object Statement (legal IAM) is handled like a one-element list.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/single",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-005-statement-with-junk-entries",
+      "service": "iam",
+      "category": "malformed",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "Non-object entries inside Statement are skipped without hiding the real one.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "user:dev/junky",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-005-empty-statement-list",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-004",
+        "IAM-005"
+      ],
+      "description": "A policy with no statements grants nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-group-policy-reported-once",
+      "service": "iam",
+      "category": "multi",
+      "covers": [
+        "IAM-005"
+      ],
+      "description": "A broad group policy is reported once at the group, not once per member.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-005",
+          "group:devs/broad",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-role-admin-policy",
+      "service": "iam",
+      "category": "vulnerable",
+      "covers": [
+        "IAM-004"
+      ],
+      "description": "An admin policy on a role is found, not only on users.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-004",
+          "role:deploy/admin",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-all-three-principal-types",
+      "service": "iam",
+      "category": "multi",
+      "covers": [
+        "IAM-004",
+        "IAM-005"
+      ],
+      "description": "User, group, and role policies are attributed to the right principal each.",
+      "expected_finding_count": 3,
+      "expected": [
+        [
+          "IAM-004",
+          "user:u/u-admin",
+          "CRITICAL"
+        ],
+        [
+          "IAM-005",
+          "group:g/g-broad",
+          "HIGH"
+        ],
+        [
+          "IAM-005",
+          "role:r/r-broad",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-multiple-users-attribution",
+      "service": "iam",
+      "category": "multi",
+      "covers": [
+        "IAM-001",
+        "IAM-004",
+        "IAM-006"
+      ],
+      "description": "Three users with different problems each get their own findings.",
+      "expected_finding_count": 3,
+      "expected": [
+        [
+          "IAM-001",
+          "user:console-nomfa",
+          "HIGH"
+        ],
+        [
+          "IAM-006",
+          "user:svc-nomfa",
+          "INFO"
+        ],
+        [
+          "IAM-004",
+          "user:admin/root-like",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "iam-fully-clean-account",
+      "service": "iam",
+      "category": "clean",
+      "covers": [
+        "IAM-001",
+        "IAM-002",
+        "IAM-003",
+        "IAM-004",
+        "IAM-005",
+        "IAM-006"
+      ],
+      "description": "An IAM estate with nothing wrong produces zero findings across all six rules.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-empty-state",
+      "service": "iam",
+      "category": "edge",
+      "covers": [
+        "IAM-001",
+        "IAM-004",
+        "IAM-006"
+      ],
+      "description": "Completely empty IAM state is handled without error.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "iam-missing-optional-keys",
+      "service": "iam",
+      "category": "malformed",
+      "covers": [
+        "IAM-001",
+        "IAM-002"
+      ],
+      "description": "A user dict missing optional keys entirely does not raise KeyError.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "IAM-001",
+          "user:sparse",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-001-all-protections-on",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-001"
+      ],
+      "description": "All four Block Public Access settings enabled produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-001-no-pab-configuration",
+      "service": "s3",
+      "category": "vulnerable",
+      "covers": [
+        "S3-001"
+      ],
+      "description": "No Public Access Block configuration at all is MEDIUM.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-001",
+          "unset",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-001-one-setting-off",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-001"
+      ],
+      "description": "A single disabled setting is enough to fire; the rule requires all four.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-001",
+          "partial",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-001-all-settings-off",
+      "service": "s3",
+      "category": "vulnerable",
+      "covers": [
+        "S3-001"
+      ],
+      "description": "A configuration with all four settings explicitly false fires once, not four times.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-001",
+          "wide-open",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-001-pab-unreadable",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-001"
+      ],
+      "description": "Denied GetPublicAccessBlock must not be reported as an absent configuration.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-001-partial-keys-in-response",
+      "service": "s3",
+      "category": "malformed",
+      "covers": [
+        "S3-001"
+      ],
+      "description": "A PAB response missing keys treats the absent ones as disabled.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-001",
+          "sparse",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-allusers-grant-unprotected",
+      "service": "s3",
+      "category": "vulnerable",
+      "covers": [
+        "S3-001",
+        "S3-002"
+      ],
+      "description": "An AllUsers ACL grant with protections off is CRITICAL.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "public-acl",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "public-acl",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-authenticatedusers-grant",
+      "service": "s3",
+      "category": "vulnerable",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "AuthenticatedUsers means any AWS account holder and is treated as public.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "cross-account",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "cross-account",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-ignored-by-pab",
+      "service": "s3",
+      "category": "severity",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "IgnorePublicAcls neutralises the grant today, so it is LOW rather than dropped.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "latent",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "latent",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-blockpublicacls-does-not-neutralise",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "BlockPublicAcls stops new grants but does not ignore existing ones, so this stays CRITICAL.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "still-public",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "still-public",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-private-grants-only",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "A canonical-user ACL grant is a named identity, not the public.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-002-mixed-grants",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "One public grant among several private ones still fires, once.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "mixed",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "mixed",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-two-public-grants-one-finding",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "READ and WRITE grants to AllUsers are one bucket-level finding, not two.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "double",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "double",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-002-no-acl-grants",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-002"
+      ],
+      "description": "An empty ACL grant list produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-003-unconditional-public-policy",
+      "service": "s3",
+      "category": "vulnerable",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "An unconditional Principal \"*\" Allow is CRITICAL.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "open-policy",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "open-policy",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-dict-principal-form",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "Principal {\"AWS\": \"*\"} is the same anonymous grant as Principal \"*\".",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "dict-form",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "dict-form",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-principal-list-containing-star",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "A principal list containing \"*\" alongside a real ARN is still public.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "list-form",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "list-form",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-not-principal",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "Allow with NotPrincipal grants everyone except one identity, which includes anonymous callers.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "not-principal",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "not-principal",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-ip-condition-downgrades",
+      "service": "s3",
+      "category": "severity",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "aws:SourceIp genuinely narrows who can call, so the finding is MEDIUM for review.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "partner",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "partner",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-org-condition-downgrades",
+      "service": "s3",
+      "category": "severity",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "aws:PrincipalOrgID confines the grant to one organisation, so MEDIUM.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "org-only",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "org-only",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-securetransport-does-not-downgrade",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "aws:SecureTransport only requires HTTPS, so a TLS-only condition stays CRITICAL.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "tls-public",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "tls-public",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-blocked-by-pab",
+      "service": "s3",
+      "category": "severity",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "A public policy with all four PAB settings on is LOW: latent, not live.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-003",
+          "blocked",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-restrictpublicbuckets-alone-blocks",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "RestrictPublicBuckets alone is enough to downgrade the policy finding to LOW.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "restricted",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "restricted",
+          "LOW"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-service-principal-not-public",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "A CloudTrail service principal is a named service, not the public.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-003-account-principal-not-public",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "A specific account-root principal is not public.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-003-public-deny-not-a-grant",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "Deny with Principal \"*\" is a restriction and must not be reported as exposure.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-003-no-policy",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "A bucket with no policy at all produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-003-policy-status-public-only",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "GetBucketPolicyStatus reporting IsPublic still fires even when the document is unreadable.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "S3-001",
+          "status-only",
+          "MEDIUM"
+        ],
+        [
+          "S3-003",
+          "status-only",
+          "CRITICAL"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-003-unparsed-policy",
+      "service": "s3",
+      "category": "malformed",
+      "covers": [
+        "S3-003"
+      ],
+      "description": "A bucket policy that would not parse yields no statements rather than a crash.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-001",
+          "garbled",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-004-no-encryption-config",
+      "service": "s3",
+      "category": "vulnerable",
+      "covers": [
+        "S3-004"
+      ],
+      "description": "No bucket-level default encryption configuration is MEDIUM.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "S3-004",
+          "unencrypted",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-004-encryption-configured",
+      "service": "s3",
+      "category": "clean",
+      "covers": [
+        "S3-004"
+      ],
+      "description": "An explicit SSE-S3 configuration produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-004-encryption-unreadable",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-004"
+      ],
+      "description": "Denied GetBucketEncryption is unknown, not absent, so the rule stays silent.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "s3-worst-case-bucket",
+      "service": "s3",
+      "category": "multi",
+      "covers": [
+        "S3-001",
+        "S3-002",
+        "S3-003",
+        "S3-004"
+      ],
+      "description": "One bucket failing all four rules produces exactly four findings.",
+      "expected_finding_count": 4,
+      "expected": [
+        [
+          "S3-001",
+          "everything-wrong",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "everything-wrong",
+          "CRITICAL"
+        ],
+        [
+          "S3-003",
+          "everything-wrong",
+          "CRITICAL"
+        ],
+        [
+          "S3-004",
+          "everything-wrong",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-multiple-buckets-attribution",
+      "service": "s3",
+      "category": "multi",
+      "covers": [
+        "S3-001",
+        "S3-002",
+        "S3-004"
+      ],
+      "description": "Three buckets with different problems are attributed to the right bucket each.",
+      "expected_finding_count": 3,
+      "expected": [
+        [
+          "S3-001",
+          "public-one",
+          "MEDIUM"
+        ],
+        [
+          "S3-002",
+          "public-one",
+          "CRITICAL"
+        ],
+        [
+          "S3-004",
+          "unencrypted-one",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "s3-no-buckets",
+      "service": "s3",
+      "category": "edge",
+      "covers": [
+        "S3-001",
+        "S3-004"
+      ],
+      "description": "An account with no buckets produces no S3 findings.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "ct-healthy-trail",
+      "service": "cloudtrail",
+      "category": "clean",
+      "covers": [
+        "CT-001",
+        "CT-002",
+        "CT-003",
+        "CT-004"
+      ],
+      "description": "A multi-region, validating, logging trail produces nothing.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "ct-001-no-trails",
+      "service": "cloudtrail",
+      "category": "vulnerable",
+      "covers": [
+        "CT-001"
+      ],
+      "description": "DescribeTrails returning an empty list is HIGH.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-001",
+          "aws-account",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-001-trails-unreadable",
+      "service": "cloudtrail",
+      "category": "edge",
+      "covers": [
+        "CT-001",
+        "CT-002"
+      ],
+      "description": "A denied DescribeTrails must never be reported as 'no trail exists'.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "ct-002-single-region-only",
+      "service": "cloudtrail",
+      "category": "vulnerable",
+      "covers": [
+        "CT-002"
+      ],
+      "description": "A lone single-region trail is MEDIUM at the account level.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-002",
+          "aws-account",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-002-two-single-region-trails-one-finding",
+      "service": "cloudtrail",
+      "category": "edge",
+      "covers": [
+        "CT-002"
+      ],
+      "description": "Two single-region trails are one account-level finding, not two.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-002",
+          "aws-account",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-002-one-multi-region-suffices",
+      "service": "cloudtrail",
+      "category": "edge",
+      "covers": [
+        "CT-002"
+      ],
+      "description": "A single multi-region trail satisfies the rule even alongside regional ones.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "ct-003-validation-disabled",
+      "service": "cloudtrail",
+      "category": "vulnerable",
+      "covers": [
+        "CT-003"
+      ],
+      "description": "Log file validation disabled is MEDIUM, per trail.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-003",
+          "management-trail",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-003-per-trail-attribution",
+      "service": "cloudtrail",
+      "category": "multi",
+      "covers": [
+        "CT-003"
+      ],
+      "description": "Only the trail with validation off is reported, named by trail.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-003",
+          "bad",
+          "MEDIUM"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-004-stopped-trail",
+      "service": "cloudtrail",
+      "category": "vulnerable",
+      "covers": [
+        "CT-004"
+      ],
+      "description": "A configured trail with logging stopped is HIGH.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-004",
+          "management-trail",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-004-delivery-error",
+      "service": "cloudtrail",
+      "category": "vulnerable",
+      "covers": [
+        "CT-004"
+      ],
+      "description": "A logging trail reporting a delivery error is HIGH: enabled but not delivering.",
+      "expected_finding_count": 1,
+      "expected": [
+        [
+          "CT-004",
+          "management-trail",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-004-empty-delivery-error-string",
+      "service": "cloudtrail",
+      "category": "malformed",
+      "covers": [
+        "CT-004"
+      ],
+      "description": "An empty-string delivery error means 'no error yet' and must not fire.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "ct-004-status-unknown",
+      "service": "cloudtrail",
+      "category": "edge",
+      "covers": [
+        "CT-004"
+      ],
+      "description": "Denied GetTrailStatus leaves logging state unknown, so the rule stays silent.",
+      "expected_finding_count": 0,
+      "expected": []
+    },
+    {
+      "case_id": "ct-004-stopped-trail-still-reports-validation",
+      "service": "cloudtrail",
+      "category": "multi",
+      "covers": [
+        "CT-002",
+        "CT-003",
+        "CT-004"
+      ],
+      "description": "A stopped, single-region, non-validating trail produces all three findings at once.",
+      "expected_finding_count": 3,
+      "expected": [
+        [
+          "CT-002",
+          "aws-account",
+          "MEDIUM"
+        ],
+        [
+          "CT-003",
+          "neglected",
+          "MEDIUM"
+        ],
+        [
+          "CT-004",
+          "neglected",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-multiple-trails-mixed-health",
+      "service": "cloudtrail",
+      "category": "multi",
+      "covers": [
+        "CT-003",
+        "CT-004"
+      ],
+      "description": "Across three trails, each per-trail rule fires only on the trails that fail it.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "CT-003",
+          "unvalidated",
+          "MEDIUM"
+        ],
+        [
+          "CT-004",
+          "stopped",
+          "HIGH"
+        ]
+      ]
+    },
+    {
+      "case_id": "ct-missing-optional-fields",
+      "service": "cloudtrail",
+      "category": "malformed",
+      "covers": [
+        "CT-002",
+        "CT-003"
+      ],
+      "description": "A trail dict with only a name defaults to non-multi-region and non-validating.",
+      "expected_finding_count": 2,
+      "expected": [
+        [
+          "CT-002",
+          "aws-account",
+          "MEDIUM"
+        ],
+        [
+          "CT-003",
+          "bare",
+          "MEDIUM"
+        ]
+      ]
+    }
+  ]
+}

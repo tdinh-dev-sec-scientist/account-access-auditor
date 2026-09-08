@@ -1,0 +1,139 @@
+{
+  "tool_version": "0.1.0",
+  "metrics": {
+    "security_rules": {
+      "value": 14,
+      "evidence": "auditor/rules/registry.py",
+      "command": "python -m auditor.cli list-rules"
+    },
+    "lab_findings": {
+      "value": 25,
+      "by_severity": {
+        "CRITICAL": 4,
+        "HIGH": 5,
+        "MEDIUM": 11,
+        "LOW": 3,
+        "INFO": 2
+      },
+      "by_service": {
+        "CloudTrail": 3,
+        "IAM": 10,
+        "S3": 12
+      },
+      "by_rule": {
+        "CT-002": 1,
+        "CT-003": 1,
+        "CT-004": 1,
+        "IAM-001": 1,
+        "IAM-002": 2,
+        "IAM-003": 2,
+        "IAM-004": 1,
+        "IAM-005": 2,
+        "IAM-006": 2,
+        "S3-001": 4,
+        "S3-002": 2,
+        "S3-003": 4,
+        "S3-004": 2
+      },
+      "affected_resources": 17,
+      "resources_scanned": {
+        "iam_users": 5,
+        "iam_groups": 1,
+        "iam_roles": 2,
+        "iam_policies": 5,
+        "iam_access_keys": 3,
+        "s3_buckets": 8,
+        "cloudtrail_trails": 1
+      },
+      "environment": "lab/misconfigured (moto emulated account, not a live AWS account)",
+      "evidence": "results/aws_audit_results.json",
+      "command": "python -m lab.run_benchmark"
+    },
+    "detection_rate": {
+      "value": 1.0,
+      "true_positives": 25,
+      "false_negatives": 0,
+      "false_positives": 0,
+      "evidence": "results/expected_vs_actual.json",
+      "command": "python -m lab.run_benchmark"
+    },
+    "fixture_cases": {
+      "value": 98,
+      "by_category": {
+        "clean": 17,
+        "vulnerable": 19,
+        "severity": 6,
+        "edge": 39,
+        "malformed": 8,
+        "multi": 9
+      },
+      "by_service": {
+        "iam": 48,
+        "s3": 35,
+        "cloudtrail": 15
+      },
+      "rules_covered": 14,
+      "evidence": "results/fixture_manifest.json",
+      "command": "pytest tests/test_fixture_manifest.py"
+    },
+    "tests": {
+      "value": 579,
+      "passed": 579,
+      "failed": 0,
+      "evidence": "579 passed in 2.90s",
+      "command": "pytest"
+    },
+    "coverage": {
+      "detection_percent": 99.87,
+      "detection_statements": 585,
+      "detection_branches": 166,
+      "detection_modules": [
+        "auditor/models/__init__.py",
+        "auditor/models/finding.py",
+        "auditor/models/report.py",
+        "auditor/normalize/__init__.py",
+        "auditor/normalize/cloudtrail.py",
+        "auditor/normalize/iam.py",
+        "auditor/normalize/s3.py",
+        "auditor/rules/__init__.py",
+        "auditor/rules/cloudtrail_rules.py",
+        "auditor/rules/engine.py",
+        "auditor/rules/iam_rules.py",
+        "auditor/rules/policy.py",
+        "auditor/rules/registry.py",
+        "auditor/rules/s3_rules.py",
+        "auditor/severity.py"
+      ],
+      "overall_percent": 99.61,
+      "overall_branch_inclusive_percent": 99.61,
+      "overall_statements": 1605,
+      "evidence": "results/coverage.json",
+      "command": "pytest --cov=auditor --cov-report=json:results/coverage.json"
+    },
+    "cis_mapped_rules": {
+      "value": 11,
+      "of": 14,
+      "benchmark_version": "3.0.0",
+      "status_counts": {
+        "mapped": 11,
+        "partial": 2,
+        "unmapped": 1
+      },
+      "evidence": "compliance/cis_mapping.json",
+      "command": "python -c \"from auditor import compliance; print(compliance.mapped_count())\""
+    },
+    "self_audit": {
+      "value": "PASS",
+      "wildcard_findings": 0,
+      "declared_operations_all_read_only": true,
+      "evidence": "policies/auditor-readonly-policy.json",
+      "command": "python -m auditor.cli validate-policy"
+    },
+    "api_calls_per_scan": {
+      "value": 101,
+      "duration_seconds": 0.206,
+      "evidence": "results/aws_audit_results.json",
+      "command": "python -m lab.run_benchmark"
+    }
+  }
+}

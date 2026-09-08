@@ -1,0 +1,21 @@
+# Auditor configuration. Thresholds live here, not in the rules.
+# Any key omitted falls back to the defaults in auditor/config.py.
+
+iam:
+  require_mfa_for_console_users: true
+  # Programmatic-only users without MFA are recorded as INFO, not HIGH.
+  report_programmatic_users_without_mfa: true
+  access_key_max_age_days: 90        # older active keys -> MEDIUM
+  access_key_critical_age_days: 180  # older active keys -> HIGH
+  inactive_key_check: true
+  check_wildcard_policies: true
+
+s3:
+  check_public_access: true
+  check_encryption: true
+
+cloudtrail:
+  require_trail: true
+  require_multi_region: true
+  require_log_validation: true
+  check_logging_status: true
