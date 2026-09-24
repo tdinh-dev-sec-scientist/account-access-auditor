@@ -77,10 +77,10 @@
       "command": "pytest tests/test_fixture_manifest.py"
     },
     "tests": {
-      "value": 601,
-      "passed": 601,
+      "value": 611,
+      "passed": 611,
       "failed": 0,
-      "evidence": "601 passed in 3.48s",
+      "evidence": "611 passed in 3.56s",
       "command": "pytest"
     },
     "coverage": {
@@ -131,7 +131,7 @@
     },
     "api_calls_per_scan": {
       "value": 101,
-      "duration_seconds": 0.24,
+      "duration_seconds": 0.206,
       "evidence": "results/aws_audit_results.json",
       "command": "python -m lab.run_benchmark"
     }
