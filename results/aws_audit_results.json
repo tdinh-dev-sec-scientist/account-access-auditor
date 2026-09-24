@@ -3,7 +3,7 @@
     "tool": "account-access-auditor",
     "tool_version": "0.1.0",
     "run_id": "lab-misconfigured",
-    "generated_at": "2026-09-24T01:52:15+00:00",
+    "generated_at": "2026-09-24T02:54:28+00:00",
     "account_id": "123456789012",
     "region": "us-east-1",
     "environment": "lab/misconfigured (moto emulated account, not a live AWS account)",
@@ -95,7 +95,7 @@
     },
     "collection_errors": 0,
     "api_call_count": 101,
-    "duration_seconds": 0.24
+    "duration_seconds": 0.206
   },
   "collection_errors": [],
   "findings": [
@@ -135,7 +135,7 @@
         "control_title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "7d8ca8e7369d83cd"
@@ -173,7 +173,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "c4844278b89f1324"
@@ -217,7 +217,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "8e70dcd0e08297b6"
@@ -263,7 +263,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "5c47a2ad9fe73350"
@@ -290,7 +290,7 @@
         "control_title": "Ensure CloudTrail is enabled in all regions",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "99e371dfb171b360"
@@ -318,7 +318,7 @@
         "control_title": "Ensure multi-factor authentication (MFA) is enabled for all IAM users that have a console password",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "300eb2fbeb928721"
@@ -327,17 +327,17 @@
       "rule_id": "IAM-002",
       "severity": "HIGH",
       "service": "IAM",
-      "resource": "user:lab-svc-stale-keys/AKIA\u2026UDGX",
+      "resource": "user:lab-svc-stale-keys/AKIA\u2026GQIJ",
       "title": "Active IAM access key exceeds maximum age",
-      "description": "Access key AKIA\u2026UDGX for user 'lab-svc-stale-keys' is 400 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.",
+      "description": "Access key AKIA\u2026GQIJ for user 'lab-svc-stale-keys' is 400 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.",
       "remediation": "Create a replacement key, migrate dependent workloads, then deactivate and delete the superseded key. Prefer IAM roles or IAM Identity Center over long-lived user keys where the workload allows it.",
       "resource_type": "iam-access-key",
       "rationale": "A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.",
       "evidence": {
         "username": "lab-svc-stale-keys",
-        "access_key_id": "AKIA\u2026UDGX",
+        "access_key_id": "AKIA\u2026GQIJ",
         "status": "Active",
-        "created": "2025-08-20T01:52:15+00:00",
+        "created": "2025-08-20T02:54:28+00:00",
         "age_days": 400,
         "last_used_date": null,
         "last_used_days_ago": null,
@@ -351,10 +351,10 @@
         "control_title": "Ensure access keys are rotated every 90 days or less",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
-      "fingerprint": "4efc51356b43a254"
+      "fingerprint": "db07d959d1340347"
     },
     {
       "rule_id": "IAM-005",
@@ -397,7 +397,7 @@
         "control_title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
         "status": "partial"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "62b4e54471b48b7b"
@@ -439,7 +439,7 @@
         "control_title": "Ensure IAM policies that allow full \"*:*\" administrative privileges are not attached",
         "status": "partial"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "663a9b9774171d0d"
@@ -471,7 +471,7 @@
         "control_title": "Ensure CloudTrail is enabled in all regions",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "2dffc6e1596972e2"
@@ -498,7 +498,7 @@
         "control_title": "Ensure CloudTrail log file validation is enabled",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "a04c6a6a1aedb3a7"
@@ -507,19 +507,19 @@
       "rule_id": "IAM-002",
       "severity": "MEDIUM",
       "service": "IAM",
-      "resource": "user:lab-svc-rotating/AKIA\u2026ESHD",
+      "resource": "user:lab-svc-rotating/AKIA\u2026GFII",
       "title": "Active IAM access key exceeds maximum age",
-      "description": "Access key AKIA\u2026ESHD for user 'lab-svc-rotating' is 120 days old, above the configured rotation threshold of 90 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.",
+      "description": "Access key AKIA\u2026GFII for user 'lab-svc-rotating' is 120 days old, above the configured rotation threshold of 90 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.",
       "remediation": "Create a replacement key, migrate dependent workloads, then deactivate and delete the superseded key. Prefer IAM roles or IAM Identity Center over long-lived user keys where the workload allows it.",
       "resource_type": "iam-access-key",
       "rationale": "A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.",
       "evidence": {
         "username": "lab-svc-rotating",
-        "access_key_id": "AKIA\u2026ESHD",
+        "access_key_id": "AKIA\u2026GFII",
         "status": "Active",
-        "created": "2026-05-27T01:52:15+00:00",
+        "created": "2026-05-27T02:54:28+00:00",
         "age_days": 120,
-        "last_used_date": "2026-09-19T01:52:15+00:00",
+        "last_used_date": "2026-09-19T02:54:28+00:00",
         "last_used_days_ago": 5,
         "last_used_service": "s3",
         "threshold_days": 90,
@@ -531,26 +531,26 @@
         "control_title": "Ensure access keys are rotated every 90 days or less",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
-      "fingerprint": "5b6e6b0b12493e7f"
+      "fingerprint": "62e167bf5cfdf67f"
     },
     {
       "rule_id": "IAM-003",
       "severity": "MEDIUM",
       "service": "IAM",
-      "resource": "user:lab-svc-stale-keys/AKIA\u2026UDGX",
+      "resource": "user:lab-svc-stale-keys/AKIA\u2026GQIJ",
       "title": "Dormant IAM access key remains active",
-      "description": "Active access key AKIA\u2026UDGX for user 'lab-svc-stale-keys' has never been used in 400 days since creation (GetAccessKeyLastUsed reports no last-used date), at or beyond the 45-day dormancy threshold. An unused credential retains the full permissions of its user while producing no activity that would make its misuse noticeable.",
+      "description": "Active access key AKIA\u2026GQIJ for user 'lab-svc-stale-keys' has never been used in 400 days since creation (GetAccessKeyLastUsed reports no last-used date), at or beyond the 45-day dormancy threshold. An unused credential retains the full permissions of its user while producing no activity that would make its misuse noticeable.",
       "remediation": "Delete the key. If the workload may still need it, deactivate it first and delete it once a full billing cycle passes with no access failures.",
       "resource_type": "iam-access-key",
       "rationale": "A credential nobody uses is a credential nobody is watching. Dormant keys carry the full permissions of their user while producing no signal that would make their misuse noticeable, and an Inactive key can be re-enabled by anyone who can call UpdateAccessKey.",
       "evidence": {
         "username": "lab-svc-stale-keys",
-        "access_key_id": "AKIA\u2026UDGX",
+        "access_key_id": "AKIA\u2026GQIJ",
         "status": "Active",
-        "created": "2025-08-20T01:52:15+00:00",
+        "created": "2025-08-20T02:54:28+00:00",
         "age_days": 400,
         "last_used_date": null,
         "last_used_days_ago": null,
@@ -564,10 +564,10 @@
         "control_title": "Ensure credentials unused for 45 days or greater are disabled",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
-      "fingerprint": "f8463f9a1fff3061"
+      "fingerprint": "a22ffa85a3d2c076"
     },
     {
       "rule_id": "S3-001",
@@ -600,7 +600,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "502980816617fa7a"
@@ -637,7 +637,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "af407a1721986a8d"
@@ -674,7 +674,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "80794581a39ae70d"
@@ -711,7 +711,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "af88cf69cb7e0d1d"
@@ -759,7 +759,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "392a5a1a97f743bb"
@@ -784,7 +784,7 @@
         "control_title": null,
         "status": "partial"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "48efd50bc2de0656"
@@ -809,7 +809,7 @@
         "control_title": null,
         "status": "partial"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "dca8631dfaacd349"
@@ -818,17 +818,17 @@
       "rule_id": "IAM-003",
       "severity": "LOW",
       "service": "IAM",
-      "resource": "user:lab-contractor-offboarded/AKIA\u2026SWLZ",
+      "resource": "user:lab-contractor-offboarded/AKIA\u2026P53C",
       "title": "Inactive IAM access key still present",
-      "description": "Access key AKIA\u2026SWLZ for user 'lab-contractor-offboarded' exists in an Inactive state. It cannot currently authenticate, but it remains credential material that a principal with iam:UpdateAccessKey can re-enable.",
+      "description": "Access key AKIA\u2026P53C for user 'lab-contractor-offboarded' exists in an Inactive state. It cannot currently authenticate, but it remains credential material that a principal with iam:UpdateAccessKey can re-enable.",
       "remediation": "Delete the key. If the workload may still need it, deactivate it first and delete it once a full billing cycle passes with no access failures.",
       "resource_type": "iam-access-key",
       "rationale": "A credential nobody uses is a credential nobody is watching. Dormant keys carry the full permissions of their user while producing no signal that would make their misuse noticeable, and an Inactive key can be re-enabled by anyone who can call UpdateAccessKey.",
       "evidence": {
         "username": "lab-contractor-offboarded",
-        "access_key_id": "AKIA\u2026SWLZ",
+        "access_key_id": "AKIA\u2026P53C",
         "status": "Inactive",
-        "created": "2026-09-24T01:52:15+00:00",
+        "created": "2026-09-24T02:54:28+00:00",
         "age_days": 0,
         "last_used_date": null,
         "last_used_days_ago": null,
@@ -840,10 +840,10 @@
         "control_title": "Ensure credentials unused for 45 days or greater are disabled",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
-      "fingerprint": "46e5dd6f046e5c41"
+      "fingerprint": "7823ee579144f5cd"
     },
     {
       "rule_id": "S3-002",
@@ -878,7 +878,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "9975327de5938542"
@@ -922,7 +922,7 @@
         "control_title": "Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "00b35da017ef5edf"
@@ -950,7 +950,7 @@
         "control_title": null,
         "status": "unmapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "5354147507c7370a"
@@ -978,7 +978,7 @@
         "control_title": null,
         "status": "unmapped"
       },
-      "detected_at": "2026-09-24T01:52:15+00:00",
+      "detected_at": "2026-09-24T02:54:28+00:00",
       "run_id": "misconfigured",
       "status": "OPEN",
       "fingerprint": "5325219f9bb74001"
@@ -991,10 +991,10 @@
       "profile": "misconfigured",
       "backend": "moto",
       "suffix": "",
-      "stale_key_id": "AKIA\u2026UDGX",
+      "stale_key_id": "AKIA\u2026GQIJ",
       "stale_key_backdated": true,
-      "rotating_key_id": "AKIA\u2026ESHD",
-      "inactive_key_id": "AKIA\u2026SWLZ",
+      "rotating_key_id": "AKIA\u2026GFII",
+      "inactive_key_id": "AKIA\u2026P53C",
       "buckets": {
         "lab-public-assets": "lab-public-assets",
         "lab-partner-share": "lab-partner-share",

@@ -30,13 +30,13 @@
         },
         {
           "rule_id": "IAM-002",
-          "resource": "user:lab-svc-stale-keys/AKIA\u2026UDGX",
+          "resource": "user:lab-svc-stale-keys/AKIA\u2026GQIJ",
           "severity": "HIGH",
           "why_expected": "Active key aged 400 days, past the 180-day escalation threshold."
         },
         {
           "rule_id": "IAM-003",
-          "resource": "user:lab-svc-stale-keys/AKIA\u2026UDGX",
+          "resource": "user:lab-svc-stale-keys/AKIA\u2026GQIJ",
           "severity": "MEDIUM",
           "why_expected": "Active key never used in 400 days, past the 45-day dormancy threshold."
         },
@@ -48,13 +48,13 @@
         },
         {
           "rule_id": "IAM-002",
-          "resource": "user:lab-svc-rotating/AKIA\u2026ESHD",
+          "resource": "user:lab-svc-rotating/AKIA\u2026GFII",
           "severity": "MEDIUM",
           "why_expected": "Active key aged 120 days: past 90, below the 180-day escalation."
         },
         {
           "rule_id": "IAM-003",
-          "resource": "user:lab-contractor-offboarded/AKIA\u2026SWLZ",
+          "resource": "user:lab-contractor-offboarded/AKIA\u2026P53C",
           "severity": "LOW",
           "why_expected": "Inactive key still present; residual credential material."
         },

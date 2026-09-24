@@ -1,6 +1,6 @@
-# Publish the sample HTML report to GitHub Pages.
+# Publish the demo site to GitHub Pages.
 #
-# The report is generated here rather than served from the committed copy, so
+# The benchmark runs here rather than the committed artifacts being served, so
 # the published page is always the output of the current code rather than of
 # whenever someone last remembered to regenerate it. As everywhere else in this
 # repository, the run has no AWS credentials: the account it audits is emulated
@@ -10,7 +10,7 @@
 # Actions. Until then the workflow's deploy step is the only thing that fails,
 # and nothing else in CI depends on it.
 
-name: Publish sample report
+name: Publish demo site
 
 on:
   push:
@@ -47,18 +47,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Generate the report from the emulated lab account
+      - name: Run the benchmark against the emulated lab account
         run: python -m lab.run_benchmark
 
-      - name: Assemble the site
-        run: |
-          mkdir -p site
-          cp results/aws_audit_report.html site/index.html
-          # The report links to nothing, but the artifacts it was built from are
-          # worth having beside it for anyone who wants to diff them.
-          cp results/aws_audit_results.json results/aws_audit_results.csv site/
-          # Jekyll would otherwise try to process the directory.
-          touch site/.nojekyll
+      - name: Build the site
+        run: python scripts/build_site.py
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
