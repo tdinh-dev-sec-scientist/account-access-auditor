@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'">
+<meta name="robots" content="noindex, nofollow">
+<meta name="generator" content="account-access-auditor 0.1.0">
+<title>AWS access configuration audit - 123456789012</title>
+<style>
+:root {
+    color-scheme: light;
+    --surface: #fcfcfb;
+    --plane: #f9f9f7;
+    --ink: #0b0b0b;
+    --ink-2: #52514e;
+    --muted: #898781;
+    --rule: #e1e0d9;
+    --edge: rgba(11, 11, 11, 0.10);
+    --tier-critical: #d03b3b;
+    --tier-high: #ec835a;
+    --tier-medium: #fab219;
+    --tier-low: #2a78d6;
+    --tier-info: #898781;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --surface: #1a1a19;
+    --plane: #0d0d0d;
+    --ink: #ffffff;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --rule: #2c2c2a;
+    --edge: rgba(255, 255, 255, 0.10);
+    --tier-critical: #d03b3b;
+    --tier-high: #ec835a;
+    --tier-medium: #fab219;
+    --tier-low: #3987e5;
+    --tier-info: #898781;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 32px 16px 64px;
+    background: var(--plane);
+    color: var(--ink);
+    font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1040px; margin: 0 auto; }
+
+h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--ink-2); font-weight: 600; }
+h3 { font-size: 15px; margin: 0; font-weight: 600; }
+p { margin: 0 0 10px; }
+a { color: inherit; }
+
+.card {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    border-radius: 8px;
+    padding: 20px 22px;
+    margin: 0 0 18px;
+}
+
+/* -- header ------------------------------------------------------------- */
+
+.masthead { display: flex; flex-wrap: wrap; gap: 14px; align-items: baseline;
+             justify-content: space-between; margin-bottom: 4px; }
+.badge {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    border: 1px solid var(--edge); border-radius: 999px; padding: 3px 10px; color: var(--ink-2);
+    white-space: nowrap;
+}
+.env { color: var(--ink-2); font-size: 13px; margin: 6px 0 0; }
+
+dl.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 12px 24px; margin: 18px 0 0; }
+dl.facts div { min-width: 0; }
+dl.facts div.wide { grid-column: 1 / -1; }
+dl.facts dt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+               color: var(--muted); margin-bottom: 2px; }
+dl.facts dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+
+/* -- hero + tier legend -------------------------------------------------- */
+
+.hero { font-size: 52px; line-height: 1; font-weight: 600; letter-spacing: -0.02em; }
+.hero-label { color: var(--ink-2); font-size: 14px; margin-top: 6px; }
+
+.bar { display: flex; gap: 2px; height: 22px; margin: 22px 0 18px; border-radius: 4px; }
+.bar span { display: block; }
+.bar span:first-child { border-radius: 4px 0 0 4px; }
+.bar span:last-child { border-radius: 0 4px 4px 0; }
+.bar-empty { background: var(--rule); flex: 1; border-radius: 4px; }
+
+.tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 2px; list-style: none; margin: 0; padding: 0; }
+.tiers li { padding: 10px 12px; border-radius: 6px; background: var(--plane); }
+.tiers .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+                  margin-right: 7px; vertical-align: baseline; }
+.tiers .name { font-size: 11px; font-weight: 700; letter-spacing: 0.07em; color: var(--ink-2); }
+.tiers .count { display: block; font-size: 26px; font-weight: 600; margin-top: 2px; }
+.tiers li[data-zero="true"] .count { color: var(--muted); font-weight: 500; }
+
+/* -- tables -------------------------------------------------------------- */
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+caption { text-align: left; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+           color: var(--muted); padding-bottom: 8px; }
+th, td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--rule);
+          vertical-align: top; }
+th { font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted);
+      font-weight: 600; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; padding-right: 0; }
+tbody tr:last-child td { border-bottom: none; }
+.split { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 26px; }
+
+/* -- filters ------------------------------------------------------------- */
+
+.filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 16px; }
+.filters input { position: absolute; opacity: 0; pointer-events: none; }
+.filters label {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+    border: 1px solid var(--edge); border-radius: 999px; padding: 5px 12px;
+    cursor: pointer; color: var(--ink-2); background: var(--surface);
+}
+.filters label:hover { border-color: var(--muted); }
+.filters input:checked + label { background: var(--ink); color: var(--surface);
+                                  border-color: var(--ink); }
+.filters input:focus-visible + label { outline: 2px solid var(--tier-low); outline-offset: 2px; }
+.filters .sep { width: 1px; height: 20px; background: var(--rule); margin: 0 6px; }
+
+  body:has(#f-sev-critical:checked) .finding:not([data-severity="CRITICAL"]) { display: none; }
+  body:has(#f-sev-high:checked) .finding:not([data-severity="HIGH"]) { display: none; }
+  body:has(#f-sev-medium:checked) .finding:not([data-severity="MEDIUM"]) { display: none; }
+  body:has(#f-sev-low:checked) .finding:not([data-severity="LOW"]) { display: none; }
+  body:has(#f-sev-info:checked) .finding:not([data-severity="INFO"]) { display: none; }
+
+/* -- findings ------------------------------------------------------------ */
+
+.finding { border-top: 1px solid var(--rule); padding: 18px 0 16px; }
+.finding:first-of-type { border-top: none; padding-top: 0; }
+.finding-head { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.chip {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.06em; border-radius: 4px;
+    padding: 2px 7px; color: #fcfcfb; white-space: nowrap;
+}
+.chip[data-tier="MEDIUM"], .chip[data-tier="HIGH"] { color: #0b0b0b; }
+.meta { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.resource { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 13px;
+             overflow-wrap: anywhere; }
+.finding h3 { margin: 9px 0 0; font-size: 16px; letter-spacing: -0.005em; }
+.finding p { margin: 8px 0 0; }
+.finding .why, .finding .fix { font-size: 14px; color: var(--ink-2); }
+.finding .fix strong, .finding .why strong { color: var(--ink); font-weight: 600; }
+
+dl.evidence { margin: 12px 0 0; padding: 12px 14px; background: var(--plane);
+               border-radius: 6px; font-size: 13px; }
+dl.evidence div { display: flex; gap: 10px; padding: 2px 0; }
+dl.evidence dt { color: var(--muted); flex: 0 0 auto; width: 170px; overflow-wrap: anywhere; }
+dl.evidence dd { margin: 0; flex: 1 1 auto; overflow-wrap: anywhere;
+                  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+dl.evidence pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; }
+
+.empty { color: var(--ink-2); margin: 0; }
+.errors { border-left: 3px solid var(--tier-high); }
+footer { max-width: 1040px; margin: 0 auto; color: var(--muted); font-size: 12px; }
+footer p { margin: 0 0 8px; }
+
+/* -- print --------------------------------------------------------------- */
+
+@media print {
+    body { background: #ffffff; padding: 0; }
+    .filters { display: none; }
+    .card { break-inside: avoid; border-color: #cccccc; }
+    .finding { break-inside: avoid; }
+    /* A filter must never remove a finding from the printed record. */
+    .finding { display: block !important; }
+}
+</style>
+</head>
+<body>
+<main>
+
+<section class="card">
+  <div class="masthead">
+    <div>
+      <h1>AWS Account &amp; Access Configuration Audit</h1>
+      <p class="env">Observed configuration of IAM, S3, and CloudTrail. Read-only scan.</p>
+      <p class="env">lab/misconfigured (moto emulated account, not a live AWS account)</p>
+    </div>
+    <span class="badge">Read-only</span>
+  </div>
+  <dl class="facts"><div><dt>Account</dt><dd>123456789012</dd></div><div><dt>Region</dt><dd>us-east-1</dd></div><div><dt>Generated</dt><dd>2026-09-24T01:52:15+00:00</dd></div><div><dt>Run ID</dt><dd>lab-misconfigured</dd></div><div><dt>Services scanned</dt><dd>IAM, S3, CloudTrail</dd></div><div><dt>Rules evaluated</dt><dd>14</dd></div><div><dt>Benchmark</dt><dd>CIS AWS Foundations Benchmark v3.0.0</dd></div><div><dt>Read-only API calls</dt><dd>101 in 0.24s</dd></div><div><dt>Tool version</dt><dd>0.1.0</dd></div><div class="wide"><dt>Resources read</dt><dd>cloudtrail_trails=1, iam_access_keys=3, iam_groups=1, iam_policies=5, iam_roles=2, iam_users=5, s3_buckets=8</dd></div></dl>
+</section>
+
+<section class="card">
+  <h2>Result</h2>
+  <div class="hero">25</div>
+  <div class="hero-label">findings across 17 resources</div>
+  <div class="bar" role="presentation"><span style="width: 16.0000%; background: var(--tier-critical);" title="CRITICAL: 4"></span><span style="width: 20.0000%; background: var(--tier-high);" title="HIGH: 5"></span><span style="width: 44.0000%; background: var(--tier-medium);" title="MEDIUM: 11"></span><span style="width: 12.0000%; background: var(--tier-low);" title="LOW: 3"></span><span style="width: 8.0000%; background: var(--tier-info);" title="INFO: 2"></span></div>
+  <ul class="tiers"><li data-zero="false"><span class="swatch" style="background: var(--tier-critical);"></span><span class="name">Critical</span><span class="count">4</span></li><li data-zero="false"><span class="swatch" style="background: var(--tier-high);"></span><span class="name">High</span><span class="count">5</span></li><li data-zero="false"><span class="swatch" style="background: var(--tier-medium);"></span><span class="name">Medium</span><span class="count">11</span></li><li data-zero="false"><span class="swatch" style="background: var(--tier-low);"></span><span class="name">Low</span><span class="count">3</span></li><li data-zero="false"><span class="swatch" style="background: var(--tier-info);"></span><span class="name">Informational</span><span class="count">2</span></li></ul>
+</section>
+
+<section class="card"><h2>Collection coverage</h2><p class="empty">Every declared read succeeded. No resource was skipped, so the findings below cover everything the auditor was permitted to inspect.</p></section>
+
+<section class="card">
+  <h2>Breakdown</h2>
+  <div class="split">
+    <table><caption>By severity</caption><thead><tr><th>Severity</th><th class="n">Findings</th><th class="n">Share</th></tr></thead><tbody><tr><td>Critical</td><td class="n">4</td><td class="n">16.0%</td></tr><tr><td>High</td><td class="n">5</td><td class="n">20.0%</td></tr><tr><td>Medium</td><td class="n">11</td><td class="n">44.0%</td></tr><tr><td>Low</td><td class="n">3</td><td class="n">12.0%</td></tr><tr><td>Informational</td><td class="n">2</td><td class="n">8.0%</td></tr></tbody></table>
+    <table><caption>By service</caption><thead><tr><th>Service</th><th class="n">Findings</th></tr></thead><tbody><tr><td>S3</td><td class="n">12</td></tr><tr><td>IAM</td><td class="n">10</td></tr><tr><td>CloudTrail</td><td class="n">3</td></tr></tbody></table>
+    <table><caption>By rule</caption><thead><tr><th>Rule</th><th class="n">Findings</th></tr></thead><tbody><tr><td>S3-001</td><td class="n">4</td></tr><tr><td>S3-003</td><td class="n">4</td></tr><tr><td>IAM-002</td><td class="n">2</td></tr><tr><td>IAM-003</td><td class="n">2</td></tr><tr><td>IAM-005</td><td class="n">2</td></tr><tr><td>IAM-006</td><td class="n">2</td></tr><tr><td>S3-002</td><td class="n">2</td></tr><tr><td>S3-004</td><td class="n">2</td></tr><tr><td>CT-002</td><td class="n">1</td></tr><tr><td>CT-003</td><td class="n">1</td></tr><tr><td>CT-004</td><td class="n">1</td></tr><tr><td>IAM-001</td><td class="n">1</td></tr><tr><td>IAM-004</td><td class="n">1</td></tr></tbody></table>
+    <table><caption>By resource type</caption><thead><tr><th>Resource type</th><th class="n">Findings</th></tr></thead><tbody><tr><td>s3-bucket</td><td class="n">12</td></tr><tr><td>iam-access-key</td><td class="n">4</td></tr><tr><td>iam-policy</td><td class="n">3</td></tr><tr><td>iam-user</td><td class="n">3</td></tr><tr><td>cloudtrail-trail</td><td class="n">2</td></tr><tr><td>aws-account</td><td class="n">1</td></tr></tbody></table>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Findings (25)</h2>
+  <div class="filters"><input type="radio" name="sev" id="f-sev-all" checked><label for="f-sev-all">All 25</label><span class="sep" role="presentation"></span><input type="radio" name="sev" id="f-sev-critical"><label for="f-sev-critical">CRITICAL 4</label><input type="radio" name="sev" id="f-sev-high"><label for="f-sev-high">HIGH 5</label><input type="radio" name="sev" id="f-sev-medium"><label for="f-sev-medium">MEDIUM 11</label><input type="radio" name="sev" id="f-sev-low"><label for="f-sev-low">LOW 3</label><input type="radio" name="sev" id="f-sev-info"><label for="f-sev-info">INFO 2</label></div>
+  <article class="finding" data-severity="CRITICAL" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="CRITICAL" style="background: var(--tier-critical);">CRITICAL</span><span class="meta">IAM-004</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.16</span></div><h3>IAM policy grants unrestricted actions on all resources</h3><p class="resource">user:lab-admin-console-nomfa/lab-full-admin</p><p>The inline policy &#x27;lab-full-admin&#x27; attached to user &#x27;lab-admin-console-nomfa&#x27; contains an Allow statement for Action &quot;*&quot; on all resources. The statement grants every action against every resource in the account. This reports the shape of the policy document; it does not evaluate service control policies, permissions boundaries, or session policies that may constrain the principal in practice.</p><p class="why"><strong>Why it matters.</strong> The statement grants every action against every resource, including the IAM actions needed to grant further access and the CloudTrail actions needed to stop recording it. Compromise of any principal holding it is equivalent to compromise of the account.</p><dl class="evidence"><div><dt>principal_type</dt><dd>user</dd></div><div><dt>principal_name</dt><dd>lab-admin-console-nomfa</dd></div><div><dt>principal_arn</dt><dd>arn:aws:iam::123456789012:user/lab-admin-console-nomfa</dd></div><div><dt>policy_name</dt><dd>lab-full-admin</dd></div><div><dt>policy_type</dt><dd>inline</dd></div><div><dt>policy_arn</dt><dd>None</dd></div><div><dt>policy_is_aws_managed</dt><dd>False</dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;*&quot;
+    ],
+    &quot;condition_keys&quot;: [],
+    &quot;has_condition&quot;: false,
+    &quot;resource_scope&quot;: &quot;*&quot;,
+    &quot;sid&quot;: &quot;FullAdmin&quot;
+  }
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Replace the wildcard statement with the specific actions the workload calls, scoped to specific resource ARNs. Derive the action list from CloudTrail or IAM Access Analyzer policy generation rather than guessing.</p><p class="meta">fingerprint 7d8ca8e7369d83cd · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="CRITICAL" data-service="S3"><div class="finding-head"><span class="chip" data-tier="CRITICAL" style="background: var(--tier-critical);">CRITICAL</span><span class="meta">S3-002</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>Bucket ACL grants public access</h3><p class="resource">lab-public-assets</p><p>The ACL on bucket &#x27;lab-public-assets&#x27; grants READ to the global group(s) AllUsers. IgnorePublicAcls is not enabled, so the grants are effective.</p><p class="why"><strong>Why it matters.</strong> AllUsers means anonymous callers on the internet. AuthenticatedUsers is commonly misread as &#x27;my account&#x27; but means any AWS account holder, so both grants place the bucket outside the account&#x27;s trust boundary.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-public-assets</dd></div><div><dt>grants</dt><dd><pre>[
+  {
+    &quot;display_name&quot;: null,
+    &quot;group&quot;: &quot;AllUsers&quot;,
+    &quot;permission&quot;: &quot;READ&quot;,
+    &quot;type&quot;: &quot;Group&quot;,
+    &quot;uri&quot;: &quot;http://acs.amazonaws.com/groups/global/AllUsers&quot;
+  }
+]</pre></dd></div><div><dt>groups</dt><dd><pre>[
+  &quot;AllUsers&quot;
+]</pre></dd></div><div><dt>ignore_public_acls</dt><dd>False</dd></div><div><dt>public_access_block_known</dt><dd>True</dd></div></dl><p class="fix"><strong>Remediation.</strong> Remove the global-group grants from the bucket ACL, then enable Block Public Access so the grant cannot be reintroduced.</p><p class="meta">fingerprint c4844278b89f1324 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="CRITICAL" data-service="S3"><div class="finding-head"><span class="chip" data-tier="CRITICAL" style="background: var(--tier-critical);">CRITICAL</span><span class="meta">S3-003</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>Bucket policy grants access to a public principal</h3><p class="resource">lab-public-assets</p><p>The bucket policy on &#x27;lab-public-assets&#x27; contains an Allow statement with an anonymous principal. The statements grant access to anonymous callers without any condition.</p><p class="why"><strong>Why it matters.</strong> An anonymous Allow in the resource policy grants access without any authentication, independently of IAM. Conditions can narrow it, but they have to be read: an aws:SourceIp condition constrains access while an aws:SecureTransport condition does not.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-public-assets</dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;s3:GetObject&quot;
+    ],
+    &quot;condition_keys&quot;: [],
+    &quot;constraining_condition_keys&quot;: [],
+    &quot;has_condition&quot;: false,
+    &quot;is_effectively_constrained&quot;: false,
+    &quot;principal_form&quot;: &quot;*&quot;,
+    &quot;resources&quot;: [
+      &quot;arn:aws:s3:::lab-public-assets/*&quot;
+    ],
+    &quot;sid&quot;: &quot;PublicRead&quot;
+  }
+]</pre></dd></div><div><dt>get_bucket_policy_status_is_public</dt><dd>None</dd></div><div><dt>block_public_policy</dt><dd>False</dd></div><div><dt>restrict_public_buckets</dt><dd>False</dd></div><div><dt>public_access_block_known</dt><dd>True</dd></div></dl><p class="fix"><strong>Remediation.</strong> Scope the Principal to specific account or role ARNs. If the bucket must serve public content, front it with CloudFront and an origin access control rather than a public bucket policy.</p><p class="meta">fingerprint 8e70dcd0e08297b6 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="CRITICAL" data-service="S3"><div class="finding-head"><span class="chip" data-tier="CRITICAL" style="background: var(--tier-critical);">CRITICAL</span><span class="meta">S3-003</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>Bucket policy grants access to a public principal</h3><p class="resource">lab-tls-only-public</p><p>The bucket policy on &#x27;lab-tls-only-public&#x27; contains an Allow statement with an anonymous principal. The statements grant access to anonymous callers with conditions that do not restrict who may call (for example aws:SecureTransport, which only requires HTTPS).</p><p class="why"><strong>Why it matters.</strong> An anonymous Allow in the resource policy grants access without any authentication, independently of IAM. Conditions can narrow it, but they have to be read: an aws:SourceIp condition constrains access while an aws:SecureTransport condition does not.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-tls-only-public</dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;s3:GetObject&quot;
+    ],
+    &quot;condition_keys&quot;: [
+      &quot;aws:securetransport&quot;
+    ],
+    &quot;constraining_condition_keys&quot;: [],
+    &quot;has_condition&quot;: true,
+    &quot;is_effectively_constrained&quot;: false,
+    &quot;principal_form&quot;: &quot;*&quot;,
+    &quot;resources&quot;: [
+      &quot;arn:aws:s3:::lab-tls-only-public/*&quot;
+    ],
+    &quot;sid&quot;: &quot;PublicReadOverTls&quot;
+  }
+]</pre></dd></div><div><dt>get_bucket_policy_status_is_public</dt><dd>None</dd></div><div><dt>block_public_policy</dt><dd>False</dd></div><div><dt>restrict_public_buckets</dt><dd>False</dd></div><div><dt>public_access_block_known</dt><dd>True</dd></div></dl><p class="fix"><strong>Remediation.</strong> Scope the Principal to specific account or role ARNs. If the bucket must serve public content, front it with CloudFront and an origin access control rather than a public bucket policy.</p><p class="meta">fingerprint 5c47a2ad9fe73350 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="HIGH" data-service="CloudTrail"><div class="finding-head"><span class="chip" data-tier="HIGH" style="background: var(--tier-high);">HIGH</span><span class="meta">CT-004</span><span class="meta">CloudTrail</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 3.1</span></div><h3>CloudTrail trail exists but is not currently logging</h3><p class="resource">lab-single-region-trail</p><p>Trail &#x27;lab-single-region-trail&#x27; is configured but GetTrailStatus reports that logging is stopped. It appears correctly configured in any configuration-only review while recording nothing.</p><p class="why"><strong>Why it matters.</strong> A configured trail is not the same as an operating one. A stopped trail or a failing delivery leaves the same gap as having no trail at all, while still appearing correctly configured in every configuration-only review.</p><dl class="evidence"><div><dt>trail</dt><dd>lab-single-region-trail</dd></div><div><dt>trail_arn</dt><dd>arn:aws:cloudtrail:us-east-1:123456789012:trail/lab-single-region-trail</dd></div><div><dt>is_logging</dt><dd>False</dd></div><div><dt>latest_delivery_time</dt><dd>None</dd></div></dl><p class="fix"><strong>Remediation.</strong> Start logging on the trail and investigate why it stopped. For delivery errors, check the destination bucket policy, the bucket&#x27;s existence, and the KMS key policy if the trail is encrypted.</p><p class="meta">fingerprint 99e371dfb171b360 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="HIGH" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="HIGH" style="background: var(--tier-high);">HIGH</span><span class="meta">IAM-001</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.10</span></div><h3>Console-enabled IAM user lacks MFA</h3><p class="resource">user:lab-admin-console-nomfa</p><p>IAM user &#x27;lab-admin-console-nomfa&#x27; has a console login profile but no MFA device is registered, so interactive sign-in is protected by a password alone.</p><p class="why"><strong>Why it matters.</strong> Console sign-in for this user depends on a password alone, so a single credential disclosure -- phishing, reuse, or a leaked password store -- is sufficient to obtain an interactive session in the account.</p><dl class="evidence"><div><dt>username</dt><dd>lab-admin-console-nomfa</dd></div><div><dt>user_arn</dt><dd>arn:aws:iam::123456789012:user/lab-admin-console-nomfa</dd></div><div><dt>console_access_enabled</dt><dd>True</dd></div><div><dt>mfa_device_count</dt><dd>0</dd></div><div><dt>password_last_used</dt><dd>None</dd></div></dl><p class="fix"><strong>Remediation.</strong> Register a virtual or hardware MFA device for the user, or delete the login profile if the identity only needs programmatic access.</p><p class="meta">fingerprint 300eb2fbeb928721 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="HIGH" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="HIGH" style="background: var(--tier-high);">HIGH</span><span class="meta">IAM-002</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.14</span></div><h3>Active IAM access key exceeds maximum age</h3><p class="resource">user:lab-svc-stale-keys/AKIA…UDGX</p><p>Access key AKIA…UDGX for user &#x27;lab-svc-stale-keys&#x27; is 400 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.</p><p class="why"><strong>Why it matters.</strong> A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.</p><dl class="evidence"><div><dt>username</dt><dd>lab-svc-stale-keys</dd></div><div><dt>access_key_id</dt><dd>AKIA…UDGX</dd></div><div><dt>status</dt><dd>Active</dd></div><div><dt>created</dt><dd>2025-08-20T01:52:15+00:00</dd></div><div><dt>age_days</dt><dd>400</dd></div><div><dt>last_used_date</dt><dd>None</dd></div><div><dt>last_used_days_ago</dt><dd>None</dd></div><div><dt>last_used_service</dt><dd>None</dd></div><div><dt>threshold_days</dt><dd>90</dd></div><div><dt>escalation_threshold_days</dt><dd>180</dd></div></dl><p class="fix"><strong>Remediation.</strong> Create a replacement key, migrate dependent workloads, then deactivate and delete the superseded key. Prefer IAM roles or IAM Identity Center over long-lived user keys where the workload allows it.</p><p class="meta">fingerprint 4efc51356b43a254 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="HIGH" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="HIGH" style="background: var(--tier-high);">HIGH</span><span class="meta">IAM-005</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.16</span></div><h3>IAM policy grants service-wide permissions on all resources</h3><p class="resource">group:lab-developers/lab-broad-service-access</p><p>The managed policy &#x27;lab-broad-service-access&#x27; attached to group &#x27;lab-developers&#x27; allows service-wide wildcard actions (ec2:*, s3:*) on all resources. Whether that is excessive depends on the workload; the scanner reports the policy shape, not an effective-permissions verdict.</p><p class="why"><strong>Why it matters.</strong> Service-wide wildcards grant the destructive and permission-changing actions of a service alongside the read actions a workload actually needs -- s3:* includes s3:DeleteBucket and s3:PutBucketPolicy. Whether that is excessive depends on the workload, which is why this is reported for review rather than as an outright administrative grant.</p><dl class="evidence"><div><dt>principal_type</dt><dd>group</dd></div><div><dt>principal_name</dt><dd>lab-developers</dd></div><div><dt>principal_arn</dt><dd>arn:aws:iam::123456789012:group/lab-developers</dd></div><div><dt>policy_name</dt><dd>lab-broad-service-access</dd></div><div><dt>policy_type</dt><dd>managed</dd></div><div><dt>policy_arn</dt><dd>arn:aws:iam::123456789012:policy/lab-broad-service-access</dd></div><div><dt>policy_is_aws_managed</dt><dd>False</dd></div><div><dt>member_usernames</dt><dd><pre>[
+  &quot;lab-svc-rotating&quot;,
+  &quot;lab-clean-user&quot;
+]</pre></dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;ec2:*&quot;,
+      &quot;s3:*&quot;
+    ],
+    &quot;condition_keys&quot;: [],
+    &quot;has_condition&quot;: false,
+    &quot;resource_scope&quot;: &quot;*&quot;,
+    &quot;sid&quot;: &quot;BroadServiceAccess&quot;
+  }
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Enumerate the actions the workload calls and replace the wildcard, scoping Resource to specific ARNs where the service supports it.</p><p class="meta">fingerprint 62b4e54471b48b7b · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="HIGH" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="HIGH" style="background: var(--tier-high);">HIGH</span><span class="meta">IAM-005</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.16</span></div><h3>IAM policy grants service-wide permissions on all resources</h3><p class="resource">role:lab-ci-deploy-role/lab-iam-wildcard</p><p>The inline policy &#x27;lab-iam-wildcard&#x27; attached to role &#x27;lab-ci-deploy-role&#x27; allows service-wide wildcard actions (iam:*) on all resources. Whether that is excessive depends on the workload; the scanner reports the policy shape, not an effective-permissions verdict.</p><p class="why"><strong>Why it matters.</strong> Service-wide wildcards grant the destructive and permission-changing actions of a service alongside the read actions a workload actually needs -- s3:* includes s3:DeleteBucket and s3:PutBucketPolicy. Whether that is excessive depends on the workload, which is why this is reported for review rather than as an outright administrative grant.</p><dl class="evidence"><div><dt>principal_type</dt><dd>role</dd></div><div><dt>principal_name</dt><dd>lab-ci-deploy-role</dd></div><div><dt>principal_arn</dt><dd>arn:aws:iam::123456789012:role/lab-ci-deploy-role</dd></div><div><dt>policy_name</dt><dd>lab-iam-wildcard</dd></div><div><dt>policy_type</dt><dd>inline</dd></div><div><dt>policy_arn</dt><dd>None</dd></div><div><dt>policy_is_aws_managed</dt><dd>False</dd></div><div><dt>role_path</dt><dd>/</dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;iam:*&quot;
+    ],
+    &quot;condition_keys&quot;: [],
+    &quot;has_condition&quot;: false,
+    &quot;resource_scope&quot;: &quot;*&quot;,
+    &quot;sid&quot;: &quot;IamWide&quot;
+  }
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Enumerate the actions the workload calls and replace the wildcard, scoping Resource to specific ARNs where the service supports it.</p><p class="meta">fingerprint 663a9b9774171d0d · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="CloudTrail"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">CT-002</span><span class="meta">CloudTrail</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 3.1</span></div><h3>No multi-region CloudTrail trail configured</h3><p class="resource">aws-account</p><p>All 1 configured trail(s) are single-region, so activity in any other region is not captured. Regions an organisation does not use are exactly where unmonitored activity tends to occur.</p><p class="why"><strong>Why it matters.</strong> Activity in unmonitored regions is not recorded. Attackers routinely operate in regions an organisation does not use precisely because logging and detection are usually configured only where workloads run.</p><dl class="evidence"><div><dt>trail_count</dt><dd>1</dd></div><div><dt>region</dt><dd>us-east-1</dd></div><div><dt>trails</dt><dd><pre>[
+  {
+    &quot;home_region&quot;: &quot;us-east-1&quot;,
+    &quot;is_multi_region&quot;: false,
+    &quot;name&quot;: &quot;lab-single-region-trail&quot;
+  }
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Convert an existing trail to multi-region (IsMultiRegionTrail with IncludeGlobalServiceEvents), or create a dedicated multi-region trail.</p><p class="meta">fingerprint 2dffc6e1596972e2 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="CloudTrail"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">CT-003</span><span class="meta">CloudTrail</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 3.2</span></div><h3>CloudTrail log file validation is disabled</h3><p class="resource">lab-single-region-trail</p><p>Log file validation is disabled for trail &#x27;lab-single-region-trail&#x27;, so CloudTrail is not producing the signed digest files needed to prove that delivered logs have not been modified or deleted.</p><p class="why"><strong>Why it matters.</strong> Without the signed digest files that validation produces, a deleted or modified log file cannot be distinguished from one that never existed, which removes the log&#x27;s value as incident evidence.</p><dl class="evidence"><div><dt>trail</dt><dd>lab-single-region-trail</dd></div><div><dt>trail_arn</dt><dd>arn:aws:cloudtrail:us-east-1:123456789012:trail/lab-single-region-trail</dd></div><div><dt>log_file_validation_enabled</dt><dd>False</dd></div><div><dt>s3_bucket_name</dt><dd>lab-trail-logs</dd></div></dl><p class="fix"><strong>Remediation.</strong> Enable log file validation on the trail (update-trail --enable-log-file-validation).</p><p class="meta">fingerprint a04c6a6a1aedb3a7 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">IAM-002</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.14</span></div><h3>Active IAM access key exceeds maximum age</h3><p class="resource">user:lab-svc-rotating/AKIA…ESHD</p><p>Access key AKIA…ESHD for user &#x27;lab-svc-rotating&#x27; is 120 days old, above the configured rotation threshold of 90 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.</p><p class="why"><strong>Why it matters.</strong> A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.</p><dl class="evidence"><div><dt>username</dt><dd>lab-svc-rotating</dd></div><div><dt>access_key_id</dt><dd>AKIA…ESHD</dd></div><div><dt>status</dt><dd>Active</dd></div><div><dt>created</dt><dd>2026-05-27T01:52:15+00:00</dd></div><div><dt>age_days</dt><dd>120</dd></div><div><dt>last_used_date</dt><dd>2026-09-19T01:52:15+00:00</dd></div><div><dt>last_used_days_ago</dt><dd>5</dd></div><div><dt>last_used_service</dt><dd>s3</dd></div><div><dt>threshold_days</dt><dd>90</dd></div><div><dt>escalation_threshold_days</dt><dd>180</dd></div></dl><p class="fix"><strong>Remediation.</strong> Create a replacement key, migrate dependent workloads, then deactivate and delete the superseded key. Prefer IAM roles or IAM Identity Center over long-lived user keys where the workload allows it.</p><p class="meta">fingerprint 5b6e6b0b12493e7f · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">IAM-003</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.12</span></div><h3>Dormant IAM access key remains active</h3><p class="resource">user:lab-svc-stale-keys/AKIA…UDGX</p><p>Active access key AKIA…UDGX for user &#x27;lab-svc-stale-keys&#x27; has never been used in 400 days since creation (GetAccessKeyLastUsed reports no last-used date), at or beyond the 45-day dormancy threshold. An unused credential retains the full permissions of its user while producing no activity that would make its misuse noticeable.</p><p class="why"><strong>Why it matters.</strong> A credential nobody uses is a credential nobody is watching. Dormant keys carry the full permissions of their user while producing no signal that would make their misuse noticeable, and an Inactive key can be re-enabled by anyone who can call UpdateAccessKey.</p><dl class="evidence"><div><dt>username</dt><dd>lab-svc-stale-keys</dd></div><div><dt>access_key_id</dt><dd>AKIA…UDGX</dd></div><div><dt>status</dt><dd>Active</dd></div><div><dt>created</dt><dd>2025-08-20T01:52:15+00:00</dd></div><div><dt>age_days</dt><dd>400</dd></div><div><dt>last_used_date</dt><dd>None</dd></div><div><dt>last_used_days_ago</dt><dd>None</dd></div><div><dt>last_used_service</dt><dd>None</dd></div><div><dt>dormancy_threshold_days</dt><dd>45</dd></div><div><dt>ever_used</dt><dd>False</dd></div></dl><p class="fix"><strong>Remediation.</strong> Delete the key. If the workload may still need it, deactivate it first and delete it once a full billing cycle passes with no access failures.</p><p class="meta">fingerprint f8463f9a1fff3061 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-001</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>S3 Public Access Block is not fully enabled</h3><p class="resource">lab-latent-acl</p><p>Bucket &#x27;lab-latent-acl&#x27; has Public Access Block settings disabled: BlockPublicAcls, BlockPublicPolicy, RestrictPublicBuckets. This does not by itself mean the bucket is public; it means a public ACL or bucket policy would not be blocked if one were applied.</p><p class="why"><strong>Why it matters.</strong> Block Public Access is the backstop that makes a public ACL or bucket policy non-effective even when one is applied by mistake. With it off, a single careless PutBucketAcl call is enough to expose the bucket.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-latent-acl</dd></div><div><dt>public_access_block_configured</dt><dd>True</dd></div><div><dt>settings</dt><dd><pre>{
+  &quot;BlockPublicAcls&quot;: false,
+  &quot;BlockPublicPolicy&quot;: false,
+  &quot;IgnorePublicAcls&quot;: true,
+  &quot;RestrictPublicBuckets&quot;: false
+}</pre></dd></div><div><dt>disabled_settings</dt><dd><pre>[
+  &quot;BlockPublicAcls&quot;,
+  &quot;BlockPublicPolicy&quot;,
+  &quot;RestrictPublicBuckets&quot;
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Enable all four Block Public Access settings on the bucket, and enable the account-level block, unless the bucket is intentionally serving public content.</p><p class="meta">fingerprint 502980816617fa7a · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-001</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>S3 Public Access Block is not fully enabled</h3><p class="resource">lab-partner-share</p><p>Bucket &#x27;lab-partner-share&#x27; has Public Access Block settings disabled: BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets. This does not by itself mean the bucket is public; it means a public ACL or bucket policy would not be blocked if one were applied.</p><p class="why"><strong>Why it matters.</strong> Block Public Access is the backstop that makes a public ACL or bucket policy non-effective even when one is applied by mistake. With it off, a single careless PutBucketAcl call is enough to expose the bucket.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-partner-share</dd></div><div><dt>public_access_block_configured</dt><dd>True</dd></div><div><dt>settings</dt><dd><pre>{
+  &quot;BlockPublicAcls&quot;: false,
+  &quot;BlockPublicPolicy&quot;: false,
+  &quot;IgnorePublicAcls&quot;: false,
+  &quot;RestrictPublicBuckets&quot;: false
+}</pre></dd></div><div><dt>disabled_settings</dt><dd><pre>[
+  &quot;BlockPublicAcls&quot;,
+  &quot;IgnorePublicAcls&quot;,
+  &quot;BlockPublicPolicy&quot;,
+  &quot;RestrictPublicBuckets&quot;
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Enable all four Block Public Access settings on the bucket, and enable the account-level block, unless the bucket is intentionally serving public content.</p><p class="meta">fingerprint af407a1721986a8d · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-001</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>S3 Public Access Block is not fully enabled</h3><p class="resource">lab-public-assets</p><p>Bucket &#x27;lab-public-assets&#x27; has no Public Access Block configuration, so all four protections are off. This does not by itself mean the bucket is public; it means a public ACL or bucket policy would not be blocked if one were applied.</p><p class="why"><strong>Why it matters.</strong> Block Public Access is the backstop that makes a public ACL or bucket policy non-effective even when one is applied by mistake. With it off, a single careless PutBucketAcl call is enough to expose the bucket.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-public-assets</dd></div><div><dt>public_access_block_configured</dt><dd>False</dd></div><div><dt>settings</dt><dd><pre>{
+  &quot;BlockPublicAcls&quot;: false,
+  &quot;BlockPublicPolicy&quot;: false,
+  &quot;IgnorePublicAcls&quot;: false,
+  &quot;RestrictPublicBuckets&quot;: false
+}</pre></dd></div><div><dt>disabled_settings</dt><dd><pre>[
+  &quot;BlockPublicAcls&quot;,
+  &quot;IgnorePublicAcls&quot;,
+  &quot;BlockPublicPolicy&quot;,
+  &quot;RestrictPublicBuckets&quot;
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Enable all four Block Public Access settings on the bucket, and enable the account-level block, unless the bucket is intentionally serving public content.</p><p class="meta">fingerprint 80794581a39ae70d · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-001</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>S3 Public Access Block is not fully enabled</h3><p class="resource">lab-tls-only-public</p><p>Bucket &#x27;lab-tls-only-public&#x27; has Public Access Block settings disabled: BlockPublicAcls, IgnorePublicAcls, BlockPublicPolicy, RestrictPublicBuckets. This does not by itself mean the bucket is public; it means a public ACL or bucket policy would not be blocked if one were applied.</p><p class="why"><strong>Why it matters.</strong> Block Public Access is the backstop that makes a public ACL or bucket policy non-effective even when one is applied by mistake. With it off, a single careless PutBucketAcl call is enough to expose the bucket.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-tls-only-public</dd></div><div><dt>public_access_block_configured</dt><dd>True</dd></div><div><dt>settings</dt><dd><pre>{
+  &quot;BlockPublicAcls&quot;: false,
+  &quot;BlockPublicPolicy&quot;: false,
+  &quot;IgnorePublicAcls&quot;: false,
+  &quot;RestrictPublicBuckets&quot;: false
+}</pre></dd></div><div><dt>disabled_settings</dt><dd><pre>[
+  &quot;BlockPublicAcls&quot;,
+  &quot;IgnorePublicAcls&quot;,
+  &quot;BlockPublicPolicy&quot;,
+  &quot;RestrictPublicBuckets&quot;
+]</pre></dd></div></dl><p class="fix"><strong>Remediation.</strong> Enable all four Block Public Access settings on the bucket, and enable the account-level block, unless the bucket is intentionally serving public content.</p><p class="meta">fingerprint af88cf69cb7e0d1d · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-003</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>Bucket policy grants access to a public principal</h3><p class="resource">lab-partner-share</p><p>The bucket policy on &#x27;lab-partner-share&#x27; contains an Allow statement with an anonymous principal. Every public statement carries a narrowing condition (aws:sourceip), so access may be limited to a specific network or organisation. The condition needs manual review; a scanner cannot tell whether the named range is trusted.</p><p class="why"><strong>Why it matters.</strong> An anonymous Allow in the resource policy grants access without any authentication, independently of IAM. Conditions can narrow it, but they have to be read: an aws:SourceIp condition constrains access while an aws:SecureTransport condition does not.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-partner-share</dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;s3:GetObject&quot;
+    ],
+    &quot;condition_keys&quot;: [
+      &quot;aws:sourceip&quot;
+    ],
+    &quot;constraining_condition_keys&quot;: [
+      &quot;aws:sourceip&quot;
+    ],
+    &quot;has_condition&quot;: true,
+    &quot;is_effectively_constrained&quot;: true,
+    &quot;principal_form&quot;: &quot;*&quot;,
+    &quot;resources&quot;: [
+      &quot;arn:aws:s3:::lab-partner-share/*&quot;
+    ],
+    &quot;sid&quot;: &quot;PublicReadFromOfficeRange&quot;
+  }
+]</pre></dd></div><div><dt>get_bucket_policy_status_is_public</dt><dd>None</dd></div><div><dt>block_public_policy</dt><dd>False</dd></div><div><dt>restrict_public_buckets</dt><dd>False</dd></div><div><dt>public_access_block_known</dt><dd>True</dd></div></dl><p class="fix"><strong>Remediation.</strong> Scope the Principal to specific account or role ARNs. If the bucket must serve public content, front it with CloudFront and an origin access control rather than a public bucket policy.</p><p class="meta">fingerprint 392a5a1a97f743bb · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-004</span><span class="meta">S3</span><span class="meta">no mapped control</span></div><h3>No explicit bucket-level encryption configuration observed</h3><p class="resource">lab-public-assets</p><p>GetBucketEncryption returned no bucket-level default encryption configuration for &#x27;lab-public-assets&#x27;. Amazon S3 has applied SSE-S3 to new objects by default since January 2023, so this records the absence of an explicit, auditable configuration rather than asserting that stored objects are unencrypted.</p><p class="why"><strong>Why it matters.</strong> S3 has applied SSE-S3 to new objects by default since January 2023, so this is an evidence and enforcement gap rather than plaintext storage: there is no configuration to audit, no way to require SSE-KMS, and no key policy boundary around the data.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-public-assets</dd></div><div><dt>encryption_configuration_present</dt><dd>False</dd></div></dl><p class="fix"><strong>Remediation.</strong> Set an explicit default encryption configuration (SSE-S3, or SSE-KMS with a customer-managed key where key-level access control or auditing is required).</p><p class="meta">fingerprint 48efd50bc2de0656 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="MEDIUM" data-service="S3"><div class="finding-head"><span class="chip" data-tier="MEDIUM" style="background: var(--tier-medium);">MEDIUM</span><span class="meta">S3-004</span><span class="meta">S3</span><span class="meta">no mapped control</span></div><h3>No explicit bucket-level encryption configuration observed</h3><p class="resource">lab-unencrypted-logs</p><p>GetBucketEncryption returned no bucket-level default encryption configuration for &#x27;lab-unencrypted-logs&#x27;. Amazon S3 has applied SSE-S3 to new objects by default since January 2023, so this records the absence of an explicit, auditable configuration rather than asserting that stored objects are unencrypted.</p><p class="why"><strong>Why it matters.</strong> S3 has applied SSE-S3 to new objects by default since January 2023, so this is an evidence and enforcement gap rather than plaintext storage: there is no configuration to audit, no way to require SSE-KMS, and no key policy boundary around the data.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-unencrypted-logs</dd></div><div><dt>encryption_configuration_present</dt><dd>False</dd></div></dl><p class="fix"><strong>Remediation.</strong> Set an explicit default encryption configuration (SSE-S3, or SSE-KMS with a customer-managed key where key-level access control or auditing is required).</p><p class="meta">fingerprint dca8631dfaacd349 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="LOW" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="LOW" style="background: var(--tier-low);">LOW</span><span class="meta">IAM-003</span><span class="meta">IAM</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 1.12</span></div><h3>Inactive IAM access key still present</h3><p class="resource">user:lab-contractor-offboarded/AKIA…SWLZ</p><p>Access key AKIA…SWLZ for user &#x27;lab-contractor-offboarded&#x27; exists in an Inactive state. It cannot currently authenticate, but it remains credential material that a principal with iam:UpdateAccessKey can re-enable.</p><p class="why"><strong>Why it matters.</strong> A credential nobody uses is a credential nobody is watching. Dormant keys carry the full permissions of their user while producing no signal that would make their misuse noticeable, and an Inactive key can be re-enabled by anyone who can call UpdateAccessKey.</p><dl class="evidence"><div><dt>username</dt><dd>lab-contractor-offboarded</dd></div><div><dt>access_key_id</dt><dd>AKIA…SWLZ</dd></div><div><dt>status</dt><dd>Inactive</dd></div><div><dt>created</dt><dd>2026-09-24T01:52:15+00:00</dd></div><div><dt>age_days</dt><dd>0</dd></div><div><dt>last_used_date</dt><dd>None</dd></div><div><dt>last_used_days_ago</dt><dd>None</dd></div><div><dt>last_used_service</dt><dd>None</dd></div></dl><p class="fix"><strong>Remediation.</strong> Delete the key. If the workload may still need it, deactivate it first and delete it once a full billing cycle passes with no access failures.</p><p class="meta">fingerprint 46e5dd6f046e5c41 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="LOW" data-service="S3"><div class="finding-head"><span class="chip" data-tier="LOW" style="background: var(--tier-low);">LOW</span><span class="meta">S3-002</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>Bucket ACL grants public access (currently ignored by Public Access Block)</h3><p class="resource">lab-latent-acl</p><p>The ACL on bucket &#x27;lab-latent-acl&#x27; grants READ to the global group(s) AllUsers. IgnorePublicAcls is enabled, so the grants are not currently effective, but they remain in the ACL and become effective the moment that setting is turned off.</p><p class="why"><strong>Why it matters.</strong> AllUsers means anonymous callers on the internet. AuthenticatedUsers is commonly misread as &#x27;my account&#x27; but means any AWS account holder, so both grants place the bucket outside the account&#x27;s trust boundary.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-latent-acl</dd></div><div><dt>grants</dt><dd><pre>[
+  {
+    &quot;display_name&quot;: null,
+    &quot;group&quot;: &quot;AllUsers&quot;,
+    &quot;permission&quot;: &quot;READ&quot;,
+    &quot;type&quot;: &quot;Group&quot;,
+    &quot;uri&quot;: &quot;http://acs.amazonaws.com/groups/global/AllUsers&quot;
+  }
+]</pre></dd></div><div><dt>groups</dt><dd><pre>[
+  &quot;AllUsers&quot;
+]</pre></dd></div><div><dt>ignore_public_acls</dt><dd>True</dd></div><div><dt>public_access_block_known</dt><dd>True</dd></div></dl><p class="fix"><strong>Remediation.</strong> Remove the global-group grants from the bucket ACL, then enable Block Public Access so the grant cannot be reintroduced.</p><p class="meta">fingerprint 9975327de5938542 · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="LOW" data-service="S3"><div class="finding-head"><span class="chip" data-tier="LOW" style="background: var(--tier-low);">LOW</span><span class="meta">S3-003</span><span class="meta">S3</span><span class="meta" title="CIS Amazon Web Services Foundations Benchmark v3.0.0">CIS 2.1.4</span></div><h3>Bucket policy grants access to a public principal</h3><p class="resource">lab-blocked-public-policy</p><p>The bucket policy on &#x27;lab-blocked-public-policy&#x27; contains an Allow statement with an anonymous principal. Public access is currently blocked by the bucket&#x27;s Public Access Block settings, but the statement remains in the policy and takes effect if those settings are removed.</p><p class="why"><strong>Why it matters.</strong> An anonymous Allow in the resource policy grants access without any authentication, independently of IAM. Conditions can narrow it, but they have to be read: an aws:SourceIp condition constrains access while an aws:SecureTransport condition does not.</p><dl class="evidence"><div><dt>bucket</dt><dd>lab-blocked-public-policy</dd></div><div><dt>statements</dt><dd><pre>[
+  {
+    &quot;actions&quot;: [
+      &quot;s3:GetObject&quot;
+    ],
+    &quot;condition_keys&quot;: [],
+    &quot;constraining_condition_keys&quot;: [],
+    &quot;has_condition&quot;: false,
+    &quot;is_effectively_constrained&quot;: false,
+    &quot;principal_form&quot;: &quot;*&quot;,
+    &quot;resources&quot;: [
+      &quot;arn:aws:s3:::lab-blocked-public-policy/*&quot;
+    ],
+    &quot;sid&quot;: &quot;PublicRead&quot;
+  }
+]</pre></dd></div><div><dt>get_bucket_policy_status_is_public</dt><dd>None</dd></div><div><dt>block_public_policy</dt><dd>True</dd></div><div><dt>restrict_public_buckets</dt><dd>True</dd></div><div><dt>public_access_block_known</dt><dd>True</dd></div></dl><p class="fix"><strong>Remediation.</strong> Scope the Principal to specific account or role ARNs. If the bucket must serve public content, front it with CloudFront and an origin access control rather than a public bucket policy.</p><p class="meta">fingerprint 00b35da017ef5edf · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="INFO" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="INFO" style="background: var(--tier-info);">INFO</span><span class="meta">IAM-006</span><span class="meta">IAM</span><span class="meta">no mapped control</span></div><h3>IAM user without MFA (no console access configured)</h3><p class="resource">user:lab-svc-rotating</p><p>IAM user &#x27;lab-svc-rotating&#x27; has no console login profile and no MFA device. There is no interactive sign-in path to protect, so this is recorded for inventory completeness rather than as an authentication weakness.</p><p class="why"><strong>Why it matters.</strong> There is no interactive sign-in path to protect, so this is not a console authentication weakness. It is recorded so the inventory of MFA-less identities is complete and so the finding reappears at a higher tier if a login profile is added later.</p><dl class="evidence"><div><dt>username</dt><dd>lab-svc-rotating</dd></div><div><dt>user_arn</dt><dd>arn:aws:iam::123456789012:user/lab-svc-rotating</dd></div><div><dt>console_access_enabled</dt><dd>False</dd></div><div><dt>mfa_device_count</dt><dd>0</dd></div><div><dt>password_last_used</dt><dd>None</dd></div></dl><p class="fix"><strong>Remediation.</strong> No MFA action is required while the identity remains programmatic-only. Re-evaluate if console access is enabled.</p><p class="meta">fingerprint 5354147507c7370a · detected 2026-09-24T01:52:15+00:00</p></article><article class="finding" data-severity="INFO" data-service="IAM"><div class="finding-head"><span class="chip" data-tier="INFO" style="background: var(--tier-info);">INFO</span><span class="meta">IAM-006</span><span class="meta">IAM</span><span class="meta">no mapped control</span></div><h3>IAM user without MFA (no console access configured)</h3><p class="resource">user:lab-svc-stale-keys</p><p>IAM user &#x27;lab-svc-stale-keys&#x27; has no console login profile and no MFA device. There is no interactive sign-in path to protect, so this is recorded for inventory completeness rather than as an authentication weakness.</p><p class="why"><strong>Why it matters.</strong> There is no interactive sign-in path to protect, so this is not a console authentication weakness. It is recorded so the inventory of MFA-less identities is complete and so the finding reappears at a higher tier if a login profile is added later.</p><dl class="evidence"><div><dt>username</dt><dd>lab-svc-stale-keys</dd></div><div><dt>user_arn</dt><dd>arn:aws:iam::123456789012:user/lab-svc-stale-keys</dd></div><div><dt>console_access_enabled</dt><dd>False</dd></div><div><dt>mfa_device_count</dt><dd>0</dd></div><div><dt>password_last_used</dt><dd>None</dd></div></dl><p class="fix"><strong>Remediation.</strong> No MFA action is required while the identity remains programmatic-only. Re-evaluate if console access is enabled.</p><p class="meta">fingerprint 5325219f9bb74001 · detected 2026-09-24T01:52:15+00:00</p></article>
+</section>
+
+</main>
+<footer>
+  <p>Severity is this project&#x27;s internal prioritisation model. It is not a CVSS score, an AWS risk rating, or a formal industry classification.</p>
+  <p>This report describes observed configuration. It does not attempt to prove
+  exploitability, and it does not resolve service control policies, permissions
+  boundaries, or session policies.</p>
+  <p>Generated by account-access-auditor 0.1.0. This document
+  contains no scripts and loads nothing from the network.</p>
+</footer>
+</body>
+</html>

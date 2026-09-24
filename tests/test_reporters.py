@@ -4,13 +4,25 @@ from __future__ import annotations
 
 import csv
 import json
+import pathlib
+import re
+from html.parser import HTMLParser
 
 import pytest
 
 from auditor.models.finding import Finding
 from auditor.models.report import build_report, exceeds, severity_counts
 from auditor.redaction import mask_access_keys, redact_report
-from auditor.reporters import EXTENSIONS, WRITERS, csv_reporter, json_reporter, terminal, ticket
+from auditor.reporters import (
+    EXTENSIONS,
+    WRITERS,
+    csv_reporter,
+    html_reporter,
+    json_reporter,
+    terminal,
+    ticket,
+)
+from auditor.severity import Severity, ordered_names
 
 
 @pytest.fixture
@@ -280,4 +292,277 @@ def test_redaction_changes_no_finding_counts(report):
 
 
 def test_every_output_format_has_a_writer_and_an_extension():
-    assert set(WRITERS) == set(EXTENSIONS) == {"json", "csv", "tickets"}
+    assert set(WRITERS) == set(EXTENSIONS) == {"json", "csv", "tickets", "html"}
+
+
+# ----------------------------------------------------------------- HTML ----
+
+# A bucket name, IAM user name, or policy Sid is chosen by whoever controls the
+# audited account, and every one of these is a legal AWS name. They are the
+# reason the HTML reporter escapes without exception: a findings report is read
+# in a browser, so unescaped account data would make the report the payload.
+# Markup payloads: these must never survive into the document unescaped.
+HOSTILE = [
+    "<script>alert(1)</script>",
+    '"><img src=x onerror=alert(1)>',
+    "'><svg onload=alert(1)>",
+]
+
+# A URL payload is a different problem: escaping does not change it, because
+# there is nothing to escape. It is inert as long as it never lands in an
+# attribute that dereferences a URL -- which is what
+# ``test_no_account_data_can_become_a_url`` pins.
+HOSTILE_URL = "javascript:alert(1)"
+
+
+@pytest.fixture
+def hostile_report():
+    """A report whose every free-text field carries markup."""
+    findings = [
+        Finding.build(
+            "S3-002",
+            HOSTILE[0],
+            f"bucket {HOSTILE[1]} is public",
+            {
+                "bucket": HOSTILE[1],
+                "grants": [{"uri": HOSTILE_URL}],
+                "note": HOSTILE[2],
+            },
+            detected_at="2026-01-01T00:00:00+00:00",
+        )
+    ]
+    return build_report(
+        account_id=HOSTILE[0],
+        region=HOSTILE[1],
+        findings=findings,
+        collection_errors=[
+            {
+                "service": "S3",
+                "operation": HOSTILE[0],
+                "resource": HOSTILE[1],
+                "code": "AccessDenied",
+                "category": "access_denied",
+                "message": HOSTILE_URL,
+            }
+        ],
+        services_scanned=["S3"],
+        tool_version="1.0.0",
+        environment_label=HOSTILE[2],
+    )
+
+
+class _Tags(HTMLParser):
+    """Collects the document's real elements and attributes.
+
+    Escaped account data such as ``&lt;img src=x&gt;`` is character data, not a
+    tag, so a structural check sees through payloads that a regex would match.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.tags: list[str] = []
+        self.attrs: list[tuple[str, str, str | None]] = []
+        self.data: list[str] = []
+
+    def handle_starttag(self, tag, attrs):
+        self.tags.append(tag)
+        self.attrs.extend((tag, name, value) for name, value in attrs)
+
+    def handle_data(self, data):
+        self.data.append(data)
+
+
+def _parse(document: str) -> _Tags:
+    parser = _Tags()
+    parser.feed(document)
+    parser.close()
+    return parser
+
+
+def test_html_renders_every_finding_as_its_own_article(report):
+    document = html_reporter.render(report)
+    assert document.count('class="finding"') == len(report["findings"])
+    for finding in report["findings"]:
+        assert finding["rule_id"] in document
+        assert finding["title"] in document
+
+
+@pytest.mark.parametrize("fixture", ["report", "hostile_report"])
+def test_html_contains_no_script_of_any_kind(fixture, request):
+    """Filtering is CSS. A report handed to an auditor is not a program."""
+    parsed = _parse(html_reporter.render(request.getfixturevalue(fixture)))
+    assert "script" not in parsed.tags
+    handlers = [a for _, name, _ in parsed.attrs if (a := name).startswith("on")]
+    assert not handlers, f"inline event handler in the report: {handlers}"
+
+
+def test_html_declares_a_policy_that_forbids_scripts(report):
+    assert "default-src 'none'" in html_reporter.render(report)
+
+
+def test_html_loads_nothing_from_the_network(report):
+    """Self-contained: it must render identically offline and air-gapped."""
+    document = html_reporter.render(report)
+    assert "http://" not in document
+    assert "https://" not in document
+    assert "@import" not in document
+    assert "url(" not in document
+
+
+def test_hostile_account_data_is_escaped_rather_than_rendered(hostile_report):
+    """The property that matters most: account-controlled strings cannot execute."""
+    document = html_reporter.render(hostile_report)
+    for payload in HOSTILE:
+        assert payload not in document, f"unescaped payload in the report: {payload}"
+    # Escaped, not dropped -- the reviewer still has to be able to read the name.
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in document
+    assert "&lt;img src=x onerror=alert(1)&gt;" in document
+
+
+def test_no_account_data_can_become_a_url(hostile_report):
+    """The report dereferences no URL anywhere, so a `javascript:` name stays text.
+
+    The auditor cannot sanitise a URL it does not emit, so the property is
+    structural: the document has no href, no src, and no CSS url(), which is
+    also what makes it render identically with no network.
+    """
+    document = html_reporter.render(hostile_report)
+    assert HOSTILE_URL in "".join(_parse(document).data), "the name stays readable, just inert"
+    dereferencing = [
+        (tag, name)
+        for tag, name, _ in _parse(document).attrs
+        if name in {"href", "src", "action", "formaction", "srcset", "data"}
+    ]
+    assert not dereferencing, f"the report dereferences a URL: {dereferencing}"
+    assert "url(" not in document
+
+
+def test_hostile_data_does_not_break_out_of_an_attribute(hostile_report):
+    """`data-severity` and `title` carry account data; a bare quote would escape them."""
+    document = html_reporter.render(hostile_report)
+    assert '"><img' not in document
+    assert "&quot;&gt;&lt;img" in document
+
+
+def test_html_lists_every_severity_tier_even_at_zero(report):
+    """The ramp is multi-hue, so its scale legend is not optional."""
+    document = html_reporter.render(report)
+    for tier in ordered_names():
+        assert Severity(tier).label in document
+    assert document.count('class="swatch"') == len(ordered_names())
+
+
+def test_html_severity_table_carries_every_number_the_bar_encodes(report):
+    """The relief for the two tiers that sit under the contrast floor."""
+    document = html_reporter.render(report)
+    table = document.split("By severity")[1].split("</table>")[0]
+    for tier, count in report["summary"]["by_severity"].items():
+        assert Severity(tier).label in table
+        assert f">{count}</td>" in table
+
+
+def _bar(document: str) -> str:
+    return document.split('<div class="bar"', 1)[1].split("</div>", 1)[0]
+
+
+def test_distribution_bar_segments_are_proportional_to_the_counts(report):
+    widths = [float(w) for w in re.findall(r"width: ([\d.]+)%", _bar(html_reporter.render(report)))]
+    assert widths, "no bar segments rendered"
+    assert sum(widths) == pytest.approx(100.0, abs=0.01)
+
+
+def test_a_tier_with_no_findings_gets_no_bar_segment(report):
+    """A zero-width segment would still show as a 2px gap and read as a tier."""
+    bar = _bar(html_reporter.render(report))
+    present = {t for t, c in report["summary"]["by_severity"].items() if c}
+    assert len(re.findall(r"width: [\d.]+%", bar)) == len(present)
+
+
+def test_a_report_with_no_findings_renders_an_empty_track_not_a_broken_bar():
+    clean = build_report("123456789012", "us-east-1", [], services_scanned=["IAM"])
+    assert "bar-empty" in _bar(html_reporter.render(clean))
+
+
+def test_html_reports_collection_errors_above_the_findings(report):
+    """Unknown is not clean, so the coverage gap is read before the findings."""
+    document = html_reporter.render(report)
+    assert document.index("Collection errors") < document.index('class="finding"')
+    assert "denied-bucket" in document
+    assert "AccessDenied" in document
+
+
+def test_a_scan_with_no_collection_errors_says_so_explicitly(tmp_path):
+    clean = build_report("123456789012", "us-east-1", [], services_scanned=["IAM"])
+    document = html_reporter.render(clean)
+    assert "Every declared read succeeded" in document
+
+
+def test_html_for_a_clean_account_does_not_claim_the_account_is_clean():
+    clean = build_report("123456789012", "us-east-1", [], services_scanned=["IAM"])
+    document = html_reporter.render(clean)
+    assert "No findings" in document
+    assert "before reading this as a clean" in document
+    assert 'class="finding"' not in document
+    assert 'class="filters"' not in document  # nothing to filter
+
+
+def test_html_rendering_is_deterministic(report):
+    assert html_reporter.render(report) == html_reporter.render(report)
+
+
+def test_html_survives_evidence_that_is_not_a_flat_string(report):
+    report["findings"][0]["evidence"] = {
+        "statements": [{"actions": ["*"], "sid": "FullAdmin"}],
+        "nested": {"a": {"b": 1}},
+        "long": "x" * 400,
+    }
+    document = html_reporter.render(report)
+    assert "FullAdmin" in document
+    assert "<pre>" in document
+
+
+def test_html_writes_a_file_that_a_browser_would_accept(report, tmp_path):
+    path = html_reporter.write(report, str(tmp_path / "nested" / "audit.html"))
+    document = pathlib.Path(path).read_text(encoding="utf-8")
+    assert document.startswith("<!DOCTYPE html>")
+    assert document.rstrip().endswith("</html>")
+
+
+def test_filter_controls_exist_for_every_tier_that_fired(report):
+    document = html_reporter.render(report)
+    for tier, count in report["summary"]["by_severity"].items():
+        expected = f'id="f-sev-{tier.lower()}"'
+        assert (expected in document) is bool(count)
+
+
+def test_html_renders_a_finding_that_is_missing_its_optional_fields():
+    """Reports are read back from JSON, including files written by older versions.
+
+    A finding with no evidence, no rationale, no remediation, and a compliance
+    block that names a control but no framework must still render -- the
+    reporter's job is to show what it was given, not to require a full record.
+    """
+    sparse = build_report("123456789012", "us-east-1", [], services_scanned=["S3"])
+    sparse["findings"] = [
+        {
+            "rule_id": "S3-001",
+            "severity": "MEDIUM",
+            "service": "S3",
+            "resource": "some-bucket",
+            "title": "Public Access Block is not fully enabled",
+            "description": "Two of the four settings are off.",
+            "evidence": {},
+            "compliance": {"control_id": "2.1.4"},
+            "fingerprint": "abc123",
+            "detected_at": "2026-01-01T00:00:00+00:00",
+        }
+    ]
+    sparse["summary"]["total_findings"] = 1
+    sparse["summary"]["by_severity"]["MEDIUM"] = 1
+
+    document = html_reporter.render(sparse)
+    assert "some-bucket" in document
+    assert "control 2.1.4" in document  # no framework name to shorten
+    assert 'class="evidence"' not in document
+    assert "Why it matters" not in document
+    assert "Remediation" not in document
