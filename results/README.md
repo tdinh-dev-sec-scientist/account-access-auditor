@@ -7,6 +7,7 @@ file in this directory, and each was produced by the command named below.
 | --- | --- |
 | `metrics.json`, `metrics_table.md` | `python scripts/collect_metrics.py` |
 | `aws_audit_results.json` / `.csv`, `aws_audit_tickets.txt` | `python -m lab.run_benchmark` (primary lab profile) |
+| `aws_audit_report.html` | `python -m lab.run_benchmark` (the same report, as the browser view) |
 | `aws_audit_results_no-trail.json` | `python -m lab.run_benchmark` (`no-trail` profile) |
 | `expected_vs_actual.json`, `benchmark_report.md` | `python -m lab.run_benchmark` |
 | `fixture_manifest.json` | `pytest tests/test_fixture_manifest.py` |

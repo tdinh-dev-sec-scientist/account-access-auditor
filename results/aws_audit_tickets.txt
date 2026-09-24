@@ -1,4 +1,4 @@
-Ticket ID: AUTO-IAM-004-20260903-001
+Ticket ID: AUTO-IAM-004-20260924-001
 
 Category:
 Access Management
@@ -38,7 +38,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.16 - Ensure IAM policies that allow full "*:*" administrative privileges are not attached
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 IAM-004  (fingerprint 7d8ca8e7369d83cd)
@@ -48,7 +48,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-002-20260903-002
+Ticket ID: AUTO-S3-002-20260924-002
 
 Category:
 Data Storage Configuration
@@ -85,7 +85,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-002  (fingerprint c4844278b89f1324)
@@ -95,7 +95,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-003-20260903-003
+Ticket ID: AUTO-S3-003-20260924-003
 
 Category:
 Data Storage Configuration
@@ -133,7 +133,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-003  (fingerprint 8e70dcd0e08297b6)
@@ -143,7 +143,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-003-20260903-004
+Ticket ID: AUTO-S3-003-20260924-004
 
 Category:
 Data Storage Configuration
@@ -181,7 +181,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-003  (fingerprint 5c47a2ad9fe73350)
@@ -191,7 +191,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-CT-004-20260903-005
+Ticket ID: AUTO-CT-004-20260924-005
 
 Category:
 Audit Logging
@@ -227,7 +227,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 3.1 - Ensure CloudTrail is enabled in all regions
 
 Detected At:
-2026-09-03T02:15:07+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 CT-004  (fingerprint 99e371dfb171b360)
@@ -237,7 +237,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-001-20260903-006
+Ticket ID: AUTO-IAM-001-20260924-006
 
 Category:
 Access Management
@@ -274,7 +274,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.10 - Ensure multi-factor authentication (MFA) is enabled for all IAM users that have a console password
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 IAM-001  (fingerprint 300eb2fbeb928721)
@@ -284,7 +284,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-002-20260903-007
+Ticket ID: AUTO-IAM-002-20260924-007
 
 Category:
 Access Management
@@ -296,22 +296,22 @@ AWS Account:
 123456789012
 
 Affected Resource:
-user:lab-svc-stale-keys/AKIA…D3UZ (iam-access-key)
+user:lab-svc-stale-keys/AKIA…UDGX (iam-access-key)
 
 Issue:
 Active IAM access key exceeds maximum age
 
 Detail:
-Access key AKIA…D3UZ for user 'lab-svc-stale-keys' is 400 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.
+Access key AKIA…UDGX for user 'lab-svc-stale-keys' is 400 days old, above the configured rotation threshold of 90 days and above the escalation threshold of 180 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.
 
 Why It Matters:
 A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.
 
 Evidence:
   username: lab-svc-stale-keys
-  access_key_id: AKIA…D3UZ
+  access_key_id: AKIA…UDGX
   status: Active
-  created: 2025-07-30T02:15:06+00:00
+  created: 2025-08-20T01:52:15+00:00
   age_days: 400
   last_used_date: None
   last_used_days_ago: None
@@ -326,17 +326,17 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.14 - Ensure access keys are rotated every 90 days or less
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
-IAM-002  (fingerprint c80512bd3aea6a60)
+IAM-002  (fingerprint 4efc51356b43a254)
 
 Status:
 OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-005-20260903-008
+Ticket ID: AUTO-IAM-005-20260924-008
 
 Category:
 Access Management
@@ -377,7 +377,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.16 - Ensure IAM policies that allow full "*:*" administrative privileges are not attached
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 IAM-005  (fingerprint 62b4e54471b48b7b)
@@ -387,7 +387,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-005-20260903-009
+Ticket ID: AUTO-IAM-005-20260924-009
 
 Category:
 Access Management
@@ -428,7 +428,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.16 - Ensure IAM policies that allow full "*:*" administrative privileges are not attached
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 IAM-005  (fingerprint 663a9b9774171d0d)
@@ -438,7 +438,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-CT-002-20260903-010
+Ticket ID: AUTO-CT-002-20260924-010
 
 Category:
 Audit Logging
@@ -473,7 +473,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 3.1 - Ensure CloudTrail is enabled in all regions
 
 Detected At:
-2026-09-03T02:15:07+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 CT-002  (fingerprint 2dffc6e1596972e2)
@@ -483,7 +483,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-CT-003-20260903-011
+Ticket ID: AUTO-CT-003-20260924-011
 
 Category:
 Audit Logging
@@ -519,7 +519,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 3.2 - Ensure CloudTrail log file validation is enabled
 
 Detected At:
-2026-09-03T02:15:07+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 CT-003  (fingerprint a04c6a6a1aedb3a7)
@@ -529,7 +529,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-002-20260903-012
+Ticket ID: AUTO-IAM-002-20260924-012
 
 Category:
 Access Management
@@ -541,24 +541,24 @@ AWS Account:
 123456789012
 
 Affected Resource:
-user:lab-svc-rotating/AKIA…G4FB (iam-access-key)
+user:lab-svc-rotating/AKIA…ESHD (iam-access-key)
 
 Issue:
 Active IAM access key exceeds maximum age
 
 Detail:
-Access key AKIA…G4FB for user 'lab-svc-rotating' is 120 days old, above the configured rotation threshold of 90 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.
+Access key AKIA…ESHD for user 'lab-svc-rotating' is 120 days old, above the configured rotation threshold of 90 days. Key age is credential metadata; it does not by itself indicate that the key has been used or compromised.
 
 Why It Matters:
 A long-lived static credential accumulates exposure: every backup, CI log, laptop, and container image it was ever copied into remains a live path into the account until the key is rotated.
 
 Evidence:
   username: lab-svc-rotating
-  access_key_id: AKIA…G4FB
+  access_key_id: AKIA…ESHD
   status: Active
-  created: 2026-05-06T02:15:06+00:00
+  created: 2026-05-27T01:52:15+00:00
   age_days: 120
-  last_used_date: 2026-08-29T02:15:06+00:00
+  last_used_date: 2026-09-19T01:52:15+00:00
   last_used_days_ago: 5
   last_used_service: s3
   threshold_days: 90
@@ -571,17 +571,17 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.14 - Ensure access keys are rotated every 90 days or less
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
-IAM-002  (fingerprint 2dfe1c355886ac44)
+IAM-002  (fingerprint 5b6e6b0b12493e7f)
 
 Status:
 OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-003-20260903-013
+Ticket ID: AUTO-IAM-003-20260924-013
 
 Category:
 Access Management
@@ -593,22 +593,22 @@ AWS Account:
 123456789012
 
 Affected Resource:
-user:lab-svc-stale-keys/AKIA…D3UZ (iam-access-key)
+user:lab-svc-stale-keys/AKIA…UDGX (iam-access-key)
 
 Issue:
 Dormant IAM access key remains active
 
 Detail:
-Active access key AKIA…D3UZ for user 'lab-svc-stale-keys' has never been used in 400 days since creation (GetAccessKeyLastUsed reports no last-used date), at or beyond the 45-day dormancy threshold. An unused credential retains the full permissions of its user while producing no activity that would make its misuse noticeable.
+Active access key AKIA…UDGX for user 'lab-svc-stale-keys' has never been used in 400 days since creation (GetAccessKeyLastUsed reports no last-used date), at or beyond the 45-day dormancy threshold. An unused credential retains the full permissions of its user while producing no activity that would make its misuse noticeable.
 
 Why It Matters:
 A credential nobody uses is a credential nobody is watching. Dormant keys carry the full permissions of their user while producing no signal that would make their misuse noticeable, and an Inactive key can be re-enabled by anyone who can call UpdateAccessKey.
 
 Evidence:
   username: lab-svc-stale-keys
-  access_key_id: AKIA…D3UZ
+  access_key_id: AKIA…UDGX
   status: Active
-  created: 2025-07-30T02:15:06+00:00
+  created: 2025-08-20T01:52:15+00:00
   age_days: 400
   last_used_date: None
   last_used_days_ago: None
@@ -623,17 +623,17 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.12 - Ensure credentials unused for 45 days or greater are disabled
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
-IAM-003  (fingerprint 58ca00d52795f00a)
+IAM-003  (fingerprint f8463f9a1fff3061)
 
 Status:
 OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-001-20260903-014
+Ticket ID: AUTO-S3-001-20260924-014
 
 Category:
 Data Storage Configuration
@@ -669,7 +669,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-001  (fingerprint 502980816617fa7a)
@@ -679,7 +679,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-001-20260903-015
+Ticket ID: AUTO-S3-001-20260924-015
 
 Category:
 Data Storage Configuration
@@ -715,7 +715,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-001  (fingerprint af407a1721986a8d)
@@ -725,7 +725,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-001-20260903-016
+Ticket ID: AUTO-S3-001-20260924-016
 
 Category:
 Data Storage Configuration
@@ -761,7 +761,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-001  (fingerprint 80794581a39ae70d)
@@ -771,7 +771,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-001-20260903-017
+Ticket ID: AUTO-S3-001-20260924-017
 
 Category:
 Data Storage Configuration
@@ -807,7 +807,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-001  (fingerprint af88cf69cb7e0d1d)
@@ -817,7 +817,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-003-20260903-018
+Ticket ID: AUTO-S3-003-20260924-018
 
 Category:
 Data Storage Configuration
@@ -855,7 +855,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-003  (fingerprint 392a5a1a97f743bb)
@@ -865,7 +865,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-004-20260903-019
+Ticket ID: AUTO-S3-004-20260924-019
 
 Category:
 Data Storage Configuration
@@ -899,7 +899,7 @@ Compliance Reference:
 No mapped control in the referenced benchmark version.
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-004  (fingerprint 48efd50bc2de0656)
@@ -909,7 +909,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-004-20260903-020
+Ticket ID: AUTO-S3-004-20260924-020
 
 Category:
 Data Storage Configuration
@@ -943,7 +943,7 @@ Compliance Reference:
 No mapped control in the referenced benchmark version.
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-004  (fingerprint dca8631dfaacd349)
@@ -953,7 +953,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-003-20260903-021
+Ticket ID: AUTO-IAM-003-20260924-021
 
 Category:
 Access Management
@@ -965,22 +965,22 @@ AWS Account:
 123456789012
 
 Affected Resource:
-user:lab-contractor-offboarded/AKIA…LLJU (iam-access-key)
+user:lab-contractor-offboarded/AKIA…SWLZ (iam-access-key)
 
 Issue:
 Inactive IAM access key still present
 
 Detail:
-Access key AKIA…LLJU for user 'lab-contractor-offboarded' exists in an Inactive state. It cannot currently authenticate, but it remains credential material that a principal with iam:UpdateAccessKey can re-enable.
+Access key AKIA…SWLZ for user 'lab-contractor-offboarded' exists in an Inactive state. It cannot currently authenticate, but it remains credential material that a principal with iam:UpdateAccessKey can re-enable.
 
 Why It Matters:
 A credential nobody uses is a credential nobody is watching. Dormant keys carry the full permissions of their user while producing no signal that would make their misuse noticeable, and an Inactive key can be re-enabled by anyone who can call UpdateAccessKey.
 
 Evidence:
   username: lab-contractor-offboarded
-  access_key_id: AKIA…LLJU
+  access_key_id: AKIA…SWLZ
   status: Inactive
-  created: 2026-09-03T02:15:06+00:00
+  created: 2026-09-24T01:52:15+00:00
   age_days: 0
   last_used_date: None
   last_used_days_ago: None
@@ -993,17 +993,17 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 1.12 - Ensure credentials unused for 45 days or greater are disabled
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
-IAM-003  (fingerprint 751e8256695bd6df)
+IAM-003  (fingerprint 46e5dd6f046e5c41)
 
 Status:
 OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-002-20260903-022
+Ticket ID: AUTO-S3-002-20260924-022
 
 Category:
 Data Storage Configuration
@@ -1040,7 +1040,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-002  (fingerprint 9975327de5938542)
@@ -1050,7 +1050,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-S3-003-20260903-023
+Ticket ID: AUTO-S3-003-20260924-023
 
 Category:
 Data Storage Configuration
@@ -1088,7 +1088,7 @@ Compliance Reference:
 CIS Amazon Web Services Foundations Benchmark v3.0.0 control 2.1.4 - Ensure that S3 Buckets are configured with 'Block public access (bucket settings)'
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 S3-003  (fingerprint 00b35da017ef5edf)
@@ -1098,7 +1098,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-006-20260903-024
+Ticket ID: AUTO-IAM-006-20260924-024
 
 Category:
 Access Management
@@ -1135,7 +1135,7 @@ Compliance Reference:
 No mapped control in the referenced benchmark version.
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 IAM-006  (fingerprint 5354147507c7370a)
@@ -1145,7 +1145,7 @@ OPEN
 
 --------------------------------------------------------------------
 
-Ticket ID: AUTO-IAM-006-20260903-025
+Ticket ID: AUTO-IAM-006-20260924-025
 
 Category:
 Access Management
@@ -1182,7 +1182,7 @@ Compliance Reference:
 No mapped control in the referenced benchmark version.
 
 Detected At:
-2026-09-03T02:15:06+00:00
+2026-09-24T01:52:15+00:00
 
 Detection Rule:
 IAM-006  (fingerprint 5325219f9bb74001)

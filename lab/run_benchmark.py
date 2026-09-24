@@ -5,6 +5,7 @@ come out of it rather than out of anyone's head. It writes:
 
   results/aws_audit_results.json          full audit report, primary profile
   results/aws_audit_results_no-trail.json full audit report, no-trail profile
+  results/aws_audit_report.html           the same report, as the browser view
   results/expected_vs_actual.json         TP / FP / FN scoring per profile
   results/benchmark_report.md             the human-readable version
 
@@ -32,7 +33,7 @@ from auditor.cli import run_scan  # noqa: E402
 from auditor.config import load_config  # noqa: E402
 from auditor.models.report import build_report  # noqa: E402
 from auditor.redaction import redact_report  # noqa: E402
-from auditor.reporters import csv_reporter, json_reporter, ticket  # noqa: E402
+from auditor.reporters import csv_reporter, html_reporter, json_reporter, ticket  # noqa: E402
 from auditor.rules import registry  # noqa: E402
 from lab.provision import build_lab_session, provision  # noqa: E402
 from lab.resources import PROFILES, expectations_for, negative_controls  # noqa: E402
@@ -265,6 +266,9 @@ def main(argv: list[str] | None = None) -> int:
         if profile == "misconfigured":
             csv_reporter.write(publishable, os.path.join(args.results_dir, "aws_audit_results.csv"))
             ticket.write(publishable, os.path.join(args.results_dir, "aws_audit_tickets.txt"))
+            # The published sample report. It is generated from the same redacted
+            # report object as the JSON beside it, so the two cannot disagree.
+            html_reporter.write(publishable, os.path.join(args.results_dir, "aws_audit_report.html"))
 
     with open(os.path.join(args.results_dir, "expected_vs_actual.json"), "w", encoding="utf-8") as handle:
         json.dump(

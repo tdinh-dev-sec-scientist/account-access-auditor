@@ -3,7 +3,7 @@
     "tool": "account-access-auditor",
     "tool_version": "0.1.0",
     "run_id": "lab-no-trail",
-    "generated_at": "2026-09-03T02:15:07+00:00",
+    "generated_at": "2026-09-24T01:52:16+00:00",
     "account_id": "123456789012",
     "region": "us-east-1",
     "environment": "lab/no-trail (moto emulated account, not a live AWS account)",
@@ -76,7 +76,7 @@
     },
     "collection_errors": 0,
     "api_call_count": 12,
-    "duration_seconds": 0.06
+    "duration_seconds": 0.097
   },
   "collection_errors": [],
   "findings": [
@@ -100,7 +100,7 @@
         "control_title": "Ensure CloudTrail is enabled in all regions",
         "status": "mapped"
       },
-      "detected_at": "2026-09-03T02:15:07+00:00",
+      "detected_at": "2026-09-24T01:52:16+00:00",
       "run_id": "no-trail",
       "status": "OPEN",
       "fingerprint": "a1c3c498a4152d8b"

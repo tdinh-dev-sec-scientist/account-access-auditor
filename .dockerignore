@@ -1,0 +1,13 @@
+.git
+.github
+**/__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+reports
+docs/baseline-before-upgrade.txt
+*.egg-info
+.venv
+venv

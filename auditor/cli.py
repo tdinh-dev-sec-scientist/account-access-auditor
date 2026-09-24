@@ -36,7 +36,7 @@ log = logging.getLogger("auditor")
 
 ALL_SERVICES = ["iam", "s3", "cloudtrail"]
 SERVICE_LABELS = {"iam": "IAM", "s3": "S3", "cloudtrail": "CloudTrail"}
-OUTPUT_FORMATS = ["json", "csv", "tickets"]
+OUTPUT_FORMATS = ["json", "csv", "tickets", "html"]
 
 EXIT_OK = 0
 EXIT_FINDINGS = 1
@@ -73,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument(
         "--output",
         default="json,csv",
-        help="Comma-separated output formats: json,csv,tickets,none (default: json,csv).",
+        help="Comma-separated output formats: json,csv,tickets,html,none (default: json,csv).",
     )
     audit.add_argument(
         "--output-dir", default="reports", help="Directory for report files (default: reports/)."
