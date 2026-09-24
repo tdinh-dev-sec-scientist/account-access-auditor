@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1113" height="1050"
+     viewBox="0 0 1113 1050" role="img"
+     aria-label="Terminal output of a scan of the emulated lab account">
+  <rect width="1113" height="1050" rx="8" fill="#1a1a19"/>
+  <rect width="1113" height="30" rx="8" fill="#1a1a19"/>
+  <line x1="0" y1="30" x2="1113" y2="30" stroke="#2c2c2a"/>
+  <circle cx="18" cy="15" r="5.5" fill="#2c2c2a"/><circle cx="36" cy="15" r="5.5" fill="#2c2c2a"/><circle cx="54" cy="15" r="5.5" fill="#2c2c2a"/>
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', monospace" font-size="13">
+    <text x="18" y="59" fill="#e8e7e0" xml:space="preserve">AWS Account &amp; Access Configuration Auditor</text>
+    <text x="18" y="78" fill="#898781" xml:space="preserve">==========================================</text>
+    <text x="18" y="97" fill="#e8e7e0" xml:space="preserve"></text>
+    <text x="18" y="116" fill="#e8e7e0" xml:space="preserve">Account: 123456789012</text>
+    <text x="18" y="135" fill="#e8e7e0" xml:space="preserve">Region:  us-east-1</text>
+    <text x="18" y="154" fill="#e8e7e0" xml:space="preserve">Caller:  arn:aws:sts::123456789012:user/moto</text>
+    <text x="18" y="173" fill="#e8e7e0" xml:space="preserve">Env:     lab/misconfigured (moto emulated account, not a live AWS account)</text>
+    <text x="18" y="192" fill="#e8e7e0" xml:space="preserve"></text>
+    <text x="18" y="211" fill="#e8e7e0" xml:space="preserve">Scanning IAM..................DONE</text>
+    <text x="18" y="230" fill="#e8e7e0" xml:space="preserve">Scanning S3...................DONE</text>
+    <text x="18" y="249" fill="#e8e7e0" xml:space="preserve">Scanning CloudTrail...........DONE</text>
+    <text x="18" y="268" fill="#e8e7e0" xml:space="preserve"></text>
+    <text x="18" y="287" fill="#e8e7e0" xml:space="preserve">Findings</text>
+    <text x="18" y="306" fill="#898781" xml:space="preserve">--------</text>
+    <text x="18" y="325" fill="#e8e7e0" xml:space="preserve">CRITICAL   4</text>
+    <text x="18" y="344" fill="#e8e7e0" xml:space="preserve">HIGH       5</text>
+    <text x="18" y="363" fill="#e8e7e0" xml:space="preserve">MEDIUM     11</text>
+    <text x="18" y="382" fill="#e8e7e0" xml:space="preserve">LOW        3</text>
+    <text x="18" y="401" fill="#e8e7e0" xml:space="preserve">INFO       2</text>
+    <text x="18" y="420" fill="#e8e7e0" xml:space="preserve">TOTAL      25</text>
+    <text x="18" y="439" fill="#e8e7e0" xml:space="preserve"></text>
+    <text x="18" y="458" fill="#e8e7e0" xml:space="preserve">SEVERITY   RULE      CIS     RESOURCE                           TITLE</text>
+    <text x="18" y="477" fill="#e8e7e0" xml:space="preserve">CRITICAL   IAM-004   1.16    user:lab-admin-console-nomfa/lab…  IAM policy grants unrestricted actions on all resources</text>
+    <text x="18" y="496" fill="#e8e7e0" xml:space="preserve">CRITICAL   S3-002    2.1.4   lab-public-assets                  Bucket ACL grants public access</text>
+    <text x="18" y="515" fill="#e8e7e0" xml:space="preserve">CRITICAL   S3-003    2.1.4   lab-public-assets                  Bucket policy grants access to a public principal</text>
+    <text x="18" y="534" fill="#e8e7e0" xml:space="preserve">CRITICAL   S3-003    2.1.4   lab-tls-only-public                Bucket policy grants access to a public principal</text>
+    <text x="18" y="553" fill="#e8e7e0" xml:space="preserve">HIGH       CT-004    3.1     lab-single-region-trail            CloudTrail trail exists but is not currently logging</text>
+    <text x="18" y="572" fill="#e8e7e0" xml:space="preserve">HIGH       IAM-001   1.10    user:lab-admin-console-nomfa       Console-enabled IAM user lacks MFA</text>
+    <text x="18" y="591" fill="#e8e7e0" xml:space="preserve">HIGH       IAM-002   1.14    user:lab-svc-stale-keys/AKIA…LQBA  Active IAM access key exceeds maximum age</text>
+    <text x="18" y="610" fill="#e8e7e0" xml:space="preserve">HIGH       IAM-005   1.16    group:lab-developers/lab-broad-s…  IAM policy grants service-wide permissions on all resources</text>
+    <text x="18" y="629" fill="#e8e7e0" xml:space="preserve">HIGH       IAM-005   1.16    role:lab-ci-deploy-role/lab-iam-…  IAM policy grants service-wide permissions on all resources</text>
+    <text x="18" y="648" fill="#e8e7e0" xml:space="preserve">MEDIUM     CT-002    3.1     aws-account                        No multi-region CloudTrail trail configured</text>
+    <text x="18" y="667" fill="#e8e7e0" xml:space="preserve">MEDIUM     CT-003    3.2     lab-single-region-trail            CloudTrail log file validation is disabled</text>
+    <text x="18" y="686" fill="#e8e7e0" xml:space="preserve">MEDIUM     IAM-002   1.14    user:lab-svc-rotating/AKIA…UAHX    Active IAM access key exceeds maximum age</text>
+    <text x="18" y="705" fill="#e8e7e0" xml:space="preserve">MEDIUM     IAM-003   1.12    user:lab-svc-stale-keys/AKIA…LQBA  Dormant IAM access key remains active</text>
+    <text x="18" y="724" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-001    2.1.4   lab-latent-acl                     S3 Public Access Block is not fully enabled</text>
+    <text x="18" y="743" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-001    2.1.4   lab-partner-share                  S3 Public Access Block is not fully enabled</text>
+    <text x="18" y="762" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-001    2.1.4   lab-public-assets                  S3 Public Access Block is not fully enabled</text>
+    <text x="18" y="781" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-001    2.1.4   lab-tls-only-public                S3 Public Access Block is not fully enabled</text>
+    <text x="18" y="800" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-003    2.1.4   lab-partner-share                  Bucket policy grants access to a public principal</text>
+    <text x="18" y="819" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-004    -       lab-public-assets                  No explicit bucket-level encryption configuration observed</text>
+    <text x="18" y="838" fill="#e8e7e0" xml:space="preserve">MEDIUM     S3-004    -       lab-unencrypted-logs               No explicit bucket-level encryption configuration observed</text>
+    <text x="18" y="857" fill="#e8e7e0" xml:space="preserve">LOW        IAM-003   1.12    user:lab-contractor-offboarded/A…  Inactive IAM access key still present</text>
+    <text x="18" y="876" fill="#e8e7e0" xml:space="preserve">LOW        S3-002    2.1.4   lab-latent-acl                     Bucket ACL grants public access (currently ignored by Public Access Block)</text>
+    <text x="18" y="895" fill="#e8e7e0" xml:space="preserve">LOW        S3-003    2.1.4   lab-blocked-public-policy          Bucket policy grants access to a public principal</text>
+    <text x="18" y="914" fill="#e8e7e0" xml:space="preserve">INFO       IAM-006   -       user:lab-svc-rotating              IAM user without MFA (no console access configured)</text>
+    <text x="18" y="933" fill="#e8e7e0" xml:space="preserve">INFO       IAM-006   -       user:lab-svc-stale-keys            IAM user without MFA (no console access configured)</text>
+    <text x="18" y="952" fill="#e8e7e0" xml:space="preserve"></text>
+    <text x="18" y="971" fill="#e8e7e0" xml:space="preserve">Resources scanned: cloudtrail_trails=1, iam_access_keys=3, iam_groups=1, iam_policies=5, iam_roles=2, iam_users=5, s3_buckets=8</text>
+    <text x="18" y="990" fill="#e8e7e0" xml:space="preserve">API calls: 101   Duration: 0.238s</text>
+    <text x="18" y="1009" fill="#e8e7e0" xml:space="preserve"></text>
+    <text x="18" y="1028" fill="#898781" xml:space="preserve">Severity is this project's internal prioritisation model. It is not a CVSS score, an AWS risk rating, or a formal industry classification.</text>
+  </g>
+</svg>
