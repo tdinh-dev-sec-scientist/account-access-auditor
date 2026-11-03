@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Vorrin is a read-only cloud security console for inspecting saved AWS guardrail evidence.">
+  <title>Security Overview · Vorrin</title>
+  <link rel="stylesheet" href="console.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="icon-overview" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="4" rx="1.5"/><rect x="13.5" y="10.5" width="7" height="10" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/></symbol>
+    <symbol id="icon-vorrin" viewBox="0 0 24 24"><path d="m4.5 5.5 7.5 14 7.5-14"/><path d="M7.3 10.7h9.4M9.5 14.5h5"/><circle cx="12" cy="5.4" r="1.2"/></symbol>
+    <symbol id="icon-cloud" viewBox="0 0 24 24"><path d="M7.3 18.5h9.8a4.4 4.4 0 0 0 .3-8.8 5.8 5.8 0 0 0-11.1-1.4 5.1 5.1 0 0 0 1 10.2Z"/></symbol>
+    <symbol id="icon-scan" viewBox="0 0 24 24"><path d="M8 3.5H5.8a2.3 2.3 0 0 0-2.3 2.3V8M16 3.5h2.2a2.3 2.3 0 0 1 2.3 2.3V8M20.5 16v2.2a2.3 2.3 0 0 1-2.3 2.3H16M8 20.5H5.8a2.3 2.3 0 0 1-2.3-2.3V16M7 12h10M12 7v10"/></symbol>
+    <symbol id="icon-findings" viewBox="0 0 24 24"><path d="M12 3.5 21 20H3L12 3.5Z"/><path d="M12 9v4.5M12 17h.01"/></symbol>
+    <symbol id="icon-history" viewBox="0 0 24 24"><path d="M3.8 11a8.5 8.5 0 1 1 .6 5.4M3.8 4.5v6.6h6.5M12 7.5v5l3.3 2"/></symbol>
+    <symbol id="icon-code" viewBox="0 0 24 24"><path d="m8.5 7-5 5 5 5M15.5 7l5 5-5 5M14 4.5l-4 15"/></symbol>
+    <symbol id="icon-pipeline" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2.2"/><circle cx="18" cy="19" r="2.2"/><path d="M6 7.2v4.2a2.8 2.8 0 0 0 2.8 2.8h6.4a2.8 2.8 0 0 1 2.8 2.8v-.1M18 16.8v-4.2a2.8 2.8 0 0 0-2.8-2.8H8.8A2.8 2.8 0 0 1 6 7"/></symbol>
+    <symbol id="icon-package" viewBox="0 0 24 24"><path d="m12 3.5 8.5 4.3v8.4L12 20.5l-8.5-4.3V7.8L12 3.5Z"/><path d="m3.8 7.9 8.2 4.2 8.2-4.2M12 12.1v8"/></symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24"><path d="M12 3.5 20 6v5.6c0 4.2-2.7 7.1-8 9.3-5.3-2.2-8-5.1-8-9.3V6l8-2.5Z"/><path d="m8.7 12.2 2.2 2.2 4.5-4.7"/></symbol>
+    <symbol id="icon-brain" viewBox="0 0 24 24"><path d="M12 5.1a3 3 0 0 0-5.7 1.2 3.6 3.6 0 0 0-1 6.8 3.5 3.5 0 0 0 3.4 5.7A3 3 0 0 0 12 20V5.1ZM12 5.1a3 3 0 0 1 5.7 1.2 3.6 3.6 0 0 1 1 6.8 3.5 3.5 0 0 1-3.4 5.7A3 3 0 0 1 12 20M8.3 9.3c1.2 0 2 .8 2 2M15.7 9.3c-1.2 0-2 .8-2 2M8.7 15.6c1.2 0 1.9-.7 2-1.8M15.3 15.6c-1.2 0-1.9-.7-2-1.8"/></symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="m19.4 13.5 1.1 1.8-2 3.4-2.1-.1a7.9 7.9 0 0 1-1.8 1l-.9 1.9h-3.9l-.9-1.9a7.9 7.9 0 0 1-1.8-1l-2.1.1-2-3.4 1.1-1.8a8.7 8.7 0 0 1 0-2.1L3 9.6l2-3.4 2.1.1a7.9 7.9 0 0 1 1.8-1l.9-1.9h3.9l.9 1.9a7.9 7.9 0 0 1 1.8 1l2.1-.1 2 3.4-1.1 1.8a8.7 8.7 0 0 1 0 2.1Z"/></symbol>
+    <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+    <symbol id="icon-lock" viewBox="0 0 24 24"><rect x="4.5" y="10" width="15" height="10.5" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2.5"/></symbol>
+    <symbol id="icon-menu" viewBox="0 0 24 24"><path d="M4 6.5h16M4 12h16M4 17.5h16"/></symbol>
+    <symbol id="icon-external" viewBox="0 0 24 24"><path d="M13 5h6v6M19 5l-9 9"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+    <symbol id="icon-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14M13 6.5l5.5 5.5-5.5 5.5"/></symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="11.5" height="12" rx="2"/><path d="M15.5 8V5.8a1.8 1.8 0 0 0-1.8-1.8H6.3a1.8 1.8 0 0 0-1.8 1.8v8.4A1.8 1.8 0 0 0 6.3 16H8"/></symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.1M12 19.1v2.1M4.6 4.6l1.5 1.5m11.8 11.8 1.5 1.5M2.8 12h2.1m14.2 0h2.1M4.6 19.4l1.5-1.5M17.9 6.1l1.5-1.5"/></symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M20.2 15.2A8.7 8.7 0 0 1 8.8 3.8 8.8 8.8 0 1 0 20.2 15.2Z"/><path d="m16.4 5.3.5 1.4 1.4.5-1.4.5-.5 1.4-.5-1.4-1.4-.5 1.4-.5.5-1.4Z"/></symbol>
+  </svg>
+
+  <div class="app-frame" id="app-frame">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <a class="brand" href="../" aria-label="Vorrin Cloud Security home">
+        <span class="brand-mark"><svg class="icon"><use href="#icon-vorrin"></use></svg></span>
+        <span class="brand-copy"><strong>Vorrin</strong><small>Cloud Security</small></span>
+      </a>
+
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="nav-group" aria-label="Workspace">
+        <button class="nav-item is-active" data-view="overview" aria-current="page" aria-label="Overview" title="Overview"><svg class="icon"><use href="#icon-overview"></use></svg><span>Overview</span></button>
+        <button class="nav-item" data-view="aws-accounts" aria-label="AWS Accounts" title="AWS Accounts"><svg class="icon"><use href="#icon-cloud"></use></svg><span>AWS Accounts</span></button>
+        <button class="nav-item" data-view="security-scans" aria-label="Security Scans" title="Security Scans"><svg class="icon"><use href="#icon-scan"></use></svg><span>Security Scans</span></button>
+        <button class="nav-item" data-view="findings" aria-label="Findings" title="Findings"><svg class="icon"><use href="#icon-findings"></use></svg><span>Findings</span><span class="nav-count" id="nav-finding-count">—</span></button>
+        <button class="nav-item" data-view="drift-history" aria-label="Drift History" title="Drift History"><svg class="icon"><use href="#icon-history"></use></svg><span>Drift History</span></button>
+      </nav>
+
+      <div class="workspace-label nav-section-label">DEVELOPER SECURITY</div>
+      <nav class="nav-group" aria-label="Developer security">
+        <button class="nav-item" data-view="iac-security" aria-label="IaC Security" title="IaC Security"><svg class="icon"><use href="#icon-code"></use></svg><span>IaC Security</span></button>
+        <button class="nav-item" data-view="ci-cd" aria-label="CI/CD" title="CI/CD"><svg class="icon"><use href="#icon-pipeline"></use></svg><span>CI/CD</span></button>
+        <button class="nav-item" data-view="supply-chain" aria-label="Supply Chain" title="Supply Chain"><svg class="icon"><use href="#icon-package"></use></svg><span>Supply Chain</span></button>
+      </nav>
+
+      <div class="workspace-label nav-section-label">GOVERNANCE</div>
+      <nav class="nav-group" aria-label="Governance">
+        <button class="nav-item" data-view="exceptions" aria-label="Exceptions" title="Exceptions"><svg class="icon"><use href="#icon-shield"></use></svg><span>Exceptions</span></button>
+      </nav>
+
+      <div class="workspace-label nav-section-label">INTELLIGENCE</div>
+      <nav class="nav-group" aria-label="Intelligence">
+        <button class="nav-item" data-view="ai-analyst" aria-label="AI Analyst" title="AI Analyst"><svg class="icon"><use href="#icon-brain"></use></svg><span>AI Analyst</span><span class="nav-beta">Optional</span></button>
+      </nav>
+
+      <div class="sidebar-spacer"></div>
+      <div class="workspace-label nav-section-label">ADMINISTRATION</div>
+      <nav class="nav-group" aria-label="Administration">
+        <button class="nav-item" data-view="settings" aria-label="Settings" title="Settings"><svg class="icon"><use href="#icon-settings"></use></svg><span>Settings</span></button>
+      </nav>
+
+      <div class="sidebar-status">
+        <span class="status-mark"><svg class="icon"><use href="#icon-lock"></use></svg></span>
+        <span><strong>Read-only replay</strong><small>No AWS connection</small></span>
+        <span class="status-dot" aria-label="Offline"></span>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-button menu-toggle" id="menu-toggle" type="button" aria-label="Collapse navigation" title="Collapse navigation" aria-expanded="true" aria-controls="sidebar">
+          <svg class="icon"><use href="#icon-menu"></use></svg>
+        </button>
+        <div class="breadcrumb"><span>Workspace</span><span class="breadcrumb-divider">/</span><strong id="breadcrumb-current">Security Overview</strong></div>
+        <label class="search-box">
+          <svg class="icon"><use href="#icon-search"></use></svg>
+          <span class="sr-only">Search findings</span>
+          <input type="search" id="global-search" placeholder="Search findings…" autocomplete="off">
+          <kbd>⌘ K</kbd>
+        </label>
+        <div class="topbar-divider"></div>
+        <label class="scope-select-wrap">
+          <span class="sr-only">Assessment scope</span>
+          <select id="scope-select" aria-label="Assessment scope">
+            <option value="misconfigured">Misconfigured fixture</option>
+            <option value="no-trail">No CloudTrail fixture</option>
+          </select>
+        </label>
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+          <svg class="icon" aria-hidden="true"><use id="theme-icon" href="#icon-sun"></use></svg>
+          <span id="theme-label">Light</span>
+        </button>
+        <button class="assistant-launcher" id="assistant-launcher" type="button" aria-label="Open Rin, local evidence guide" title="Open Rin, local evidence guide" aria-haspopup="dialog" aria-controls="assistant-dialog">
+          <span class="assistant-launcher-orb" aria-hidden="true"><span></span></span>
+          <span class="assistant-launcher-copy"><strong>Rin</strong><small>Evidence guide</small></span>
+        </button>
+        <span class="readonly-chip"><svg class="icon"><use href="#icon-lock"></use></svg> Read only</span>
+      </header>
+
+      <main id="main-content" class="main-content" tabindex="-1">
+        <div class="source-banner" role="note">
+          <span class="source-dot"></span>
+          <span><strong>Moto demo data</strong><span class="source-divider">·</span>Local emulated account <span class="source-divider">·</span>Snapshot <time id="snapshot-generated-at">Not recorded</time><span class="source-divider">·</span>No live AWS calls</span>
+          <a href="../report.html">Source report <svg class="icon"><use href="#icon-external"></use></svg></a>
+        </div>
+        <div class="state-explainer" role="note">Execution status does not mean the findings are absent. The scan gate is <strong>NOT CONFIGURED</strong>.</div>
+        <div id="view-root" aria-live="polite" aria-busy="true">
+          <div class="loading-state"><span class="loading-bar"></span><span>Preparing local evidence…</span></div>
+        </div>
+        <noscript><p class="noscript-note">Enable JavaScript to filter findings and inspect evidence. This page does not connect to AWS or any backend; the raw report is available <a href="../aws_audit_results.json">here</a>.</p></noscript>
+      </main>
+      <footer class="app-footer">
+        <span>Built from checked-in benchmark artifacts</span>
+        <span>AI features are optional; recommendations are advisory.</span>
+        <a href="../aws_audit_results.json">View JSON evidence <svg class="icon"><use href="#icon-arrow"></use></svg></a>
+      </footer>
+    </div>
+  </div>
+
+  <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation" hidden></button>
+
+  <dialog class="assistant-dialog" id="assistant-dialog" aria-label="Local fixture assistant" aria-labelledby="assistant-title" aria-describedby="assistant-description">
+    <section class="assistant-panel">
+      <header class="assistant-header">
+        <div class="assistant-avatar-stage" aria-hidden="true">
+          <span class="assistant-avatar-orbit"></span>
+          <span class="assistant-avatar-orb"><span class="assistant-avatar-face"></span><span class="assistant-avatar-glint"></span></span>
+          <span class="assistant-avatar-shadow"></span>
+        </div>
+        <div class="assistant-header-copy">
+          <span class="eyebrow">THE EVIDENCE GUIDE</span>
+          <h2 id="assistant-title">Rin</h2>
+          <p id="assistant-description">I follow the evidence. I don't guess. No AI model is connected; answers use this saved Moto report.</p>
+        </div>
+        <button class="icon-button assistant-close" id="assistant-close" type="button" aria-label="Close assistant"><svg class="icon"><use href="#icon-close"></use></svg></button>
+      </header>
+      <div class="assistant-mode"><span class="assistant-mode-dot"></span>Offline · no live AWS or model calls</div>
+      <div class="assistant-messages" id="assistant-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Local assistant conversation"></div>
+      <div class="assistant-suggestions" role="group" aria-label="Suggested local questions">
+        <button type="button" data-assistant-question="How many critical findings?">Critical count</button>
+        <button type="button" data-assistant-question="Explain the top finding">Explain a finding</button>
+        <button type="button" data-assistant-question="Is AWS connected?">AWS connection</button>
+      </div>
+      <form class="assistant-form" id="assistant-form">
+        <label class="sr-only" for="assistant-input">Ask about the selected local fixture</label>
+        <input id="assistant-input" name="question" type="text" maxlength="500" placeholder="Ask about this saved scan…" autocomplete="off" required>
+        <button class="assistant-send" type="submit" aria-label="Send question"><svg class="icon"><use href="#icon-arrow"></use></svg></button>
+      </form>
+      <p class="assistant-disclosure">Local answers only. Nothing leaves this browser.</p>
+    </section>
+  </dialog>
+
+  <dialog class="evidence-dialog" id="evidence-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-head">
+      <div><span class="eyebrow">FINDING EVIDENCE</span><h2 id="dialog-title">Finding detail</h2></div>
+      <button class="icon-button" id="dialog-close" type="button" aria-label="Close finding detail"><svg class="icon"><use href="#icon-close"></use></svg></button>
+    </div>
+    <div class="dialog-body" id="dialog-body"></div>
+  </dialog>
+
+  <script type="application/json" id="console-data">{{CONSOLE_DATA}}</script>
+  <script src="console.js" defer></script>
+</body>
+</html>

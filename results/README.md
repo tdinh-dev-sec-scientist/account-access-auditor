@@ -5,7 +5,8 @@ file in this directory, and each was produced by the command named below.
 
 | File | Produced by |
 | --- | --- |
-| `metrics.json`, `metrics_table.md` | `python scripts/collect_metrics.py` |
+| `metrics_sources.json` | `python scripts/collect_metrics.py` (snapshots code, policy, and test inputs) |
+| `metrics.json`, `metrics_table.md` | `python scripts/collect_metrics.py` (derived from result artifacts) |
 | `aws_audit_results.json` / `.csv`, `aws_audit_tickets.txt` | `python -m lab.run_benchmark` (primary lab profile) |
 | `aws_audit_report.html` | `python -m lab.run_benchmark` (the same report, as the browser view) |
 | `aws_audit_results_no-trail.json` | `python -m lab.run_benchmark` (`no-trail` profile) |

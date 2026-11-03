@@ -10,6 +10,14 @@
       "Resource": "*"
     },
     {
+      "Sid": "AuditorAssumeTargetRole",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "arn:aws:iam::*:role/AccountAccessAuditorReadOnly"
+    },
+    {
       "Sid": "AuditorListPrincipals",
       "Effect": "Allow",
       "Action": [

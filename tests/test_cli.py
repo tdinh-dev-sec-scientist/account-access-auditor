@@ -156,6 +156,96 @@ def test_generate_policy_to_stdout_by_default(capsys):
     assert json.loads(capsys.readouterr().out)["Version"] == "2012-10-17"
 
 
+def test_generate_policy_includes_access_analyzer_only_when_requested(capsys):
+    assert cli.main(["generate-policy", "--include-optional-access-analyzer"]) == cli.EXIT_OK
+    generated = json.loads(capsys.readouterr().out)
+    default = cli.permissions.generate_policy()
+    assert generated != default
+    assert any(
+        "access-analyzer:ValidatePolicy" in statement["Action"] for statement in generated["Statement"]
+    )
+
+
+def test_fleet_scan_stores_history_and_returns_scan_exit_code(monkeypatch, tmp_path, capsys):
+    fleet_config = tmp_path / "fleet.yaml"
+    fleet_config.write_text(
+        "accounts:\n"
+        "  - account_id: '123456789012'\n"
+        "    role_arn: arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly\n"
+        "regions: [us-east-1]\n"
+        "services: [cloudtrail]\n"
+    )
+    calls = []
+
+    def fake_session(*, profile=None, region=None):
+        calls.append((profile, region))
+        return object(), None
+
+    report = {
+        "metadata": {"scan_source": "aws-fleet", "scan_coverage": []},
+        "summary": {},
+        "collection_errors": [],
+        "findings": [],
+        "contract": {
+            "scan_run": {
+                "run_id": "fleet-run",
+                "status": "UNKNOWN",
+                "completed_at": "2026-11-02T00:00:00+00:00",
+                "exit_code": cli.EXIT_UNKNOWN,
+            },
+            "findings": [],
+        },
+    }
+    monkeypatch.setattr(cli, "build_session", fake_session)
+    monkeypatch.setattr(cli, "run_fleet_scan", lambda *args, **kwargs: report)
+
+    code = cli.main(
+        [
+            "fleet-scan",
+            "--fleet-config",
+            str(fleet_config),
+            "--history-dir",
+            str(tmp_path / "history"),
+            "--profile",
+            "audit",
+        ]
+    )
+
+    assert code == cli.EXIT_UNKNOWN
+    assert calls == [("audit", "us-east-1")]
+    output = json.loads(capsys.readouterr().out)
+    assert output["contract"]["scan_run"]["run_id"] == "fleet-run"
+    assert output["summary"]["drift"]["new"] == 0
+
+
+def test_history_command_renders_html_to_a_file(tmp_path, capsys):
+    from auditor.history import HistoryStore
+
+    directory = tmp_path / "history"
+    HistoryStore(directory)
+    destination = tmp_path / "dashboard.html"
+
+    assert (
+        cli.main(
+            ["history", "--history-dir", str(directory), "--format", "html", "--output", str(destination)]
+        )
+        == cli.EXIT_OK
+    )
+    assert "AWS posture history" in destination.read_text()
+    assert "AWS posture history" not in capsys.readouterr().out
+
+
+def test_history_command_reports_a_corrupt_database_without_traceback(tmp_path, capsys):
+    history_dir = tmp_path / "history"
+    history_dir.mkdir(mode=0o700)
+    database = history_dir / "history.sqlite3"
+    database.write_bytes(b"not a sqlite database")
+    database.chmod(0o600)
+
+    assert cli.main(["history", "--history-dir", str(history_dir)]) == cli.EXIT_ERROR
+    assert "database" in capsys.readouterr().err.lower()
+
+
 # -------------------------------------------------------- self-audit ------
 
 
@@ -170,7 +260,7 @@ def test_validate_policy_json_reports_the_full_result(capsys):
     assert result["passed"] is True
     assert result["wildcard_findings"] == []
     assert result["declared_operations_all_read_only"] is True
-    assert result["statements"] == 10
+    assert result["statements"] == 11
 
 
 def test_validate_policy_fails_on_an_admin_policy(tmp_path, capsys):
@@ -205,6 +295,89 @@ def test_validate_policy_reports_a_missing_or_invalid_file(tmp_path):
     bad = tmp_path / "bad.json"
     bad.write_text("{not json")
     assert cli.main(["validate-policy", str(bad)]) == cli.EXIT_ERROR
+
+
+def test_scan_iac_writes_a_contract_report_without_building_an_aws_session(monkeypatch, tmp_path):
+    source = tmp_path / "manifest.yaml"
+    source.write_text("apiVersion: v1\nkind: Pod\nmetadata:\n  name: test\n")
+    report_path = tmp_path / "out" / "iac.json"
+    sarif_path = tmp_path / "out" / "iac.sarif"
+    report = {
+        "contract": {"scan_run": {"exit_code": cli.EXIT_FINDINGS}},
+        "findings": [{"control_id": "IAC-K8S-001"}],
+    }
+
+    def build_session_must_not_run(**kwargs):
+        raise AssertionError("local IaC scans must not build an AWS session")
+
+    monkeypatch.setattr(cli, "build_session", build_session_must_not_run)
+    monkeypatch.setattr("auditor.iac.scanning.scan_paths", lambda paths, **kwargs: report)
+
+    code = cli.main(
+        [
+            "scan-iac",
+            str(source),
+            "--helm-rendered",
+            "--fail-on",
+            "HIGH",
+            "--allow-empty",
+            "--exclude",
+            "tests/fixtures/iac/**",
+            "--output",
+            str(report_path),
+            "--sarif-output",
+            str(sarif_path),
+        ]
+    )
+
+    assert code == cli.EXIT_FINDINGS
+    assert json.loads(report_path.read_text()) == report
+    assert json.loads(sarif_path.read_text())["version"] == "2.1.0"
+
+
+def test_iac_report_commands_annotate_and_enforce_saved_exit_code(tmp_path, capsys):
+    report_path = tmp_path / "iac.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "metadata": {},
+                "contract": {"scan_run": {"status": "FAIL", "exit_code": cli.EXIT_FINDINGS}},
+                "findings": [
+                    {
+                        "control_id": "IAC-TEST-001",
+                        "severity": "HIGH",
+                        "title": "Risky setting",
+                        "description": "Change the setting.",
+                        "source_location": {"file": "infra/main.tf", "line": 7},
+                        "exceptions": [],
+                        "gate": True,
+                    }
+                ],
+                "collection_errors": [],
+            }
+        )
+    )
+
+    assert cli.main(["annotate-iac", str(report_path)]) == cli.EXIT_OK
+    assert "::error file=infra/main.tf,line=7,title=IAC-TEST-001::" in capsys.readouterr().out
+    assert cli.main(["gate-iac", str(report_path)]) == cli.EXIT_FINDINGS
+
+
+def test_gate_iac_rejects_malformed_status_exit_code_pair(tmp_path, capsys):
+    report_path = tmp_path / "invalid.json"
+    report_path.write_text(
+        json.dumps(
+            {
+                "metadata": {},
+                "contract": {"scan_run": {"status": "PASS", "exit_code": cli.EXIT_FINDINGS}},
+                "findings": [],
+                "collection_errors": [],
+            }
+        )
+    )
+
+    assert cli.main(["gate-iac", str(report_path)]) == cli.EXIT_ERROR
+    assert "invalid status and exit-code pair" in capsys.readouterr().err
 
 
 # ------------------------------------------------------------- audit ------
@@ -268,6 +441,47 @@ def test_fail_on_returns_a_nonzero_exit_code(tmp_path):
         ]
     )
     assert code == cli.EXIT_FINDINGS
+
+
+@pytest.mark.usefixtures("aws")
+def test_partial_collection_returns_unknown_exit_and_persists_run_status(monkeypatch, tmp_path):
+    def partial_scan(*args, **kwargs):
+        return (
+            [],
+            [
+                {
+                    "service": "S3",
+                    "operation": "s3:GetBucketAcl",
+                    "resource": "restricted-bucket",
+                    "code": "AccessDenied",
+                    "category": "access_denied",
+                    "message": "access denied",
+                }
+            ],
+            {"s3_buckets": 1},
+        )
+
+    monkeypatch.setattr(cli, "run_scan", partial_scan)
+    code = cli.main(
+        [
+            "audit",
+            "--services",
+            "s3",
+            "--output",
+            "json",
+            "--output-dir",
+            str(tmp_path),
+            "--config",
+            str(tmp_path / "absent.yaml"),
+            "--region",
+            "us-east-1",
+        ]
+    )
+
+    assert code == cli.EXIT_UNKNOWN
+    report = json.loads(next(tmp_path.glob("audit-*.json")).read_text())
+    assert report["contract"]["scan_run"]["status"] == "UNKNOWN"
+    assert report["contract"]["scan_run"]["exit_code"] == cli.EXIT_UNKNOWN
 
 
 @pytest.mark.usefixtures("aws")

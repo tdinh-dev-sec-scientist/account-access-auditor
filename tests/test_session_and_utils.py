@@ -47,6 +47,53 @@ def test_every_client_inherits_the_retry_configuration():
     assert "account-access-auditor" in client.meta.config.user_agent_extra
 
 
+def test_assumed_role_session_uses_external_id_and_keeps_the_read_only_guard(monkeypatch):
+    from botocore.stub import Stubber
+
+    from auditor.aws_session import build_assumed_role_session
+
+    source, _ = build_session(region="us-east-1")
+    sts = source.client("sts")
+    role_arn = "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
+    response = {
+        "Credentials": {
+            "AccessKeyId": "DUMMYACCESSKEY000000",
+            "SecretAccessKey": "example-secret",
+            "SessionToken": "example-session-token",
+            "Expiration": dt.datetime(2030, 1, 1, tzinfo=dt.UTC),
+        },
+        "AssumedRoleUser": {
+            "AssumedRoleId": "AROATEST:auditor-test",
+            "Arn": "arn:aws:sts::123456789012:assumed-role/AccountAccessAuditorReadOnly/auditor-test",
+        },
+    }
+    stubber = Stubber(sts)
+    stubber.add_response(
+        "assume_role",
+        response,
+        {
+            "RoleArn": role_arn,
+            "RoleSessionName": "auditor-test",
+            "DurationSeconds": 900,
+            "ExternalId": "example-external-id",
+        },
+    )
+    monkeypatch.setattr(source, "client", lambda name, **kwargs: sts)
+
+    with stubber:
+        target, guard = build_assumed_role_session(
+            source,
+            role_arn=role_arn,
+            role_session_name="auditor-test",
+            external_id="example-external-id",
+        )
+
+    assert target.region_name == "us-east-1"
+    assert guard is not None
+    with pytest.raises(ReadOnlyViolation, match="Blocked 'iam:CreateUser'"):
+        target.client("iam").create_user(UserName="must-not-be-created")
+
+
 def test_an_unknown_profile_is_reported_with_where_to_look(monkeypatch):
     def explode(**kwargs):
         raise ProfileNotFound(profile="nope")

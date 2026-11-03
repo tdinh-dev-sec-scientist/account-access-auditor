@@ -12,7 +12,7 @@
 # because `verify` runs the test suite. Nothing in `auditor/` imports moto or
 # pytest; see auditor/permissions.py and tests/test_security_properties.py.
 
-FROM python:3.12-slim
+FROM python:3.12-alpine
 
 # Fail fast and keep the image free of caches and .pyc clutter.
 ENV PYTHONUNBUFFERED=1 \
@@ -24,13 +24,14 @@ WORKDIR /app
 
 # Requirements first, so a source edit does not re-resolve the dependency tree.
 COPY requirements.txt requirements-dev.txt ./
-RUN pip install --no-cache-dir -r requirements-dev.txt
+RUN apk add --no-cache bash \
+    && pip install --no-cache-dir -r requirements-dev.txt
 
 COPY . .
 
 # A read-only auditor has no reason to run as root, and the demo writes only to
 # /out, which is the one path the container needs to be able to write.
-RUN useradd --create-home --uid 10001 auditor \
+RUN adduser -D -u 10001 -h /home/auditor auditor \
     && mkdir -p /out \
     && chown -R auditor:auditor /app /out
 USER auditor

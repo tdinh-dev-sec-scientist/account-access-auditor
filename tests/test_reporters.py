@@ -238,6 +238,30 @@ def test_terminal_summary_lists_every_tier_even_at_zero(report, capsys):
     assert "coverage gap" in out  # the collection-error caveat
 
 
+def test_terminal_summary_labels_collector_failures_as_errors(capsys):
+    report = build_report(
+        None,
+        None,
+        [],
+        collection_errors=[
+            {
+                "service": "S3",
+                "operation": "collect",
+                "resource": None,
+                "code": "RuntimeError",
+                "category": "error",
+                "message": "collector crashed",
+            }
+        ],
+    )
+
+    terminal.print_summary(report)
+
+    out = capsys.readouterr().out
+    assert "Scan status: ERROR" in out
+    assert "The scan could not complete; see the errors below." in out
+
+
 def test_terminal_truncates_long_resource_names(report, capsys):
     long_name = "x" * 80
     report["findings"][0]["resource"] = long_name

@@ -3,7 +3,9 @@
   "metrics": {
     "security_rules": {
       "value": 14,
-      "evidence": "auditor/rules/registry.py",
+      "source_file": "auditor/rules/registry.py",
+      "source_command": "python -m auditor.cli list-rules",
+      "evidence": "results/metrics_sources.json",
       "command": "python -m auditor.cli list-rules"
     },
     "lab_findings": {
@@ -77,18 +79,25 @@
       "command": "pytest tests/test_fixture_manifest.py"
     },
     "tests": {
-      "value": 611,
-      "passed": 611,
+      "total": 996,
+      "passed": 996,
       "failed": 0,
-      "evidence": "611 passed in 3.56s",
+      "skipped": 1,
+      "exit_code": 0,
+      "source_command": "pytest",
+      "value": 996,
+      "evidence": "results/metrics_sources.json",
       "command": "pytest"
     },
     "coverage": {
-      "detection_percent": 99.87,
-      "detection_statements": 585,
-      "detection_branches": 166,
+      "detection_percent": 89.17,
+      "detection_statements": 1390,
+      "detection_branches": 540,
       "detection_modules": [
+        "auditor/iac/__init__.py",
+        "auditor/iac/scanning.py",
         "auditor/models/__init__.py",
+        "auditor/models/contracts.py",
         "auditor/models/finding.py",
         "auditor/models/report.py",
         "auditor/normalize/__init__.py",
@@ -104,9 +113,9 @@
         "auditor/rules/s3_rules.py",
         "auditor/severity.py"
       ],
-      "overall_percent": 99.64,
-      "overall_branch_inclusive_percent": 99.64,
-      "overall_statements": 1740,
+      "overall_percent": 87.2,
+      "overall_branch_inclusive_percent": 87.2,
+      "overall_statements": 4961,
       "evidence": "results/coverage.json",
       "command": "pytest --cov=auditor --cov-report=json:results/coverage.json"
     },
@@ -119,19 +128,23 @@
         "partial": 2,
         "unmapped": 1
       },
-      "evidence": "compliance/cis_mapping.json",
+      "source_file": "compliance/cis_mapping.json",
+      "source_command": "python -c \"from auditor import compliance; print(compliance.mapped_count())\"",
+      "evidence": "results/metrics_sources.json",
       "command": "python -c \"from auditor import compliance; print(compliance.mapped_count())\""
     },
     "self_audit": {
       "value": "PASS",
       "wildcard_findings": 0,
       "declared_operations_all_read_only": true,
-      "evidence": "policies/auditor-readonly-policy.json",
+      "source_file": "policies/auditor-readonly-policy.json",
+      "source_command": "python -m auditor.cli validate-policy",
+      "evidence": "results/metrics_sources.json",
       "command": "python -m auditor.cli validate-policy"
     },
     "api_calls_per_scan": {
       "value": 101,
-      "duration_seconds": 0.206,
+      "duration_seconds": 0.363,
       "evidence": "results/aws_audit_results.json",
       "command": "python -m lab.run_benchmark"
     }

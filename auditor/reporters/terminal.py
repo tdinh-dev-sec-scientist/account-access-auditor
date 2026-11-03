@@ -48,6 +48,7 @@ def print_scan_line(service: str, status: str = "DONE") -> None:
 def print_summary(report: dict[str, Any], output_paths: Iterable[str] = ()) -> None:
     summary = report.get("summary", {})
     counts = summary.get("by_severity", {})
+    scan_run = (report.get("contract") or {}).get("scan_run") or {}
 
     _out()
     _out("Findings")
@@ -56,6 +57,14 @@ def print_summary(report: dict[str, Any], output_paths: Iterable[str] = ()) -> N
         _out(f"{severity:<10} {counts.get(severity, 0)}")
     _out(f"{'TOTAL':<10} {summary.get('total_findings', 0)}")
     _out()
+
+    if scan_run:
+        _out(f"Scan status: {scan_run['status']} (gate: {scan_run['gate_status']})")
+        if scan_run["status"] == "UNKNOWN":
+            _out("The scan is incomplete; treat its findings as partial coverage.")
+        elif scan_run["status"] == "ERROR":
+            _out("The scan could not complete; see the errors below.")
+        _out()
 
     findings: list[dict[str, Any]] = report.get("findings", [])
     if findings:

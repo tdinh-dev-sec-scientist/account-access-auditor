@@ -1,0 +1,118 @@
+name: Propose IaC remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      proposal_branch:
+        description: Same-repository branch containing the reviewed remediation plan JSON
+        required: true
+        type: string
+      plan_path:
+        description: Relative path to the plan JSON on proposal_branch
+        required: true
+        type: string
+      source_dir:
+        description: Relative directory on the default branch containing the IaC source
+        required: true
+        type: string
+      reviewer:
+        description: GitHub reviewer login to request for review
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: remediation-pr-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PROPOSAL_BRANCH: ${{ inputs.proposal_branch }}
+      PLAN_PATH: ${{ inputs.plan_path }}
+      SOURCE_DIR: ${{ inputs.source_dir }}
+      REVIEWER: ${{ inputs.reviewer }}
+      BASE_BRANCH: ${{ github.event.repository.default_branch }}
+    steps:
+      - name: Check out trusted default-branch tooling
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: true
+
+      - name: Validate dispatch inputs and load the plan as data
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_REF" == "refs/heads/$BASE_BRANCH" ]]
+          [[ "$PROPOSAL_BRANCH" != "$BASE_BRANCH" ]]
+          git check-ref-format --branch "$PROPOSAL_BRANCH"
+          [[ "$REVIEWER" =~ ^[A-Za-z0-9-]{1,39}$ ]]
+          [[ "$PLAN_PATH" =~ ^[A-Za-z0-9._/-]+$ && ! "$PLAN_PATH" =~ (^|/)\.\.(/|$) ]]
+          [[ "$SOURCE_DIR" =~ ^[A-Za-z0-9._/-]+$ && ! "$SOURCE_DIR" =~ (^|/)\.\.(/|$) ]]
+          git fetch --no-tags origin "refs/heads/$PROPOSAL_BRANCH:refs/remotes/origin/$PROPOSAL_BRANCH"
+          git show "refs/remotes/origin/$PROPOSAL_BRANCH:$PLAN_PATH" > "$RUNNER_TEMP/remediation-plan.json"
+          SOURCE_REAL="$(realpath -e -- "$SOURCE_DIR")"
+          case "$SOURCE_REAL/" in
+            "$GITHUB_WORKSPACE/"*) ;;
+            *) printf '%s\n' 'IaC source must remain inside the checked-out repository.' >&2; exit 2 ;;
+          esac
+          [[ -d "$SOURCE_REAL" ]]
+          echo "SOURCE_REAL=$SOURCE_REAL" >> "$GITHUB_ENV"
+
+      - name: Install trusted CLI
+        run: python3 -m pip install --disable-pip-version-check -e .
+
+      - name: Create deterministic remediation patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m auditor.cli remediation-preview \
+            --source "$SOURCE_REAL" \
+            --plan "$RUNNER_TEMP/remediation-plan.json" \
+            > "$RUNNER_TEMP/remediation-preview.json"
+          python3 - "$RUNNER_TEMP/remediation-preview.json" "$RUNNER_TEMP/remediation.patch" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          preview = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+          patch = preview.get("patch")
+          if not isinstance(patch, str) or not patch:
+              raise SystemExit("the remediation preview contains no applicable changes")
+          Path(sys.argv[2]).write_text(patch, encoding="utf-8")
+          PY
+          PREVIEW_SHA256="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["preview_sha256"])' "$RUNNER_TEMP/remediation-preview.json")"
+          [[ "$PREVIEW_SHA256" =~ ^[a-f0-9]{64}$ ]]
+          echo "PREVIEW_SHA256=$PREVIEW_SHA256" >> "$GITHUB_ENV"
+
+      - name: Open a reviewed patch pull request
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="auditor/remediation-${GITHUB_RUN_ID}"
+          git switch -c "$BRANCH" "$BASE_BRANCH"
+          git apply --directory="$SOURCE_DIR" "$RUNNER_TEMP/remediation.patch"
+          git diff --check
+          git add -- "$SOURCE_DIR"
+          if git diff --cached --quiet; then
+            printf '%s\n' 'The remediation patch produced no staged changes.' >&2
+            exit 2
+          fi
+          git -c user.name='github-actions[bot]' \
+            -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+            commit -m 'Propose reviewed IaC remediation'
+          git push --set-upstream origin "$BRANCH"
+          printf 'Remediation preview SHA-256: %s\n' "$PREVIEW_SHA256" > "$RUNNER_TEMP/pull-request-body.md"
+          printf '\nRequested reviewer: %s\n' "$REVIEWER" >> "$RUNNER_TEMP/pull-request-body.md"
+          gh pr create \
+            --base "$BASE_BRANCH" \
+            --head "$BRANCH" \
+            --reviewer "$REVIEWER" \
+            --title 'Propose IaC remediation' \
+            --body-file "$RUNNER_TEMP/pull-request-body.md"
