@@ -419,7 +419,7 @@ def page(runs: dict[str, dict[str, Any]], primary: str, metrics: dict[str, Any])
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AWS Account &amp; Access Configuration Auditor</title>
+<title>Vorrin · AWS Account &amp; Access Configuration Auditor</title>
 <meta name="description" content="A read-only auditor for AWS IAM, S3 and CloudTrail
  configuration, demonstrated against a deliberately misconfigured account.">
 <style>{stylesheet()}</style>
@@ -428,7 +428,7 @@ def page(runs: dict[str, dict[str, Any]], primary: str, metrics: dict[str, Any])
 <main>
 
 <header>
-  <h1>AWS Account &amp; Access Configuration Auditor</h1>
+  <h1>Vorrin</h1>
   <p class="lede">A read-only tool that inspects an AWS account's IAM, S3 and CloudTrail
   configuration and reports what it observes &mdash; prioritised, evidenced, and mapped to
   CIS controls.</p>

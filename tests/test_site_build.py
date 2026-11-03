@@ -237,12 +237,16 @@ def test_console_sidebar_has_desktop_collapse_and_accessible_mobile_drawer(conso
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
     assert 'aria-controls="sidebar"' in console
     assert ".app-frame.is-collapsed" in styles
+    assert ".breadcrumb { min-width: 0; flex: 1 1 200px; padding-left: 58px; }" in styles
     assert "aria-hidden" in script
     assert "inert" in script
     assert 'event.key === "Escape"' in script
     assert 'setAttribute("aria-label", "Expand navigation")' in script
+    assert 'class="menu-glyph"' in console
+    assert '.menu-toggle[aria-expanded="true"] .menu-glyph' in styles
     assert "window.scrollTo(0, 0)" in script
     assert "focus({ preventScroll: true })" in script
+    assert console.index("</aside>") < console.index('id="menu-toggle"') < console.index('class="workspace"')
 
 
 def test_collapsed_sidebar_navigation_items_keep_accessible_names_and_tooltips(console):
@@ -256,7 +260,17 @@ def test_console_assistant_is_a_local_fixture_helper_not_a_fake_ai_service(conso
     script = (site / "console" / "console.js").read_text(encoding="utf-8")
     assert 'id="assistant-dialog"' in console
     assert 'id="assistant-launcher"' in console
-    assert console.index('id="assistant-launcher"') < console.index('class="readonly-chip"')
+    assert (
+        console.index('class="topbar"')
+        < console.index("</header>")
+        < console.index('id="assistant-launcher"')
+    )
+    assert console.index('id="assistant-launcher"') < console.index('id="assistant-dialog"')
+    assert re.search(
+        r"\.assistant-launcher\s*\{[^}]*position:\s*fixed[^}]*right:\s*24px[^}]*bottom:\s*22px",
+        (site / "console" / "console.css").read_text(encoding="utf-8"),
+        re.S,
+    )
     assert 'id="assistant-form"' in console
     assert "Local fixture assistant" in console
     assert "No AI model is connected" in console
@@ -293,12 +307,21 @@ def test_console_supports_keyboard_skip_and_touch_sized_navigation(console, site
 
 def test_console_uses_local_sysdig_inspired_type_and_a_reduced_motion_3d_mascot(console, site):
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
-    assert "font-family: Inter, ui-sans-serif, system-ui" in styles
+    assert 'font-family: "Avenir Next", "SF Pro Display", ui-sans-serif, system-ui, sans-serif' in styles
+    assert "font-family: Inter" not in styles
+    assert re.search(r"\.nav-item\s*\{[^}]*font-size:\s*14px", styles, re.S)
     assert "fonts.googleapis.com" not in styles
     assert ".assistant-avatar-face" in styles
     assert "perspective: 150px" in styles
     assert "clip-path: polygon" in styles
+    assert "--motion-smooth: cubic-bezier(.22, 1, .36, 1)" in styles
+    assert ".assistant-launcher-orb" in styles and "position: fixed" in styles
     assert "@media (prefers-reduced-motion: reduce)" in styles
+
+
+def test_landing_page_uses_the_vorrin_brand(index):
+    assert "<title>Vorrin · AWS Account &amp; Access Configuration Auditor</title>" in index
+    assert "<h1>Vorrin</h1>" in index
 
 
 def test_console_type_never_drops_below_ten_pixels_and_mobile_body_is_sixteen(console, site):
@@ -347,10 +370,10 @@ def test_light_theme_dim_text_meets_wcag_aa_contrast(console, site):
     assert (light + 0.05) / (dark + 0.05) >= 4.5
 
 
-def test_topbar_inputs_and_assistant_launcher_have_44px_targets(console, site):
+def test_topbar_inputs_and_floating_assistant_have_accessible_targets(console, site):
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
     assert re.search(r"\.search-box\s*\{[^}]*min-height:\s*44px", styles, re.S)
     assert re.search(r"\.scope-select-wrap select\s*\{[^}]*min-height:\s*44px", styles, re.S)
-    assert re.search(r"\.assistant-launcher\s*\{[^}]*min-height:\s*44px", styles, re.S)
+    assert re.search(r"\.assistant-launcher\s*\{[^}]*min-height:\s*64px", styles, re.S)
     assert not re.search(r"\.assistant-launcher\s*\{[^}]*\bwidth:\s*40px", styles)
     assert not re.search(r"\.assistant-launcher\s*\{[^}]*\bflex:\s*0 0 40px", styles)

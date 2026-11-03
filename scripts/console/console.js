@@ -81,6 +81,7 @@
     if (mobile) {
       appFrame.classList.remove("is-collapsed");
       const open = sidebar.classList.contains("is-open");
+      appFrame.classList.toggle("is-mobile-open", open);
       sidebar.inert = !open;
       sidebar.setAttribute("aria-hidden", String(!open));
       backdrop.hidden = !open;
@@ -88,6 +89,7 @@
       toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
       toggle.title = open ? "Close navigation" : "Open navigation";
     } else {
+      appFrame.classList.remove("is-mobile-open");
       sidebar.classList.remove("is-open");
       sidebar.inert = false;
       sidebar.removeAttribute("aria-hidden");

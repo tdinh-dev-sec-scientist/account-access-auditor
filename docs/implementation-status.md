@@ -4,19 +4,19 @@
 This page records what the repository implements against the final development
 plan and its [user-approved Stage 6 amendment](phase2-stage6-amendment.md).
 “Implemented” means the code and automated tests exist; live checks are stated
-where verified. A live read-only AWS audit and the local signed-release
-acceptance are recorded below. No live GitHub pull request was exercised.
+where verified. A live read-only AWS audit, local signed release, and live PR
+#4 acceptance are recorded below.
 
 | Plan area | Status | Evidence and remaining gap |
 | --- | --- | --- |
 | Stage 1: baseline and contracts | Implemented for AWS, IaC, fleet, and supply-chain findings and artifacts | `docs/contracts.md`, `schemas/`; Grype findings use shared versioned `Finding` records, while raw reports remain available as detailed evidence. |
 | Stage 2: IaC and policy scanning | Implemented for documented controls; real scanner fixtures and Gatekeeper admission verified | `docs/iac-scanning.md`; Checkov 3.4.3 and Conftest 0.71.1 fixture tests passed with both real binaries. The named local Gatekeeper demo accepted a clean Pod and denied a violating Pod on 2026-11-02. Raw Helm templates and Terraform `.tf.json` are unsupported. |
-| Stage 3: GitHub and Kubernetes guardrails | Implemented; workflow tests passed; live PR not exercised | The credential-free PR workflow emits deterministic annotations/reports and enforces the configured threshold; protected SARIF upload is separate. Gatekeeper live admission acceptance is recorded under Stage 2. |
+| Stage 3: GitHub and Kubernetes guardrails | Implemented; live PR #4 checks passed and merged | PR #4 completed all seven required checks. The credential-free workflow emits deterministic annotations/reports and enforces the configured threshold; protected SARIF upload and branch-protection behavior remain separate. Gatekeeper live admission acceptance is recorded under Stage 2. |
 | Stage 4: AWS drift | Local read-only scheduling and persistent history implemented; managed AWS path deferred | Cross-account/region scans use read-only roles; a host scheduler and private local SQLite history provide drift. EventBridge, Step Functions, S3, and DynamoDB are not provisioned. |
 | Stage 5: supply-chain controls | Local signed-release acceptance passed on 2026-11-03 UTC | Syft 1.55.0, Grype 0.121.0, and Cosign 3.1.4 produced source and image SBOMs and vulnerability reports; the `HIGH` gate passed with 0 source findings and 16 image findings (13 medium, 2 low, 1 negligible), and all five artifact signatures verified. The manifest embeds shared `ScanRun`, `Finding`, and `ArtifactResult` records. Signatures are local and transparency-log verification is disabled. |
 | Stage 6: exceptions and remediation | Implemented under the approved read-only amendment | Expiring exceptions, deterministic previews, reviewed PRs, and a temporary local-copy rescan meet the amended acceptance. AWS sandbox apply is not implemented or claimed; see `docs/remediation.md`. |
 | Stage 7: AI analyst | Implemented as an optional sidecar | Redacted, cited explanations and rescanned local patch proposals; no AWS access or gate authority. See `docs/ai-analyst.md`. |
-| Stage 8: hardening and release documentation | Implemented in this stage | Threat model, ADRs, operational runbook, generated README metrics, and reproducible demo instructions are provided. The live Gatekeeper demo and local signed-release acceptance were exercised; no live GitHub pull request or public signing identity was tested. |
+| Stage 8: hardening and release documentation | Implemented in this stage | Threat model, ADRs, operational runbook, generated README metrics, and reproducible demo instructions are provided. The live Gatekeeper demo, PR #4 checks, and local signed-release acceptance were exercised; no public signing identity was tested. |
 
 ## Release acceptance disposition
 
@@ -33,11 +33,14 @@ acceptance are recorded below. No live GitHub pull request was exercised.
   `HIGH` threshold or above; Cosign verified all five signed release artifacts.
   The image uses Python 3.12 Alpine and runs as non-root. No AWS session or
   image push was used.
-- GitHub PR feedback is deterministic and has no AWS credentials. Gatekeeper
-  live admission acceptance passed on 2026-11-02 on
+- GitHub PR feedback is deterministic and has no AWS credentials. PR #4 ran
+  the configured checks successfully and was merged. This does not establish
+  every protected-branch or SARIF-upload configuration. Gatekeeper live
+  admission acceptance passed on 2026-11-02 on
   `kind-account-access-auditor-demo`: the clean Pod was accepted and the
   violating Pod was denied using server-side dry runs. The live test remains
-  opt-in in the standard suite; no live GitHub PR was exercised.
+  opt-in in the standard suite; PR #4 exercised the configured workflow checks,
+  not protected SARIF upload.
 - A read-only live AWS audit completed on 2026-11-02 for IAM, S3, and
   CloudTrail. It produced a complete versioned 1.0.0 contract report with 10
   findings and no collection errors. Account IDs and access-key IDs were
@@ -60,5 +63,6 @@ acceptance are recorded below. No live GitHub pull request was exercised.
   those missing branches remain.
 
 All remaining Section 13 criteria are verified under the approved amendment.
-Managed AWS services, a live GitHub PR, and a public signing identity remain
-explicit limitations; AWS sandbox apply is not implemented or claimed. Phase 3 has not started.
+Managed AWS services, protected SARIF upload behavior, and a public signing
+identity remain explicit limitations; AWS sandbox apply is not implemented or
+claimed. Phase 3 has not started.
