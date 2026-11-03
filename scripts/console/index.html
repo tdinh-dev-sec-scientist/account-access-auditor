@@ -81,11 +81,12 @@
       </div>
     </aside>
 
+    <button class="icon-button menu-toggle" id="menu-toggle" type="button" aria-label="Collapse navigation" title="Collapse navigation" aria-expanded="true" aria-controls="sidebar">
+      <span class="menu-glyph" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
+
     <div class="workspace">
       <header class="topbar">
-        <button class="icon-button menu-toggle" id="menu-toggle" type="button" aria-label="Collapse navigation" title="Collapse navigation" aria-expanded="true" aria-controls="sidebar">
-          <svg class="icon"><use href="#icon-menu"></use></svg>
-        </button>
         <div class="breadcrumb"><span>Workspace</span><span class="breadcrumb-divider">/</span><strong id="breadcrumb-current">Security Overview</strong></div>
         <label class="search-box">
           <svg class="icon"><use href="#icon-search"></use></svg>
@@ -104,10 +105,6 @@
         <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
           <svg class="icon" aria-hidden="true"><use id="theme-icon" href="#icon-sun"></use></svg>
           <span id="theme-label">Light</span>
-        </button>
-        <button class="assistant-launcher" id="assistant-launcher" type="button" aria-label="Open Rin, local evidence guide" title="Open Rin, local evidence guide" aria-haspopup="dialog" aria-controls="assistant-dialog">
-          <span class="assistant-launcher-orb" aria-hidden="true"><span></span></span>
-          <span class="assistant-launcher-copy"><strong>Rin</strong><small>Evidence guide</small></span>
         </button>
         <span class="readonly-chip"><svg class="icon"><use href="#icon-lock"></use></svg> Read only</span>
       </header>
@@ -133,6 +130,10 @@
   </div>
 
   <button class="sidebar-backdrop" id="sidebar-backdrop" type="button" aria-label="Close navigation" hidden></button>
+
+  <button class="assistant-launcher" id="assistant-launcher" type="button" aria-label="Open Rin, local evidence guide" title="Open Rin, local evidence guide" aria-haspopup="dialog" aria-controls="assistant-dialog">
+    <span class="assistant-launcher-orb" aria-hidden="true"><span></span></span>
+  </button>
 
   <dialog class="assistant-dialog" id="assistant-dialog" aria-label="Local fixture assistant" aria-labelledby="assistant-title" aria-describedby="assistant-description">
     <section class="assistant-panel">

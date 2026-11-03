@@ -90,6 +90,28 @@ def test_phase2_status_and_readme_use_generated_coverage_metric():
     assert "exact percentage is recorded" in normalized_status
 
 
+def test_readme_is_a_concise_product_guide_with_a_clear_quick_start():
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert readme.startswith("# Vorrin")
+    assert "## Quick start" in readme
+    assert readme.index("## Quick start") < readme.index("## What Phase 2 includes")
+    assert "https://tdinh-dev-sec-scientist.github.io/account-access-auditor/console/" in readme
+    assert "## Security boundary" in readme
+    assert "## Project map" in readme
+    assert "## Documentation" in readme
+    assert "exact test and coverage values are in \x60results/metrics.json\x60" in readme
+    assert "static page cannot make AWS API calls" in readme
+    assert "shop window" not in readme
+
+
+def test_phase2_status_records_live_pull_request_acceptance_without_overclaiming():
+    status = (ROOT / "docs/implementation-status.md").read_text(encoding="utf-8")
+    normalized = " ".join(status.split())
+    assert "No live GitHub pull request was exercised" not in normalized
+    assert "PR #4" in normalized
+    assert "protected SARIF" in normalized
+
+
 def test_runbook_describes_gatekeeper_smoke_as_separate_live_check():
     runbook = (ROOT / "docs/operations-runbook.md").read_text(encoding="utf-8")
     normalized_runbook = " ".join(runbook.split())
