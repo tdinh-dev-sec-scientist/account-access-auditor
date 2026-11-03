@@ -4,6 +4,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
 PROJECT_ROOT="$(cd -- "$SCRIPT_DIR/.." && pwd)"
 OUTPUT_ARGUMENT="${1:?Usage: scripts/build_signed_release.sh OUTPUT_DIR}"
+PYTHON_BIN="${PYTHON:-python3}"
+
+if ! PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}" \
+  "$PYTHON_BIN" -c 'import auditor.cli' >/dev/null 2>&1; then
+  printf '%s\n' \
+    "Host Python cannot import the auditor CLI. Install runtime dependencies from requirements.txt or set PYTHON to an environment that has them." >&2
+  exit 2
+fi
+
 mkdir -p -- "$OUTPUT_ARGUMENT"
 OUTPUT_DIR="$(cd -- "$OUTPUT_ARGUMENT" && pwd -P)"
 
@@ -44,7 +53,7 @@ cd -- "$PROJECT_ROOT"
 env -u COSIGN_PASSWORD docker build --pull --file "$PROJECT_ROOT/Dockerfile" --tag "$IMAGE_TAG" "$PROJECT_ROOT"
 env -u COSIGN_PASSWORD docker image save --output "$IMAGE_ARCHIVE" "$IMAGE_TAG"
 
-"${PYTHON:-python3}" -m auditor.cli supply-chain-release \
+"$PYTHON_BIN" -m auditor.cli supply-chain-release \
   --source "$PROJECT_ROOT" \
   --image-archive "$IMAGE_ARCHIVE" \
   --image-format docker-archive \

@@ -148,6 +148,39 @@ def test_database_metadata_records_build_and_rejects_stale_data():
         )
 
 
+def test_database_status_accepts_grype_0121_valid_field_shape():
+    status = supply_chain.normalize_database_status(
+        {
+            "schemaVersion": "v6.1.10",
+            "built": "2026-11-02T06:26:52Z",
+            "path": "/tmp/vulnerability.db",
+            "valid": True,
+        },
+        now=supply_chain.parse_utc("2026-11-02T12:00:00Z"),
+    )
+
+    assert status == {
+        "status": "valid",
+        "schema_version": "v6.1.10",
+        "built_at": "2026-11-02T06:26:52+00:00",
+        "age_hours": 5,
+        "checksum": None,
+    }
+
+
+def test_database_status_rejects_false_grype_valid_flag():
+    with pytest.raises(supply_chain.SupplyChainError) as exc_info:
+        supply_chain.normalize_database_status(
+            {
+                "schemaVersion": "v6.1.10",
+                "built": "2026-11-02T06:26:52Z",
+                "valid": False,
+            }
+        )
+
+    assert exc_info.value.code == "VulnerabilityDatabaseUnavailable"
+
+
 def test_database_status_missing_build_time_is_not_accepted():
     status = _db_status()
     del status["built"]
@@ -166,6 +199,42 @@ def test_database_status_invalid_or_timezone_free_timestamp_is_unknown(built):
 def test_grype_report_must_identify_the_scanner_database():
     report = _grype_report([])
     del report["descriptor"]["db"]
+
+    with pytest.raises(supply_chain.SupplyChainError) as exc_info:
+        supply_chain._grype_database_provenance(report)
+
+    assert exc_info.value.code == "VulnerabilityDatabaseUnavailable"
+
+
+def test_grype_report_accepts_nested_grype_0121_database_provenance():
+    report = _grype_report([])
+    report["descriptor"]["db"] = {
+        "status": {
+            "schemaVersion": "v6.1.10",
+            "built": "2026-11-02T06:26:52Z",
+            "path": "/tmp/vulnerability.db",
+            "valid": True,
+        },
+        "providers": {},
+    }
+
+    assert supply_chain._grype_database_provenance(report) == {
+        "schema_version": "v6.1.10",
+        "built_at": "2026-11-02T06:26:52+00:00",
+        "checksum": None,
+    }
+
+
+def test_grype_report_rejects_invalid_nested_database_status():
+    report = _grype_report([])
+    report["descriptor"]["db"] = {
+        "status": {
+            "schemaVersion": "v6.1.10",
+            "built": "2026-11-02T06:26:52Z",
+            "valid": False,
+        },
+        "providers": {},
+    }
 
     with pytest.raises(supply_chain.SupplyChainError) as exc_info:
         supply_chain._grype_database_provenance(report)
@@ -266,6 +335,20 @@ def test_run_release_applies_gate_and_signs_only_a_passing_release(
             }
             return SimpleNamespace(returncode=0, stdout=f"Version: {versions[command[0]]}\n", stderr="")
         if command[0] == "syft":
+            config_path = Path(command[command.index("--config") + 1])
+            assert config_path.suffix == ".yaml"
+            assert json.loads(config_path.read_text(encoding="utf-8")) == {
+                "check-for-app-update": False,
+                "cache": {"dir": "", "ttl": 0},
+            }
+            if command[1].startswith("dir:"):
+                exclude_patterns = [
+                    command[index + 1]
+                    for index, argument in enumerate(command[:-1])
+                    if argument == "--exclude"
+                ]
+                assert exclude_patterns
+                assert all(pattern.startswith(("./", "*/", "**/")) for pattern in exclude_patterns)
             destination = Path(command[-1].split("=", 1)[1])
             destination.write_text(json.dumps(_cyclonedx()))
             return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -276,6 +359,9 @@ def test_run_release_applies_gate_and_signs_only_a_passing_release(
                 stderr="",
             )
         if command[0] == "grype":
+            config_path = Path(command[command.index("--config") + 1])
+            assert config_path.suffix == ".yaml"
+            assert json.loads(config_path.read_text(encoding="utf-8")) == {"check-for-app-update": False}
             destination = Path(command[command.index("--file") + 1])
             destination.write_text(json.dumps(_grype_report(severities, built=database_built)))
             return SimpleNamespace(returncode=0, stdout="", stderr="")
@@ -355,15 +441,15 @@ def test_run_release_applies_gate_and_signs_only_a_passing_release(
         for command in calls
         if command[:2] == ["cosign", "sign-blob"]
     )
+    verify_commands = [command for command in calls if command[:2] == ["cosign", "verify-blob"]]
+    assert all("--use-signing-config=false" not in command for command in verify_commands)
     source_scan = next(command for command in calls if command[0] == "syft" and command[1].startswith("dir:"))
     assert "--base-path" in source_scan
     assert "**/.aws/**" in source_scan
     assert "**/.ssh/**" in source_scan
     assert "**/.npmrc" in source_scan
     assert "**/*.pem" in source_scan
-    assert source_scan[source_scan.index("--config") + 1] == os.devnull
     image_scan = next(command for command in calls if command[0] == "syft" and command[1].startswith("docker-archive:"))
-    assert image_scan[image_scan.index("--config") + 1] == os.devnull
     for command, tool_env in environments:
         tool = command[0]
         assert "AWS_ACCESS_KEY_ID" not in tool_env

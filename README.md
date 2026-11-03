@@ -135,9 +135,9 @@ README block from those inputs.
 | Offline fixture cases                  |           98 | `results/fixture_manifest.json` |
 | Fixture cases by category              | clean=17, edge=39, malformed=8, multi=9, severity=6, vulnerable=19 | `results/fixture_manifest.json` |
 | Fixture cases by service               | cloudtrail=15, iam=48, s3=35 | `results/fixture_manifest.json` |
-| Tests passing                          |      961/961 | `results/metrics_sources.json` |
+| Tests passing                          |      969/969 | `results/metrics_sources.json` |
 | Detection-code coverage                |       89.19% | `results/coverage.json` |
-| Overall package coverage               |       87.32% | `results/coverage.json` |
+| Overall package coverage               |       87.36% | `results/coverage.json` |
 | CIS-mapped rules                       | 11/14 (v3.0.0) | `results/metrics_sources.json` |
 | Self-audit of the auditor's own policy |         PASS | `results/metrics_sources.json` |
 | API calls per full scan                |          101 | `results/aws_audit_results.json` |

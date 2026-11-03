@@ -12,6 +12,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -46,27 +47,27 @@ _GRYPE_VULNERABILITY_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,127}\Z")
 _GRYPE_PACKAGE_PART = re.compile(r"[A-Za-z0-9][A-Za-z0-9._/+~:@-]{0,255}\Z")
 _SEMVER = re.compile(r"(?<![\w.])v?(\d+\.\d+\.\d+)(?![\w.])")
 SOURCE_EXCLUDES = (
-    ".aws/**",
+    "./.aws/**",
     "**/.aws/**",
-    ".ssh/**",
+    "./.ssh/**",
     "**/.ssh/**",
-    ".kube/**",
+    "./.kube/**",
     "**/.kube/**",
-    ".docker/**",
+    "./.docker/**",
     "**/.docker/**",
-    ".env",
+    "./.env",
     "**/.env",
-    ".env.*",
+    "./.env.*",
     "**/.env.*",
-    ".git/**",
+    "./.git/**",
     "**/credentials",
-    ".netrc",
+    "./.netrc",
     "**/.netrc",
-    ".npmrc",
+    "./.npmrc",
     "**/.npmrc",
-    ".pypirc",
+    "./.pypirc",
     "**/.pypirc",
-    ".git-credentials",
+    "./.git-credentials",
     "**/.git-credentials",
     "**/*.pem",
     "**/*.key",
@@ -78,20 +79,20 @@ SOURCE_EXCLUDES = (
     "**/id_dsa",
     "**/id_ecdsa",
     "**/id_ed25519",
-    "AGENTS.md",
-    "CLAUDE.md",
+    "./AGENTS.md",
+    "./CLAUDE.md",
     "**/*.docx",
     "**/.git/**",
-    ".venv/**",
+    "./.venv/**",
     "**/.venv/**",
-    "venv/**",
+    "./venv/**",
     "**/venv/**",
-    "__pycache__/**",
+    "./__pycache__/**",
     "**/__pycache__/**",
-    "reports/**",
+    "./reports/**",
     "**/reports/**",
-    "results/coverage.json",
-    ".coverage",
+    "./results/coverage.json",
+    "./.coverage",
 )
 _PRIVATE_DIRECTORIES = {".aws", ".ssh", ".kube", ".docker"}
 _PRIVATE_FILE_NAMES = {
@@ -293,19 +294,43 @@ def _grype_database_provenance(document: dict[str, Any]) -> dict[str, Any]:
             "Grype report does not identify the vulnerability database used",
             code="VulnerabilityDatabaseUnavailable",
         )
-    built = database.get("built") or database.get("builtAt")
-    schema = database.get("schemaVersion") or database.get("schema_version")
+    nested_status = database.get("status")
+    status_fields = nested_status if isinstance(nested_status, dict) else database
+    if _database_status_value(status_fields, allow_unmarked=not isinstance(nested_status, dict)) is None:
+        raise SupplyChainError(
+            "Grype report identifies an invalid vulnerability database",
+            code="VulnerabilityDatabaseUnavailable",
+        )
+    built = status_fields.get("built") or status_fields.get("builtAt")
+    schema = status_fields.get("schemaVersion") or status_fields.get("schema_version")
     if not isinstance(built, str) or schema is None:
         raise SupplyChainError(
             "Grype report has incomplete vulnerability database provenance",
             code="VulnerabilityDatabaseUnavailable",
         )
-    checksum = database.get("checksum")
+    checksum = status_fields.get("checksum") or database.get("checksum")
     return {
         "schema_version": str(schema),
         "built_at": parse_utc(built).isoformat(),
         "checksum": checksum if isinstance(checksum, str) else None,
     }
+
+
+def _database_status_value(document: dict[str, Any], *, allow_unmarked: bool) -> str | None:
+    raw_status = document.get("status")
+    if "valid" in document:
+        if type(document["valid"]) is not bool or not document["valid"]:
+            return None
+        if raw_status is not None and (
+            not isinstance(raw_status, str) or raw_status.lower() not in {"valid", "ok"}
+        ):
+            return None
+        return "valid"
+    if isinstance(raw_status, str) and raw_status.lower() in {"valid", "ok"}:
+        return "valid"
+    if allow_unmarked and raw_status is None:
+        return "valid"
+    return None
 
 
 def normalize_database_status(
@@ -314,8 +339,8 @@ def normalize_database_status(
     """Validate Grype DB status and return provenance with a strict 120h age cap."""
     if not isinstance(document, dict):
         raise SupplyChainError("Grype database status is not a JSON object", code="VulnerabilityDatabaseUnavailable")
-    raw_status = document.get("status")
-    if not isinstance(raw_status, str) or raw_status.lower() not in {"valid", "ok"}:
+    normalized_status = _database_status_value(document, allow_unmarked=False)
+    if normalized_status is None:
         raise SupplyChainError(
             "Grype vulnerability database is unavailable or invalid",
             code="VulnerabilityDatabaseUnavailable",
@@ -349,7 +374,7 @@ def normalize_database_status(
         )
     checksum = document.get("checksum")
     return {
-        "status": raw_status.lower(),
+        "status": normalized_status,
         "schema_version": str(schema),
         "built_at": built_at.isoformat(),
         "age_hours": max(0, int(age.total_seconds() // 3600)),
@@ -691,13 +716,17 @@ def _contract_record(
 def _database_provenance(document: dict[str, Any] | None) -> dict[str, Any] | None:
     if not isinstance(document, dict):
         return None
-    built = document.get("built") or document.get("builtAt") or document.get("buildDate")
-    schema = document.get("schemaVersion") or document.get("schema_version")
+    nested_status = document.get("status")
+    status_fields = nested_status if isinstance(nested_status, dict) else document
+    built = status_fields.get("built") or status_fields.get("builtAt") or status_fields.get("buildDate")
+    schema = status_fields.get("schemaVersion") or status_fields.get("schema_version")
     provenance: dict[str, Any] = {
-        "status": document.get("status") if isinstance(document.get("status"), str) else "unknown",
+        "status": _database_status_value(status_fields, allow_unmarked=False) or "unknown",
         "schema_version": str(schema) if schema is not None else None,
         "built_at": None,
-        "checksum": document.get("checksum") if isinstance(document.get("checksum"), str) else None,
+        "checksum": status_fields.get("checksum")
+        if isinstance(status_fields.get("checksum"), str)
+        else None,
     }
     if isinstance(built, str):
         try:
@@ -729,7 +758,7 @@ def _db_status() -> dict[str, Any]:
 
 
 def _scan_sbom(
-    sbom: Path, report_path: Path, *, fail_on: str, artifact_scope: str
+    sbom: Path, report_path: Path, *, fail_on: str, artifact_scope: str, config_path: Path
 ) -> dict[str, Any]:
     try:
         _run(
@@ -737,7 +766,7 @@ def _scan_sbom(
                 "grype",
                 f"sbom:{sbom}",
                 "--config",
-                os.devnull,
+                str(config_path),
                 "-o",
                 "json",
                 "--file",
@@ -854,25 +883,65 @@ def run_release(
         source_report = output / "source.vulnerabilities.json"
         image_report = output / "image.vulnerabilities.json"
 
-        source_command = ["syft", f"dir:{source}", "--base-path", str(source), "--config", os.devnull]
-        for pattern in SOURCE_EXCLUDES:
-            source_command.extend(["--exclude", pattern])
-        source_command.extend(["-o", f"cyclonedx-json={source_sbom}"])
-        _run(source_command)
-        source_document = _read_json(source_sbom, purpose="Syft")
-        source_reproducible_digest = canonical_sbom_digest(source_document)
+        with tempfile.TemporaryDirectory(prefix="account-access-auditor-syft-") as config_directory:
+            syft_config = Path(config_directory) / "syft-config.yaml"
+            syft_config.write_text(
+                json.dumps(
+                    {"check-for-app-update": False, "cache": {"dir": "", "ttl": 0}},
+                    sort_keys=True,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            source_command = [
+                "syft",
+                f"dir:{source}",
+                "--base-path",
+                str(source),
+                "--config",
+                str(syft_config),
+            ]
+            for pattern in SOURCE_EXCLUDES:
+                source_command.extend(["--exclude", pattern])
+            source_command.extend(["-o", f"cyclonedx-json={source_sbom}"])
+            _run(source_command)
+            source_document = _read_json(source_sbom, purpose="Syft")
+            source_reproducible_digest = canonical_sbom_digest(source_document)
 
-        image_target = f"{image_format}:{archive}"
-        _run(["syft", image_target, "--config", os.devnull, "-o", f"cyclonedx-json={image_sbom}"])
-        image_document = _read_json(image_sbom, purpose="Syft")
-        image_reproducible_digest = canonical_sbom_digest(image_document)
+            image_target = f"{image_format}:{archive}"
+            _run(
+                [
+                    "syft",
+                    image_target,
+                    "--config",
+                    str(syft_config),
+                    "-o",
+                    f"cyclonedx-json={image_sbom}",
+                ]
+            )
+            image_document = _read_json(image_sbom, purpose="Syft")
+            image_reproducible_digest = canonical_sbom_digest(image_document)
 
-        scans["source"] = _scan_sbom(
-            source_sbom, source_report, fail_on=threshold, artifact_scope="source"
-        )
-        scans["image"] = _scan_sbom(
-            image_sbom, image_report, fail_on=threshold, artifact_scope="image"
-        )
+        with tempfile.TemporaryDirectory(prefix="account-access-auditor-grype-") as config_directory:
+            grype_config = Path(config_directory) / "grype-config.yaml"
+            grype_config.write_text(
+                json.dumps({"check-for-app-update": False}) + "\n",
+                encoding="utf-8",
+            )
+            scans["source"] = _scan_sbom(
+                source_sbom,
+                source_report,
+                fail_on=threshold,
+                artifact_scope="source",
+                config_path=grype_config,
+            )
+            scans["image"] = _scan_sbom(
+                image_sbom,
+                image_report,
+                fail_on=threshold,
+                artifact_scope="image",
+                config_path=grype_config,
+            )
 
         raw_database = _db_status()
         try:
@@ -980,7 +1049,6 @@ def run_release(
                     "cosign",
                     "verify-blob",
                     "--new-bundle-format=false",
-                    "--use-signing-config=false",
                     "--insecure-ignore-tlog",
                     "--key",
                     str(output / "release.pub"),

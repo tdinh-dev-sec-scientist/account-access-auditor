@@ -74,7 +74,19 @@ unset COSIGN_PASSWORD
 
 The output directory must be outside the source tree and must not already
 contain release files. Docker, Syft, Grype, and Cosign must be available in
-`PATH`. The Docker build context and source catalog exclude AWS credentials,
+`PATH`. The release CLI runs with host Python, so that interpreter also needs
+the project's runtime dependencies. For a clean checkout, create a virtual
+environment and point `PYTHON` at it before running the script:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install -r requirements.txt
+export PYTHON="$PWD/.venv/bin/python"
+```
+
+The script checks that Python can import the CLI before starting the Docker
+build. The Docker build context and source catalog exclude AWS credentials,
 dotenv files, credential files, private-key files, agent instruction files,
 and the plan document.
 
@@ -123,7 +135,6 @@ Verify an artifact independently before loading or using it:
 cosign verify-blob \
   --key release.pub \
   --new-bundle-format=false \
-  --use-signing-config=false \
   --insecure-ignore-tlog \
   --signature release-image.tar.sig \
   release-image.tar

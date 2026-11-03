@@ -44,8 +44,10 @@ def test_phase2_status_records_live_gatekeeper_acceptance():
     assert "Checkov 3.4.3 and Conftest 0.71.1 fixture tests passed" in normalized_status
     assert "Grype findings use shared versioned `Finding` records" in normalized_status
     assert "Stage 6" in normalized_status and "read-only deviation" in normalized_status
-    assert "Syft, Grype, and Cosign binaries are unavailable" in normalized_status
-    assert "sandbox policy denied access to the Docker daemon" in normalized_status
+    assert "Local signed-release acceptance passed on 2026-11-03" in normalized_status
+    assert "Syft 1.55.0, Grype 0.121.0, and Cosign 3.1.4" in normalized_status
+    assert "`HIGH` gate passed" in normalized_status
+    assert "all five artifact signatures verified" in normalized_status
 
 
 def test_phase2_status_and_readme_use_generated_coverage_metric():
