@@ -260,9 +260,17 @@ def test_console_assistant_is_a_local_fixture_helper_not_a_fake_ai_service(conso
     script = (site / "console" / "console.js").read_text(encoding="utf-8")
     assert 'id="assistant-dialog"' in console
     assert 'id="assistant-launcher"' in console
-    assert console.index('class="topbar"') < console.index('</header>') < console.index('id="assistant-launcher"')
+    assert (
+        console.index('class="topbar"')
+        < console.index("</header>")
+        < console.index('id="assistant-launcher"')
+    )
     assert console.index('id="assistant-launcher"') < console.index('id="assistant-dialog"')
-    assert re.search(r"\.assistant-launcher\s*\{[^}]*position:\s*fixed[^}]*right:\s*24px[^}]*bottom:\s*22px", (site / "console" / "console.css").read_text(encoding="utf-8"), re.S)
+    assert re.search(
+        r"\.assistant-launcher\s*\{[^}]*position:\s*fixed[^}]*right:\s*24px[^}]*bottom:\s*22px",
+        (site / "console" / "console.css").read_text(encoding="utf-8"),
+        re.S,
+    )
     assert 'id="assistant-form"' in console
     assert "Local fixture assistant" in console
     assert "No AI model is connected" in console
