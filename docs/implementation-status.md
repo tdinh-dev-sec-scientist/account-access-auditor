@@ -55,7 +55,7 @@ acceptance are recorded below. No live GitHub pull request was exercised.
   estimate general real-world precision or recall.
 - The original 90% branch-inclusive CI floor failed on the expanded Phase 2
   package at 86.23%. CI now requires 86% across all auditor modules; the latest
-  artifact reports 87.36%. Raising the floor back to 90% remains a test coverage
+  artifact reports 86.78%. Raising the floor back to 90% remains a test coverage
   objective. The tradeoff is a lower gate while those missing branches remain.
 
 All remaining Section 13 criteria are verified under the approved amendment.
