@@ -1,0 +1,22 @@
+FROM python:3.12.16-slim-bookworm@sha256:623674a14ef93d052bb9b0de4dbf5f28eb578a35263838941cc8aa43213c1487
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /app
+
+COPY --chown=10001:10001 requirements-phase3-lambda.txt /app/requirements-phase3-lambda.txt
+RUN python -m pip install \
+      --disable-pip-version-check \
+      --no-cache-dir \
+      --no-compile \
+      -r /app/requirements-phase3-lambda.txt \
+    && python -m pip check
+
+COPY --chown=10001:10001 auditor /app/auditor
+COPY --chown=10001:10001 phase3 /app/phase3
+RUN python -m compileall -q /app/auditor /app/phase3
+
+USER 10001:10001
+
+ENTRYPOINT ["python", "-m", "phase3.scan_task"]

@@ -1,0 +1,223 @@
+name: Phase 3 Terraform
+
+on:
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: Terraform root to plan
+        type: choice
+        required: true
+        options:
+          - org
+          - demo-bootstrap
+          - demo-account
+          - control-plane
+      apply:
+        description: Apply this run's saved plan after the protected environment review
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-terraform-${{ inputs.stack }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: phase3-${{ inputs.stack }}-plan
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 30
+    env:
+      PHASE3_AWS_ACCOUNT_ID: ${{ vars.PHASE3_AWS_ACCOUNT_ID }}
+      TF_STATE_BUCKET: ${{ vars.PHASE3_TF_STATE_BUCKET }}
+      TF_STATE_REGION: ${{ vars.PHASE3_TF_STATE_REGION }}
+      TF_STATE_LOCK_TABLE: ${{ vars.PHASE3_TF_STATE_LOCK_TABLE }}
+      TF_VAR_aws_region: ${{ vars.PHASE3_AWS_REGION || 'us-east-1' }}
+      TF_VAR_bucket_prefix: ${{ vars.PHASE3_BUCKET_PREFIX }}
+      TF_VAR_demo_account_id: ${{ vars.PHASE3_DEMO_ACCOUNT_ID }}
+      TF_VAR_demo_account_name: ${{ vars.PHASE3_DEMO_ACCOUNT_NAME || 'guardrails-phase3-demo' }}
+      TF_VAR_demo_account_email: ${{ secrets.PHASE3_DEMO_ACCOUNT_EMAIL }}
+      TF_VAR_demo_ou_name: ${{ vars.PHASE3_DEMO_OU_NAME || 'GuardrailsPhase3Demo' }}
+      TF_VAR_organization_root_id: ${{ vars.PHASE3_ORGANIZATION_ROOT_ID }}
+      TF_VAR_scan_task_role_arn: ${{ vars.PHASE3_SCAN_TASK_ROLE_ARN }}
+      TF_VAR_github_repository: ${{ vars.PHASE3_GITHUB_REPOSITORY || 'tdinh-dev-sec-scientist/account-access-auditor' }}
+      TF_VAR_github_ref: refs/heads/main
+      TF_VAR_github_plan_environment: phase3-demo-account-plan
+      TF_VAR_github_apply_environment: phase3-demo-account-apply
+      TF_VAR_terraform_state_bucket_arn: ${{ vars.PHASE3_TF_STATE_BUCKET_ARN }}
+      TF_VAR_terraform_state_object_arn: ${{ vars.PHASE3_DEMO_STATE_OBJECT_ARN }}
+      TF_VAR_terraform_state_lock_table_arn: ${{ vars.PHASE3_TF_STATE_LOCK_TABLE_ARN }}
+      TF_VAR_scan_schedule_enabled: ${{ vars.PHASE3_SCAN_SCHEDULE_ENABLED || 'false' }}
+      TF_VAR_enable_scan_pipeline: ${{ vars.PHASE3_ENABLE_SCAN_PIPELINE || 'false' }}
+      TF_VAR_scan_container_image: ${{ vars.PHASE3_SCAN_CONTAINER_IMAGE || '' }}
+      TF_VAR_monthly_budget_usd: ${{ vars.PHASE3_MONTHLY_BUDGET_USD || 'null' }}
+      TF_VAR_aws_pricing_estimate_monthly_usd: ${{ vars.PHASE3_AWS_ESTIMATE_MONTHLY_USD || 'null' }}
+      TF_VAR_aws_pricing_estimate_reference: ${{ vars.PHASE3_AWS_ESTIMATE_REFERENCE || '' }}
+      TF_VAR_provider_monthly_budget_usd: ${{ vars.PHASE3_PROVIDER_MONTHLY_BUDGET_USD || 'null' }}
+      TF_VAR_budget_alert_email: ${{ vars.PHASE3_BUDGET_ALERT_EMAIL || '' }}
+      TF_VAR_rin_enabled: ${{ vars.PHASE3_RIN_ENABLED || 'false' }}
+      TF_VAR_rin_model: ${{ vars.PHASE3_RIN_MODEL || '' }}
+      TF_VAR_rin_secret_arn: ${{ vars.PHASE3_RIN_SECRET_ARN || '' }}
+      TF_VAR_rin_input_usd_per_million_tokens: ${{ vars.PHASE3_RIN_INPUT_USD_PER_MILLION_TOKENS || 'null' }}
+      TF_VAR_rin_output_usd_per_million_tokens: ${{ vars.PHASE3_RIN_OUTPUT_USD_PER_MILLION_TOKENS || 'null' }}
+      TF_VAR_rin_max_input_tokens: ${{ vars.PHASE3_RIN_MAX_INPUT_TOKENS || '1000' }}
+      TF_VAR_rin_max_output_tokens: ${{ vars.PHASE3_RIN_MAX_OUTPUT_TOKENS || '500' }}
+      TF_VAR_enable_stage2: ${{ vars.PHASE3_ENABLE_STAGE2 || 'false' }}
+      TF_VAR_enable_stage3: ${{ vars.PHASE3_ENABLE_STAGE3 || 'false' }}
+      TF_VAR_enable_stage4: ${{ vars.PHASE3_ENABLE_STAGE4 || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - uses: actions/setup-python@v5
+        if: inputs.stack == 'control-plane'
+        with:
+          python-version: "3.12"
+
+      - name: Build Phase 3 Lambda and web assets
+        if: inputs.stack == 'control-plane'
+        run: |
+          set -euo pipefail
+          python scripts/package_phase3_lambdas.py
+          python scripts/build_phase3_web.py
+          (cd build/phase3 && sha256sum lambda.zip > lambda.zip.sha256)
+          (cd build/phase3 && find web -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > web.sha256)
+
+      - name: Require protected remote state and the selected stack's OIDC role
+        shell: bash
+        env:
+          TERRAFORM_ROLE_ARN: ${{ vars.PHASE3_TERRAFORM_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          for name in PHASE3_AWS_ACCOUNT_ID TF_STATE_BUCKET TF_STATE_REGION TF_STATE_LOCK_TABLE TERRAFORM_ROLE_ARN; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Required protected environment value is missing: $name" >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$PHASE3_AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || [[ ! "$TERRAFORM_ROLE_ARN" =~ ^arn:[^:]+:iam::${PHASE3_AWS_ACCOUNT_ID}:role/.+$ ]]; then
+            echo "The Terraform OIDC role must belong to the selected 12-digit AWS account." >&2
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.PHASE3_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.PHASE3_AWS_REGION || 'us-east-1' }}
+          allowed-account-ids: ${{ vars.PHASE3_AWS_ACCOUNT_ID }}
+          role-session-name: phase3-${{ inputs.stack }}-plan
+          role-duration-seconds: 1800
+
+      - name: Plan the selected stack
+        working-directory: infra/phase3/${{ inputs.stack }}
+        run: |
+          set -euo pipefail
+          terraform init -input=false -no-color \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=phase3/${{ inputs.stack }}/terraform.tfstate" \
+            -backend-config="region=$TF_STATE_REGION" \
+            -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE" \
+            -backend-config="encrypt=true"
+          terraform validate -no-color
+          terraform plan -input=false -no-color -out=phase3.tfplan
+          terraform show -no-color phase3.tfplan > phase3.tfplan.txt
+          sha256sum phase3.tfplan > phase3.tfplan.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase3-${{ inputs.stack }}-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            infra/phase3/${{ inputs.stack }}/phase3.tfplan
+            infra/phase3/${{ inputs.stack }}/phase3.tfplan.txt
+            infra/phase3/${{ inputs.stack }}/phase3.tfplan.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.stack == 'control-plane'
+        with:
+          name: phase3-control-plane-assets-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/phase3/lambda.zip
+            build/phase3/lambda.zip.sha256
+            build/phase3/web/**
+            build/phase3/web.sha256
+          if-no-files-found: error
+          retention-days: 1
+
+  apply:
+    if: github.ref == 'refs/heads/main' && inputs.apply
+    needs: plan
+    runs-on: ubuntu-latest
+    environment:
+      name: phase3-${{ inputs.stack }}-apply
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 30
+    env:
+      PHASE3_AWS_ACCOUNT_ID: ${{ vars.PHASE3_AWS_ACCOUNT_ID }}
+      TF_STATE_BUCKET: ${{ vars.PHASE3_TF_STATE_BUCKET }}
+      TF_STATE_REGION: ${{ vars.PHASE3_TF_STATE_REGION }}
+      TF_STATE_LOCK_TABLE: ${{ vars.PHASE3_TF_STATE_LOCK_TABLE }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.PHASE3_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.PHASE3_AWS_REGION || 'us-east-1' }}
+          allowed-account-ids: ${{ vars.PHASE3_AWS_ACCOUNT_ID }}
+          role-session-name: phase3-${{ inputs.stack }}-apply
+          role-duration-seconds: 1800
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: phase3-${{ inputs.stack }}-plan-${{ github.run_id }}-${{ github.run_attempt }}
+          path: infra/phase3/${{ inputs.stack }}
+
+      - uses: actions/download-artifact@v4
+        if: inputs.stack == 'control-plane'
+        with:
+          name: phase3-control-plane-assets-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/phase3
+
+      - name: Verify the exact control-plane assets from the plan job
+        if: inputs.stack == 'control-plane'
+        run: |
+          set -euo pipefail
+          (cd build/phase3 && sha256sum --check lambda.zip.sha256 web.sha256)
+
+      - name: Apply only the reviewed plan from this run
+        working-directory: infra/phase3/${{ inputs.stack }}
+        run: |
+          set -euo pipefail
+          terraform init -input=false -no-color \
+            -backend-config="bucket=$TF_STATE_BUCKET" \
+            -backend-config="key=phase3/${{ inputs.stack }}/terraform.tfstate" \
+            -backend-config="region=$TF_STATE_REGION" \
+            -backend-config="dynamodb_table=$TF_STATE_LOCK_TABLE" \
+            -backend-config="encrypt=true"
+          sha256sum --check phase3.tfplan.sha256
+          terraform apply -input=false -no-color phase3.tfplan

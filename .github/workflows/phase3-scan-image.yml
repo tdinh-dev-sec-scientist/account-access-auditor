@@ -1,0 +1,89 @@
+name: Phase 3 scan image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - Dockerfile.phase3-scan
+      - requirements-phase3-lambda.txt
+      - auditor/**
+      - phase3/**
+      - .github/workflows/phase3-scan-image.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase3-scan-image-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: phase3-scan-image
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Require the pre-scoped publisher role and target account
+        shell: bash
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.PHASE3_AWS_ACCOUNT_ID }}
+          ROLE_ARN: ${{ vars.PHASE3_SCAN_IMAGE_PUBLISH_ROLE_ARN }}
+          ECR_REPOSITORY_URI: ${{ vars.PHASE3_SCAN_ECR_REPOSITORY_URI }}
+        run: |
+          set -euo pipefail
+          for name in AWS_ACCOUNT_ID ROLE_ARN ECR_REPOSITORY_URI; do
+            if [[ -z "${!name:-}" ]]; then
+              echo "Required protected environment value is missing: $name" >&2
+              exit 1
+            fi
+          done
+          if [[ ! "$AWS_ACCOUNT_ID" =~ ^[0-9]{12}$ ]] || [[ ! "$ROLE_ARN" =~ ^arn:[^:]+:iam::${AWS_ACCOUNT_ID}:role/.+$ ]] || [[ ! "$ECR_REPOSITORY_URI" =~ ^${AWS_ACCOUNT_ID}[.]dkr[.]ecr[.] ]]; then
+            echo "The image publisher role and ECR repository must belong to the selected AWS account." >&2
+            exit 1
+          fi
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.PHASE3_SCAN_IMAGE_PUBLISH_ROLE_ARN }}
+          aws-region: ${{ vars.PHASE3_AWS_REGION }}
+          allowed-account-ids: ${{ vars.PHASE3_AWS_ACCOUNT_ID }}
+          role-session-name: phase3-scan-image
+          role-duration-seconds: 1800
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: sigstore/cosign-installer@v3.10.0
+
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.phase3-scan
+          platforms: linux/amd64
+          push: true
+          provenance: true
+          sbom: true
+          tags: ${{ vars.PHASE3_SCAN_ECR_REPOSITORY_URI }}:sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Sign and verify the pushed image digest
+        env:
+          IMAGE_URI: ${{ vars.PHASE3_SCAN_ECR_REPOSITORY_URI }}@${{ steps.build.outputs.digest }}
+        run: |
+          set -euo pipefail
+          cosign sign --yes "$IMAGE_URI"
+          cosign verify \
+            --certificate-identity-regexp '^https://github.com/tdinh-dev-sec-scientist/account-access-auditor/.github/workflows/phase3-scan-image.yml@refs/heads/main$' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            "$IMAGE_URI"
+          printf '%s\n' "**Verified image URI for the reviewed Terraform variable `scan_container_image`:" "`$IMAGE_URI`" >> "$GITHUB_STEP_SUMMARY"

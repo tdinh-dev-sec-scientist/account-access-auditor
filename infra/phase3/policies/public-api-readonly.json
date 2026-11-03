@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlySanitizedSnapshots",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "${public_bucket_arn}/snapshots/*"
+    },
+    {
+      "Sid": "ReadOnlyPublicSnapshotIndex",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:Query"],
+      "Resource": "${public_table_arn}"
+    }
+  ]
+}

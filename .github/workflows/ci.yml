@@ -13,6 +13,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  phase3-scan-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.phase3-scan
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: phase3-scan:test
+      - name: Check the non-root scan task entry point
+        run: docker run --rm --entrypoint python phase3-scan:test -c "import auditor.fleet_scan, phase3.scan_task"
+
+  phase3-terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+      - name: Format all Phase 3 Terraform stacks
+        run: terraform fmt -check -recursive infra/phase3
+      - name: Initialize and validate without an AWS backend or credentials
+        run: |
+          for stack in infra/phase3/org infra/phase3/demo-bootstrap infra/phase3/demo-account infra/phase3/control-plane; do
+            terraform -chdir="$stack" init -backend=false -input=false -no-color
+            terraform -chdir="$stack" validate -no-color
+          done
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -60,6 +94,14 @@ jobs:
           pytest --cov=auditor --cov-report=term-missing \
                  --cov-report=json:results/coverage.json \
                  --cov-fail-under=86
+
+      - name: Build sanitized Phase 3 web bundle
+        if: matrix.python-version == '3.12'
+        run: python scripts/build_phase3_web.py --output "$RUNNER_TEMP/phase3-web"
+
+      - name: Build deterministic Python 3.12 Lambda bundle
+        if: matrix.python-version == '3.12'
+        run: python scripts/package_phase3_lambdas.py --output "$RUNNER_TEMP/phase3-lambda.zip"
 
       - name: Security properties (read-only, no committed credentials)
         run: pytest tests/test_security_properties.py -v

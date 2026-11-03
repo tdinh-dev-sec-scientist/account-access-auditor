@@ -6,6 +6,16 @@ credentials
 *.pem
 *.key
 
+# Terraform working data and owner-specific values can contain account IDs,
+# e-mail addresses, role ARNs, external IDs, and infrastructure state.
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
 # Scan output. May contain real account identifiers, usernames, and bucket
 # names. The committed evidence under results/ comes from the emulated lab
 # account and is written with access key IDs masked.

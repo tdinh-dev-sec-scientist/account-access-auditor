@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AssumeOnlyTheDemoReadOnlyRole",
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::${demo_account_id}:role/AccountAccessAuditorReadOnly"
+    }
+  ]
+}

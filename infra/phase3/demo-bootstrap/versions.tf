@@ -1,0 +1,15 @@
+terraform {
+  required_version = ">= 1.9.8, < 1.10.0"
+  backend "s3" {}
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "= 5.83.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}

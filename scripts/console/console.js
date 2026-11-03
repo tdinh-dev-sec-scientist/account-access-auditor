@@ -6,8 +6,9 @@
   const dialog = document.getElementById("evidence-dialog");
   const dialogBody = document.getElementById("dialog-body");
   const dialogTitle = document.getElementById("dialog-title");
-  const profiles = JSON.parse(dataNode.textContent).profiles;
-  const profileKeys = Object.keys(profiles);
+  const fixtureProfiles = JSON.parse(dataNode.textContent).profiles;
+  let profiles = { ...fixtureProfiles };
+  let profileKeys = Object.keys(profiles);
   const titles = {
     overview: "Security Overview",
     "aws-accounts": "AWS Accounts",
@@ -20,6 +21,7 @@
     exceptions: "Exceptions",
     "ai-analyst": "AI Analyst",
     settings: "Settings",
+    "security-limits": "Security & limitations",
   };
   const severityOrder = ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"];
   const severityNames = new Set(severityOrder);
@@ -36,6 +38,11 @@
   let activeView = "overview";
   let activeTheme = "dark";
   let assistantWelcomed = false;
+  let liveSnapshotLoaded = false;
+  let staticMode = false;
+  let latestFreshness = null;
+  let rinSessionToken = null;
+  let assistantBusy = false;
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -56,6 +63,181 @@
 
   function current() {
     return profiles[activeProfile];
+  }
+
+  function isLiveProfile() {
+    return activeProfile === "live" && liveSnapshotLoaded;
+  }
+
+  function visibleProfileKeys() {
+    return isLiveProfile() ? ["live"] : Object.keys(profiles).filter((key) => key !== "live");
+  }
+
+  function mapPublicFinding(finding) {
+    const allowedSeverities = new Set(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]);
+    const allowedStates = new Set(["open", "resolved", "suppressed", "accepted", "unknown"]);
+    if (!finding || typeof finding !== "object" || !/^[a-f0-9]{24}$/.test(finding.id || "")) throw new Error("invalid finding id");
+    if (!allowedSeverities.has(finding.severity) || !allowedStates.has(finding.lifecycle_state)) throw new Error("invalid finding state");
+    for (const field of ["title", "description", "remediation", "control_id", "service", "region", "resource_ref"]) {
+      if (typeof finding[field] !== "string" || !finding[field] || finding[field].length > 2000) throw new Error("invalid finding text");
+    }
+    return {
+      severity: finding.severity,
+      title: finding.title,
+      ruleId: finding.control_id,
+      service: finding.service,
+      resource: finding.resource_ref,
+      resourceType: finding.service,
+      status: finding.lifecycle_state.toUpperCase(),
+      controlId: finding.control_id,
+      controlTitle: finding.control_id,
+      description: finding.description,
+      rationale: finding.description,
+      remediation: finding.remediation,
+      evidence: {},
+      fingerprint: finding.id,
+      detectedAt: finding.detected_at || "",
+      publicId: finding.id,
+    };
+  }
+
+  function normalizePublicEnvelope(envelope) {
+    const snapshot = envelope && envelope.data;
+    if (!snapshot || snapshot.schema_version !== "1.0.0" || !/^[a-f0-9]{24}$/.test(snapshot.snapshot_id || "")) throw new Error("invalid snapshot");
+    const scan = snapshot.scan;
+    const statuses = new Set(["PASS", "FAIL", "UNKNOWN", "ERROR"]);
+    if (!scan || !statuses.has(scan.status) || !["NOT_CONFIGURED", "PASS", "FAIL"].includes(scan.gate_status)) throw new Error("invalid scan state");
+    if (!Array.isArray(snapshot.findings) || snapshot.findings.length > 2000 || !Array.isArray(snapshot.drift)) throw new Error("invalid snapshot collections");
+    const findings = snapshot.findings.map(mapPublicFinding);
+    const severityCounts = Object.fromEntries(severityOrder.map((severity) => [severity, 0]));
+    findings.forEach((finding) => { severityCounts[finding.severity] += 1; });
+    const drift = snapshot.drift.map((entry) => {
+      if (!entry || !["new", "persistent", "changed", "resolved", "unknown"].includes(entry.state)) throw new Error("invalid drift state");
+      return { state: entry.state, finding: mapPublicFinding(entry.finding), findingId: entry.finding_id };
+    });
+    const completedAt = scan.completed_at;
+    if (typeof completedAt !== "string" || Number.isNaN(Date.parse(completedAt))) throw new Error("invalid scan time");
+    if (!envelope.freshness || typeof envelope.freshness.stale !== "boolean") throw new Error("invalid freshness");
+    const openFindingCount = findings.filter((finding) => finding.status === "OPEN").length;
+    const run = {
+      runId: snapshot.snapshot_id,
+      scanSource: "Dedicated AWS demo account",
+      startedAt: scan.started_at,
+      completedAt,
+      executionStatus: scan.status,
+      gateStatus: scan.gate_status,
+      exitCode: null,
+      findingCount: findings.length,
+      collectionErrorCount: scan.incomplete_scopes,
+      durationSeconds: Math.max(0, (Date.parse(completedAt) - Date.parse(scan.started_at)) / 1000),
+      apiCallCount: null,
+      scannerVersions: { "account-access-auditor": scan.scanner_version },
+      policyPackVersion: null,
+    };
+    return {
+      key: "live",
+      label: "Live AWS snapshot",
+      environment: "Dedicated Phase 3 demo account · identifiers hidden",
+      generatedAt: snapshot.generated_at,
+      region: Array.isArray(scan.regions) && scan.regions.length ? scan.regions.join(", ") : "Not recorded",
+      accountIdSuffix: "",
+      readOnly: true,
+      servicesScanned: Array.isArray(scan.services) ? scan.services : [],
+      resourcesScanned: {},
+      findingCount: findings.length,
+      openFindingCount,
+      severityCounts,
+      collectionErrorCount: scan.incomplete_scopes,
+      run,
+      findings,
+      drift,
+    };
+  }
+
+  function updateSourceBanner(mode, detail) {
+    document.getElementById("source-label").textContent = mode;
+    document.getElementById("source-detail").textContent = detail;
+  }
+
+  function updateAssistantMode() {
+    const mode = document.getElementById("assistant-mode");
+    const disclosure = document.getElementById("assistant-disclosure");
+    const description = document.getElementById("assistant-description");
+    if (isLiveProfile() && !staticMode) {
+      mode.lastChild.textContent = "Live evidence · provider optional";
+      disclosure.textContent = "If Rin is enabled, your question and one redacted finding go to the configured AI provider. No raw account identifiers or evidence are sent.";
+      description.textContent = "I follow the evidence. I don't guess. I receive one redacted finding at a time.";
+    } else {
+      mode.lastChild.textContent = "Fixture mode · no model calls";
+      disclosure.textContent = "Fixture answers stay in this browser. No question leaves the page.";
+      description.textContent = "I follow the evidence. I don't guess. Answers use the selected saved report.";
+    }
+  }
+
+  async function loadLiveSnapshot() {
+    try {
+      const apiUrl = new URL("/api/latest", window.location.href);
+      if (apiUrl.origin !== window.location.origin) return;
+      const response = await fetch(apiUrl, {
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+        referrerPolicy: "no-referrer",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) throw new Error("live snapshot unavailable");
+      const payload = await response.json();
+      if (response.headers.get("X-Phase3-Static-Mode") === "true") {
+        staticMode = true;
+        updateSourceBanner("Static mode active", "Budget kill switch is on · showing checked-in fixtures · last-good public snapshot remains available from the API");
+        document.getElementById("state-explainer").textContent = "Live console mode is paused by the budget kill switch. This page is showing checked-in fixtures; public last-good scan data remains stored.";
+        updateAssistantMode();
+        return;
+      }
+      const live = normalizePublicEnvelope(payload);
+      profiles = { ...fixtureProfiles, live };
+      profileKeys = [...Object.keys(fixtureProfiles), "live"];
+      liveSnapshotLoaded = true;
+      latestFreshness = payload.freshness;
+      activeProfile = "live";
+      const selector = document.getElementById("scope-select");
+      const option = element("option", "", "Live sanitized snapshot");
+      option.value = "live";
+      if (![...selector.options].some((item) => item.value === "live")) selector.append(option);
+      selector.value = "live";
+      const attempt = latestFreshness.latest_attempt_status;
+      const freshnessText = attempt ? `latest attempt ${attempt}` : latestFreshness.stale ? "snapshot stale" : "snapshot current";
+      if (latestFreshness.publication_paused === true) {
+        updateSourceBanner("Publication paused", "The last complete public snapshot remains available · publication needs review");
+      } else {
+        updateSourceBanner("Live redacted AWS data", `Dedicated demo scope · read only · ${freshnessText}`);
+      }
+      document.getElementById("nav-finding-count").textContent = String(live.openFindingCount);
+      updateAssistantMode();
+      setView(activeView);
+    } catch (_error) {
+      staticMode = false;
+      updateSourceBanner("Saved fixture data", "Live API unavailable · showing checked-in Moto reports · no credentials or cross-origin requests");
+      updateAssistantMode();
+    }
+  }
+
+  function updateStateExplainer() {
+    const explainer = document.getElementById("state-explainer");
+    if (!isLiveProfile()) {
+      explainer.textContent = "Execution status does not mean findings are absent. The saved fixture scan gate is NOT CONFIGURED.";
+      return;
+    }
+    if (latestFreshness && latestFreshness.publication_paused === true) {
+      explainer.textContent = `Publication is paused. The console is keeping the last complete public snapshot from ${formatDate(current().run.completedAt)}.`;
+    } else if (latestFreshness && ["UNKNOWN", "ERROR"].includes(latestFreshness.latest_attempt_status)) {
+      explainer.textContent = `Latest scan attempt is ${latestFreshness.latest_attempt_status}. The console is keeping the last complete snapshot from ${formatDate(current().run.completedAt)}.`;
+    } else if (latestFreshness && latestFreshness.stale) {
+      explainer.textContent = `This live snapshot is stale. Last complete scan: ${formatDate(current().run.completedAt)}. Findings remain visible; stale data is not a clean result.`;
+    } else {
+      explainer.textContent = `Live read-only snapshot · execution ${readableStatus(current().run.executionStatus)} · security gate ${readableStatus(current().run.gateStatus)}.`;
+    }
   }
 
   function isMobileNavigation() {
@@ -328,13 +510,18 @@
     const reportLink = element("a", "button", "Open full report");
     reportLink.href = "../report.html";
     reportLink.append(icon("external"));
-    view.append(pageHeader("Workspace / Local benchmark", "Security Overview", "Monitor the findings and scan evidence recorded in the selected local fixture.", [findingsAction, reportLink]));
+    view.append(pageHeader(
+      isLiveProfile() ? "Workspace / Live assessment" : "Workspace / Local benchmark",
+      "Security Overview",
+      isLiveProfile() ? "Monitor allowlisted, pseudonymized findings from the dedicated AWS demo account." : "Monitor the findings and scan evidence recorded in the selected local fixture.",
+      [findingsAction, reportLink]
+    ));
 
     const cards = element("div", "metric-grid");
     cards.append(
       metric("Open findings", profile.openFindingCount, `${profile.findingCount} total findings in this report`, "findings"),
-      metric("Critical findings", profile.severityCounts.CRITICAL || 0, "From the selected Moto fixture", "shield", (profile.severityCounts.CRITICAL || 0) ? "tone-critical" : ""),
-      metric("Connected AWS accounts", "Not connected", "No account registry or live AWS integration", "cloud"),
+      metric("Critical findings", profile.severityCounts.CRITICAL || 0, isLiveProfile() ? "From the sanitized live snapshot" : "From the selected Moto fixture", "shield", (profile.severityCounts.CRITICAL || 0) ? "tone-critical" : ""),
+      metric("Connected AWS accounts", isLiveProfile() ? "1 demo scope" : "Not connected", isLiveProfile() ? "Dedicated read-only scan scope · identifier hidden" : "No account registry or live AWS integration", "cloud"),
       metric("Latest execution", readableStatus(profile.run.executionStatus), `Gate ${readableStatus(profile.run.gateStatus)} · ${formatDate(profile.run.completedAt)}`, "scan", profile.run.executionStatus === "PASS" ? "tone-success" : "")
     );
     view.append(cards);
@@ -375,7 +562,7 @@
     severity.section.append(list);
     severity.section.append(element("div", "chart-caption", "Snapshot only · no time-series data is available"));
 
-    const activity = panel("Recent scan activity", "Local fixture runs included with the checked-in artifacts");
+    const activity = panel("Recent scan activity", isLiveProfile() ? "Latest sanitized read-only scan" : "Local fixture runs included with the checked-in artifacts");
     activity.section.append(renderScanList());
     grid.append(severity.section, activity.section);
     view.append(grid);
@@ -387,9 +574,9 @@
 
     const foot = element("div", "overview-foot-grid");
     foot.append(
-      miniPanel("Posture history", "history", "Historical snapshots unavailable", "The saved fixture profiles are scenarios, not a chronological account history."),
+      miniPanel("Posture history", "history", isLiveProfile() ? `${profile.drift.length} transitions` : "Historical snapshots unavailable", isLiveProfile() ? "Coverage-aware drift transitions from the published snapshot." : "The saved fixture profiles are scenarios, not a chronological account history."),
       miniPanel("Supply chain", "package", "No artifact assessment data", "No SBOM, vulnerability assessment, or signature result is included in this static replay."),
-      miniPanel("AI Analyst", "brain", "Not connected", "No AI service or generated analysis is available in this replay.")
+      miniPanel("AI Analyst", "brain", isLiveProfile() ? "Optional · gated" : "Fixture assistant", isLiveProfile() ? "Rin is separately gated by freshness, quotas, and the provider budget." : "Rin answers from this local fixture without a network request.")
     );
     view.append(foot);
     return view;
@@ -405,7 +592,7 @@
 
   function renderScanList() {
     const list = element("div", "scan-list");
-    profileKeys.forEach((key) => {
+    visibleProfileKeys().forEach((key) => {
       const profile = profiles[key];
       const row = element("div", "scan-row");
       const name = element("div", "scan-name");
@@ -424,12 +611,12 @@
 
   function renderAccounts() {
     const view = document.createDocumentFragment();
-    view.append(pageHeader("Workspace / Scope", "AWS Accounts", "Review the account scope present in the local audit fixtures. No account registry is connected."));
+    view.append(pageHeader("Workspace / Scope", "AWS Accounts", isLiveProfile() ? "Review the single dedicated demo scope used for read-only AWS collection." : "Review the account scope present in the local audit fixtures. No account registry is connected."));
     const notice = element("div", "callout");
-    notice.append(icon("lock"), element("span", "", "These are Moto-emulated fixture profiles, not connected customer AWS accounts. Account identifiers are masked in this view; the source report remains available for evidence review."));
+    notice.append(icon("lock"), element("span", "", isLiveProfile() ? "This is the dedicated Phase 3 demo account. The account identifier and raw AWS evidence are withheld from the public console." : "These are Moto-emulated fixture profiles, not connected customer AWS accounts. Account identifiers are masked in this view; the source report remains available for evidence review."));
     view.append(notice);
     const grid = element("div", "module-grid");
-    profileKeys.forEach((key) => {
+    visibleProfileKeys().forEach((key) => {
       const profile = profiles[key];
       const card = element("article", "module-card profile-card");
       const top = element("div", "profile-top");
@@ -439,12 +626,12 @@
       card.append(top);
       const details = element("div", "detail-grid");
       details.append(
-        detailItem("Fixture account", profile.accountIdSuffix ? `Account ending ${profile.accountIdSuffix}` : "Not present"),
+        detailItem(isLiveProfile() ? "AWS account" : "Fixture account", profile.accountIdSuffix ? `Account ending ${profile.accountIdSuffix}` : isLiveProfile() ? "Dedicated demo · ID hidden" : "Not present"),
         detailItem("Region", profile.region, true),
         detailItem("Open findings", profile.openFindingCount),
         detailItem("Collection errors", profile.collectionErrorCount),
         detailItem("Recorded at", formatDate(profile.generatedAt)),
-        detailItem("AWS access", profile.readOnly ? "Read-only artifact · no live access" : "Read-only status not confirmed")
+        detailItem("AWS access", isLiveProfile() ? "Read-only scan role · no browser credentials" : profile.readOnly ? "Read-only artifact · no live access" : "Read-only status not confirmed")
       );
       card.append(details);
       const services = element("div", "service-tags");
@@ -453,22 +640,22 @@
       grid.append(card);
     });
     view.append(grid);
-    view.append(emptyState("No account registry is configured", "This static console cannot enumerate connected accounts, configured regions, or the latest live collection status. The fixture profiles above come only from the saved benchmark reports.", "cloud", "View scan records", () => setView("security-scans")));
+    if (!isLiveProfile()) view.append(emptyState("No account registry is configured", "This static console cannot enumerate connected accounts, configured regions, or the latest live collection status. The fixture profiles above come only from the saved benchmark reports.", "cloud", "View scan records", () => setView("security-scans")));
     return view;
   }
 
   function renderScans() {
     const view = document.createDocumentFragment();
-    view.append(pageHeader("Workspace / Run records", "Security Scans", "Execution metadata and findings are shown as separate signals for every saved fixture run."));
+    view.append(pageHeader("Workspace / Run records", "Security Scans", isLiveProfile() ? "Execution metadata and finding state are shown separately for the latest live scan." : "Execution metadata and findings are shown as separate signals for every saved fixture run."));
     const note = element("div", "scan-detail-banner");
     note.append(statusBadge(current().run.executionStatus, "Execution status"));
-    note.append(element("p", "", "Execution status describes whether the scanner completed. It does not mean the findings are absent. The security gate is not configured for these benchmark runs."));
+    note.append(element("p", "", isLiveProfile() ? "Execution status describes whether collection completed. It does not mean findings are absent; review the separate security gate." : "Execution status describes whether the scanner completed. It does not mean the findings are absent. The security gate is not configured for these benchmark runs."));
     note.append(statusBadge(current().run.gateStatus, "Gate status"));
     view.append(note);
     const tablePanel = element("section", "panel findings-panel");
     const head = element("div", "panel-header");
     const copy = element("div");
-    copy.append(element("h2", "", "Saved scan runs"), element("p", "", "Two local Moto reports; not a live scan feed."));
+    copy.append(element("h2", "", isLiveProfile() ? "Latest scan run" : "Saved scan runs"), element("p", "", isLiveProfile() ? "One latest run is published; no scan history is fabricated." : "Two local Moto reports; not a live scan feed."));
     head.append(copy);
     tablePanel.append(head);
     const tableWrap = element("div", "table-scroll");
@@ -478,7 +665,7 @@
     ["Run ID", "Scan source", "Fixture", "Completed", "Duration", "Execution", "Gate", "Findings"].forEach((label) => header.append(element("th", "", label)));
     thead.append(header);
     const tbody = document.createElement("tbody");
-    profileKeys.forEach((key) => {
+    visibleProfileKeys().forEach((key) => {
       const profile = profiles[key];
       const run = profile.run;
       const row = document.createElement("tr");
@@ -537,7 +724,7 @@
   function renderFindings() {
     const profile = current();
     const view = document.createDocumentFragment();
-    view.append(pageHeader("Investigation / Evidence", "Findings", "Investigate deterministic findings with source, control mapping, lifecycle status, and evidence."));
+    view.append(pageHeader("Investigation / Evidence", "Findings", isLiveProfile() ? "Investigate sanitized findings with control mapping, lifecycle state, and a pseudonymized resource reference." : "Investigate deterministic findings with source, control mapping, lifecycle status, and evidence."));
     const filters = element("div", "filter-row");
     const severity = element("select");
     severity.id = "severity-filter";
@@ -582,11 +769,28 @@
 
   function renderDrift() {
     const view = document.createDocumentFragment();
-    view.append(pageHeader("Workspace / Continuity", "Drift History", "Compare trustworthy assessment snapshots without treating missing data as resolution."));
+    view.append(pageHeader("Workspace / Continuity", "Drift History", isLiveProfile() ? "Review coverage-aware transitions carried by the latest complete public snapshot." : "Compare trustworthy assessment snapshots without treating missing data as resolution."));
     const notice = element("div", "callout");
-    notice.append(icon("history"), element("span", "", "The saved fixture profiles are different scenarios, not chronological snapshots of one assessment scope. They are not compared for drift, and no finding is marked resolved because it is absent from another profile."));
+    notice.append(icon("history"), element("span", "", isLiveProfile() ? "Only transitions recorded by the scan history are shown. Missing or incomplete collection is never treated as a resolution." : "The saved fixture profiles are different scenarios, not chronological snapshots of one assessment scope. They are not compared for drift, and no finding is marked resolved because it is absent from another profile."));
     view.append(notice);
-    view.append(emptyState("Historical snapshots unavailable", "No local history export is included in this static site. Drift transitions require ordered ScanRun records, stable fingerprints, and comparable collection coverage.", "history", "Review available scan runs", () => setView("security-scans")));
+    if (isLiveProfile() && current().drift.length) {
+      const table = element("section", "panel");
+      table.append(element("h2", "section-title", "Published drift transitions"));
+      const list = element("div", "scan-list");
+      current().drift.forEach((entry) => {
+        const row = element("div", "scan-row");
+        const info = element("div", "scan-name");
+        info.append(element("strong", "", entry.finding.title), element("small", "", `${entry.finding.controlId} · ${entry.finding.resource}`));
+        row.append(info, element("span", "lifecycle-badge", readableStatus(entry.state)));
+        list.append(row);
+      });
+      table.append(list);
+      view.append(table);
+    } else if (isLiveProfile()) {
+      view.append(emptyState("No drift transitions in this snapshot", "The latest complete scan contains no comparable transitions. Missing data is not shown as resolved.", "history", "Review scan details", () => setView("security-scans")));
+    } else {
+      view.append(emptyState("Historical snapshots unavailable", "No local history export is included in this static site. Drift transitions require ordered ScanRun records, stable fingerprints, and comparable collection coverage.", "history", "Review available scan runs", () => setView("security-scans")));
+    }
     return view;
   }
 
@@ -662,7 +866,7 @@
     const disclaimer = element("div", "callout");
     disclaimer.append(icon("brain"), element("span", "", "AI-generated recommendations are advisory. All changes require validation and human review. AI cannot change severity, suppress findings, decide PASS/FAIL, or make AWS API calls."));
     view.append(disclaimer);
-    view.append(emptyState("AI service not connected", "No model provider or AI response is configured in this static replay. Findings are not sent to an external model, and no answer or remediation patch is generated here.", "brain"));
+    view.append(emptyState(isLiveProfile() ? "Rin is optional and budget gated" : "AI service not connected", isLiveProfile() ? "Rin can answer only from one redacted finding when enabled. Freshness, provider availability, per-session quota, and the external-provider daily cap are checked before a response." : "No model provider or AI response is configured in this static replay. Findings are not sent to an external model, and no answer or remediation patch is generated here.", "brain"));
     return view;
   }
 
@@ -672,8 +876,8 @@
     const grid = element("div", "module-grid");
     [
       ["Authentication & roles", "Not configured in static console", "Authentication provider and RBAC model are not defined here."],
-      ["Backend API", "Not connected", "This static site makes no network requests."],
-      ["Assessment scope", "Local Moto fixtures", "Only checked-in benchmark artifacts are available."],
+      ["Backend API", isLiveProfile() ? "Same-origin read-only API" : "Fixture fallback", isLiveProfile() ? "The browser requests only sanitized GET data from this site origin." : "A same-origin request failed or the kill switch selected static mode."],
+      ["Assessment scope", isLiveProfile() ? "Dedicated AWS demo" : "Local Moto fixtures", isLiveProfile() ? "Account identifiers and raw evidence are withheld." : "Only checked-in benchmark artifacts are available."],
       ["Credentials", "Not present in client assets", "AWS credentials and API secrets are never embedded in this console."],
     ].forEach(([title, value, note]) => {
       const card = element("article", "module-card");
@@ -682,6 +886,47 @@
     });
     view.append(grid);
     view.append(emptyState("Configuration is read-only", "No settings can be edited through this view. Authentication, authorization, data retention, integrations, and configuration-write permissions need their own backend design.", "settings"));
+    return view;
+  }
+
+  function renderSecurityLimits() {
+    const view = document.createDocumentFragment();
+    view.append(pageHeader(
+      "Administration / Transparency",
+      "Security & limitations",
+      "See what this console can access, what it publishes, and which release gates remain open."
+    ));
+
+    const notice = element("div", "callout");
+    notice.append(
+      icon("lock"),
+      element("span", "", isLiveProfile()
+        ? "This view receives only sanitized public API data. The browser has no AWS credentials."
+        : "This published preview uses checked-in Moto fixtures. It makes no AWS calls and sends no data to a model.")
+    );
+    view.append(notice);
+
+    const grid = element("div", "module-grid");
+    [
+      ["AWS scan role", "Read-only target", "The Fargate task assumes only the named target role, which has no AWS write actions. The task can invoke only the private snapshot writer; it has no direct S3 or DynamoDB access."],
+      ["Public results", "Allowlisted", "A separate publisher removes unapproved fields and identifiers before results reach the public store."],
+      ["Rin", "Disabled by default", "Rin stays disabled until an approved provider, secret, model, quotas, and separate spend limits are configured."],
+      ["Live acceptance", "Pending", "No live Phase 3 stage gate has passed. Local tests and Terraform code are not deployment evidence."],
+    ].forEach(([title, state, description]) => {
+      const card = element("article", "module-card");
+      card.append(
+        element("h2", "", title),
+        element("span", "module-value is-text", state),
+        element("p", "module-note", description)
+      );
+      grid.append(card);
+    });
+    view.append(grid);
+    view.append(emptyState(
+      "AWS assessment remains read-only",
+      "The target scan role is read-only. The Fargate task can invoke only the private snapshot writer; the API and Rin read sanitized public data and cannot write scan state or AWS resources.",
+      "lock"
+    ));
     return view;
   }
 
@@ -697,6 +942,7 @@
     exceptions: renderExceptions,
     "ai-analyst": renderAiAnalyst,
     settings: renderSettings,
+    "security-limits": renderSecurityLimits,
   };
 
   function setView(viewName) {
@@ -713,6 +959,8 @@
     timestamp.textContent = formatDate(current().generatedAt);
     if (current().generatedAt) timestamp.setAttribute("datetime", current().generatedAt);
     else timestamp.removeAttribute("datetime");
+    updateStateExplainer();
+    updateAssistantMode();
     root.replaceChildren(renderers[viewName]());
     root.setAttribute("aria-busy", "false");
     if (isMobileNavigation() && document.getElementById("sidebar").classList.contains("is-open")) {
@@ -727,6 +975,12 @@
     document.getElementById("nav-finding-count").textContent = String(current().openFindingCount);
     document.getElementById("assistant-messages").replaceChildren();
     assistantWelcomed = false;
+    if (key === "live") {
+      updateSourceBanner("Live redacted AWS data", "Dedicated demo scope · read only · latest public snapshot");
+    } else {
+      updateSourceBanner("Saved fixture data", "Moto emulated account · no live AWS calls");
+    }
+    updateAssistantMode();
     setView(activeView);
   }
 
@@ -793,6 +1047,10 @@
   function askLocalAssistant(rawQuestion) {
     const question = String(rawQuestion || "").trim().slice(0, 500);
     if (!question) return;
+    if (isLiveProfile() && !staticMode) {
+      void askLiveRin(question);
+      return;
+    }
     appendAssistantMessage(question, "user");
     const answer = answerFromFixture(question);
     const bubble = appendAssistantMessage(answer.text, "assistant");
@@ -812,6 +1070,79 @@
     }
   }
 
+  function getRinSessionToken() {
+    if (rinSessionToken) return rinSessionToken;
+    const key = "vorrin-rin-session-token";
+    try {
+      const saved = window.sessionStorage.getItem(key);
+      if (saved && /^[a-f0-9]{64}$/.test(saved)) {
+        rinSessionToken = saved;
+        return saved;
+      }
+    } catch (_error) {
+      // A fresh in-memory token still works if session storage is unavailable.
+    }
+    if (!window.crypto || typeof window.crypto.getRandomValues !== "function") throw new Error("secure session token unavailable");
+    const bytes = new Uint8Array(32);
+    window.crypto.getRandomValues(bytes);
+    rinSessionToken = Array.from(bytes, (value) => value.toString(16).padStart(2, "0")).join("");
+    try {
+      window.sessionStorage.setItem(key, rinSessionToken);
+    } catch (_error) {
+      // The in-memory token remains valid for this page session.
+    }
+    return rinSessionToken;
+  }
+
+  async function askLiveRin(question) {
+    if (assistantBusy) return;
+    const finding = current().findings[0];
+    if (!finding || !finding.publicId) {
+      appendAssistantMessage("No public finding is available to ground a Rin answer.", "assistant");
+      return;
+    }
+    appendAssistantMessage(question, "user");
+    const bubble = appendAssistantMessage("Checking the selected redacted finding…", "assistant");
+    const send = document.querySelector(".assistant-send");
+    assistantBusy = true;
+    send.disabled = true;
+    try {
+      const response = await fetch("/api/rin", {
+        method: "POST",
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+        referrerPolicy: "no-referrer",
+        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify({ question, finding_id: finding.publicId, session_token: getRinSessionToken() }),
+      });
+      const payload = await response.json();
+      if (payload.status === "COMPLETE" && typeof payload.answer === "string") {
+        const citations = Array.isArray(payload.citations) ? payload.citations.map((item) => `${item.id}: ${item.text}`).join("\n") : "";
+        bubble.textContent = `${payload.answer}${payload.uncertainty ? `\n\nUncertainty: ${payload.uncertainty}` : ""}${citations ? `\n\nEvidence cited:\n${citations}` : ""}`;
+        const openFinding = element("button", "assistant-finding-action", "Open cited finding");
+        openFinding.type = "button";
+        openFinding.addEventListener("click", () => {
+          const assistant = document.getElementById("assistant-dialog");
+          if (assistant.open && typeof assistant.close === "function") assistant.close();
+          setView("findings");
+          const search = document.getElementById("global-search");
+          search.value = finding.title;
+          search.dispatchEvent(new Event("input", { bubbles: true }));
+          search.focus();
+        });
+        bubble.append(openFinding);
+      } else {
+        bubble.textContent = typeof payload.message === "string" ? payload.message : "Rin is unavailable. The scan evidence remains available in the console.";
+      }
+    } catch (_error) {
+      bubble.textContent = "Rin is unavailable. The scan evidence remains available in the console.";
+    } finally {
+      assistantBusy = false;
+      send.disabled = false;
+    }
+  }
+
   function openLocalAssistant() {
     const assistant = document.getElementById("assistant-dialog");
     if (dialog.open && typeof dialog.close === "function") dialog.close();
@@ -819,7 +1150,9 @@
     else assistant.setAttribute("open", "");
     if (!assistantWelcomed) {
       appendAssistantMessage(
-        "I'm Rin. I keep the evidence close and the guesses out. Ask about this saved Moto report and I'll point you to the finding. No live AWS or AI model is connected here.",
+        isLiveProfile() && !staticMode
+          ? "I'm Rin. I keep the evidence close and the guesses out. Ask about the selected finding; if enabled, I send only its redacted details to the configured provider."
+          : "I'm Rin. I keep the evidence close and the guesses out. Ask about this saved report and I'll point you to the finding. Answers stay in this browser.",
         "assistant"
       );
       assistantWelcomed = true;
@@ -960,4 +1293,5 @@
   document.getElementById("nav-finding-count").textContent = String(current().openFindingCount);
   applyTheme(savedTheme(), false);
   setView("overview");
+  void loadLiveSnapshot();
 })();

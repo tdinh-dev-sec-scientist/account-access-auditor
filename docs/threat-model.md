@@ -3,11 +3,12 @@
 ## Scope and security objective
 
 This repository provides local static checks, a read-only AWS auditor, CI
-feedback, a local drift store, local supply-chain artifacts, and an optional AI
-sidecar. It is a single-organization tool, not a hosted multi-tenant service.
-The primary security objective is to produce useful findings without giving
-the scanner a path to mutate target AWS resources or letting untrusted scan
-input change deterministic enforcement.
+feedback, local drift history, local supply-chain artifacts, an optional AI
+sidecar, and code for a public Phase 3 demo that has not been deployed. It is a
+single-organization tool, not a hosted multi-tenant service. The primary
+security objective is to produce useful findings without giving the target
+scanner a path to mutate target AWS resources or letting untrusted scan input
+change deterministic enforcement.
 
 ```mermaid
 flowchart LR
@@ -21,6 +22,17 @@ flowchart LR
   Check --> Reports
   Trusted[Manually dispatched trusted remediation workflow] --> PRDraft[Reviewed patch PR]
   PRDraft --> Local[Temporary local-copy rescan]
+  Demo[Dedicated Phase 3 demo account] --> Scan[Scheduled read-only scan]
+  Scan --> Private[Private snapshots and drift index]
+  Private --> Publisher[Allowlist redaction and validation]
+  Publisher --> Public[Isolated public-results store]
+  Public --> API[Read-only public API]
+  API --> Web[CloudFront, WAF, static console]
+  Web --> Rin[Rin: one public finding, bounded question]
+  Rin --> Provider[Owner-selected external provider]
+  Budget[AWS budget and daily quota alert] --> Kill[Static-mode kill switch]
+  Kill --> Rin
+  Kill --> Web
 ```
 
 ## Assets and trust boundaries
@@ -35,13 +47,19 @@ flowchart LR
 | Local reports and history | Reports can contain account IDs, resource names, policies, and evidence. History directories and exports use restrictive file permissions; repositories ignore local reports. Protect backups and host access. |
 | Supply-chain release key and tools | Cosign private keys stay outside the source/output tree with restrictive permissions. Tools are version-checked; Grype data must be fresh. Local signatures do not establish a public signer identity. |
 | AI provider boundary | AI is explicitly invoked, receives bounded redacted context, has no tools, and cannot set the gate. Provider-side retention depends on account policy; `store: false` is not a no-retention guarantee. |
+| Phase 3 target scan | A scheduled worker assumes only the named demo-account read-only role. A separate private snapshot writer stores validated reports; the target role receives no write actions. The schedule is disabled by default. |
+| Phase 3 publication boundary | Only the publisher bridges private snapshots to the isolated public-results store. It applies a versioned allowlist, keyed pseudonyms, sensitive-pattern rejection, and schema validation. Failure preserves the last good public snapshot. |
+| Phase 3 public API and Rin | API and Rin read only public results. Rin sends one redacted finding to an owner-selected external provider, has no tools, and is disabled until the provider secret, model, rates, and budgets are configured. A separate quota role can write only quota records. |
+| Phase 3 kill switch and cost | AWS Budgets can disable Rin and mark the console static. A separate quota-limit metric alerts without message or session data. Budget notifications may be delayed and do not cap accrued charges. |
 
 ## Main threats and controls
 
 1. **Credential leakage or accidental AWS mutation.** Runtime API allowlists,
    generated least-privilege IAM policy, repository secret scans, credential
    scrubbing in subprocesses, and tests block undeclared calls and secret
-   material. The AWS boundary remains read-only, including remediation.
+   material. Target scans, the public API, and Rin remain read-only. Separate
+   Phase 3 Terraform, snapshot, publisher, quota, and kill-switch writes are
+   scoped to their named resources.
 2. **Malicious IaC, policy text, or scanner output.** Static scans do not execute
    Terraform or apply manifests. They use pinned scanner versions, bounded
    inputs, strict JSON parsing, stable contracts, and explicit `ERROR` or
@@ -64,6 +82,14 @@ flowchart LR
 6. **History, exception, or report tampering.** History is local and private;
    exceptions are scoped, expiring, visible, and never delete findings. Treat
    the host and its backups as trusted administrative infrastructure.
+7. **Public data leakage or unsafe publication.** Public users cannot read the
+   private snapshot store. The publisher is the only data bridge and rejects
+   unknown or sensitive values before updating the last-good pointer; the API
+   and Rin cannot publish or access target-account data directly.
+8. **Anonymous traffic or provider-cost abuse.** WAF rate limits requests,
+   session and daily quotas are atomic, question/input/output sizes are
+   bounded, and the provider secret is fetched only after a fresh kill-switch
+   check. Static fallback keeps scan results available when Rin is paused.
 
 ## Residual risks and limitations
 
@@ -80,10 +106,13 @@ flowchart LR
   policies. The workflow currently retains JSON/SARIF artifacts for 14 days.
 - Local Cosign signatures lack a public transparency record and an identity-
   bound CI signer. No registry push or deployment verification is performed.
-- No EventBridge/Step Functions/S3/DynamoDB deployment or AWS sandbox apply is
-  included. AWS sandbox apply is not implemented or claimed; the user-approved
-  [Stage 6 amendment](phase2-stage6-amendment.md) supersedes it as a Phase 2
-  release blocker while preserving the read-only requirement.
+- Phase 3 EventBridge, Step Functions, S3, DynamoDB, API Gateway, CloudFront,
+  WAF, budget, and kill-switch resources exist as Terraform code but have not
+  been deployed or accepted. Live scans, public exposure, external TLS/header
+  checks, load tests, and actual cost records remain unverified.
+- AWS sandbox apply for Phase 2 remediation is not implemented or claimed; the
+  user-approved [Stage 6 amendment](phase2-stage6-amendment.md) preserves that
+  Phase 2 deviation and does not widen the Phase 3 scanner's permissions.
 
 ## Incident response
 

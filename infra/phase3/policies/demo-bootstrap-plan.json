@@ -1,0 +1,38 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyNamedDemoBootstrapOIDCProvider",
+      "Effect": "Allow",
+      "Action": ["iam:GetOpenIDConnectProvider"],
+      "Resource": "arn:aws:iam::${demo_account_id}:oidc-provider/token.actions.githubusercontent.com"
+    },
+    {
+      "Sid": "ReadOnlyDemoTerraformRoles",
+      "Effect": "Allow",
+      "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies"],
+      "Resource": [
+        "arn:aws:iam::${demo_account_id}:role/Phase3DemoTerraformPlan",
+        "arn:aws:iam::${demo_account_id}:role/Phase3DemoTerraformApply"
+      ]
+    },
+    {
+      "Sid": "ReadOnlySelectedBootstrapStateBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation", "s3:GetBucketVersioning"],
+      "Resource": "${bootstrap_state_bucket_arn}"
+    },
+    {
+      "Sid": "ReadOnlySelectedBootstrapStateObject",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject"],
+      "Resource": "${bootstrap_state_object_arn}"
+    },
+    {
+      "Sid": "LockOnlySelectedBootstrapState",
+      "Effect": "Allow",
+      "Action": ["dynamodb:DescribeTable", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"],
+      "Resource": "${bootstrap_state_lock_table_arn}"
+    }
+  ]
+}

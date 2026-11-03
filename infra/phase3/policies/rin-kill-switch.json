@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DisableOnlyTheRinFeatureFlag",
+      "Effect": "Allow",
+      "Action": "dynamodb:UpdateItem",
+      "Resource": "${feature_table_arn}",
+      "Condition": {
+        "ForAllValues:StringEquals": {
+          "dynamodb:LeadingKeys": ["PLATFORM"]
+        },
+        "ForAllValues:StringLike": {
+          "dynamodb:Attributes": ["pk", "sk", "rin_enabled", "static_mode"]
+        }
+      }
+    }
+  ]
+}

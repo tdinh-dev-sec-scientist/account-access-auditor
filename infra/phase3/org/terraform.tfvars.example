@@ -1,0 +1,6 @@
+aws_region          = "us-east-1"
+demo_account_name   = "guardrails-phase3-demo"
+demo_account_email  = "replace-with-a-unique-owner-managed-email@example.invalid"
+demo_ou_name        = "GuardrailsPhase3Demo"
+bucket_prefix       = "owner-unique-prefix"
+organization_root_id = "r-abcd"

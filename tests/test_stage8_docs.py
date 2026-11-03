@@ -29,11 +29,12 @@ def test_readme_and_status_record_phase2_release_completion_under_approved_scope
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     status = (ROOT / "docs/implementation-status.md").read_text(encoding="utf-8")
     remediation = (ROOT / "docs/remediation.md").read_text(encoding="utf-8")
+    normalized_status = " ".join(status.split())
     normalized_remediation = " ".join(remediation.split())
 
     assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in readme
     assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in status
-    assert "Phase 3 has not started" in status
+    assert "Local implementation for all four Phase 3 stages is prepared; no live stage gate has passed." in normalized_status
     assert "AWS sandbox apply is not implemented or claimed" in readme
     assert "AWS sandbox apply is not implemented or claimed" in status
     assert "AWS sandbox apply is not implemented or claimed" in normalized_remediation

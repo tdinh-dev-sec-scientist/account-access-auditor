@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlySanitizedPublicSnapshots",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "dynamodb:GetItem"],
+      "Resource": ["${public_bucket_arn}/snapshots/*", "${public_table_arn}"]
+    },
+    {
+      "Sid": "ReadOnlyRinFeatureFlag",
+      "Effect": "Allow",
+      "Action": "dynamodb:GetItem",
+      "Resource": "${feature_table_arn}"
+    },
+    {
+      "Sid": "ReadOnlyExternalProviderKey",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "${provider_secret_arn}"
+    },
+    {
+      "Sid": "InvokeOnlyTheSeparateQuotaWriter",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "${quota_function_arn}"
+    }
+  ]
+}

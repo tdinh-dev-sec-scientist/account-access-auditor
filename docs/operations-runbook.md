@@ -1,9 +1,9 @@
 # Operations runbook
 
-This runbook covers the supported local and read-only AWS paths. It does not
-provision cloud infrastructure, deploy production changes, or turn the
-read-only auditor into an AWS writer. Check [Phase 2 status](implementation-status.md)
-for verified acceptance evidence and documented limitations.
+This runbook covers the Phase 2 local/read-only paths and the Phase 3
+deployment design. Phase 3 infrastructure is code-only today: no Phase 3 AWS
+resources have been created. Check [Phase 2 status](implementation-status.md)
+and [Phase 3 status](phase3-status.md) for verified evidence and open gates.
 
 ## 1. Install and reproduce the offline demo
 
@@ -118,12 +118,113 @@ identity-bound production release.
   your organization's process, inspect audit logs, invalidate affected signed
   artifacts, and rebuild from a trusted checkout.
 
-## 7. Unsupported scope
+## 7. Phase 3 live operations
+
+**Do not enable a later stage until the previous stage's live exit evidence is
+reviewed.** Phase 3 AWS resources have not been deployed. The owner has
+authorized only the plan-scoped write roles in [Phase 3 status](phase3-status.md);
+the target scan role, public API, and Rin remain read-only toward AWS.
+
+### Preflight and deployment sequence
+
+1. Create or select an encrypted, versioned, access-controlled S3 state bucket
+   and DynamoDB lock table before running Terraform. All four Terraform roots
+   use an S3 backend with no default bucket or local-state fallback. Set
+   PHASE3_TF_STATE_BUCKET, PHASE3_TF_STATE_REGION, and
+   PHASE3_TF_STATE_LOCK_TABLE in each protected GitHub environment. Restrict
+   state bucket and lock-table access separately from application roles.
+2. Create the protected GitHub environments
+   phase3-org-plan/apply, phase3-demo-bootstrap-plan/apply,
+   phase3-demo-account-plan/apply, and
+   phase3-control-plane-plan/apply. Each environment must set its
+   PHASE3_TERRAFORM_ROLE_ARN and only the owner-approved stack values. Apply
+   environments must require a reviewer and restrict deployments to main.
+   Trust policies must match the exact repository, environment, main ref, and
+   Phase 3 Terraform workflow. Follow [the OIDC bootstrap guide](phase3-bootstrap.md)
+   for the one-time identity prerequisites and exact bootstrap role policies.
+   The demo bootstrap roles have access only to their Terraform state and the
+   two named deployment roles; the workflow does not assume
+   OrganizationAccountAccessRole.
+3. Fill only owner-approved account, state, estimate, cap, alert, and provider
+   values in protected environment variables or secrets. Never store those
+   values in tracked files. Keep scan, API, and Rin roles read-only toward AWS.
+4. Build and inspect the sanitized web bundle and Lambda ZIP locally:
+
+       python scripts/build_phase3_web.py
+       python scripts/package_phase3_lambdas.py
+
+   The public bundle contains only the allowlisted fixture profile and console
+   assets. Do not copy raw reports or private scan output into the public
+   bucket.
+5. Dispatch Phase 3 Terraform from main, choose one stack under
+   infra/phase3/, and leave apply unchecked for the first run. The roots are
+   infra/phase3/org, infra/phase3/demo-bootstrap, infra/phase3/demo-account,
+   and infra/phase3/control-plane. Review the saved human-readable plan artifact
+   and its account/resource boundary. The apply job uses the same run's
+   checksum-verified saved plan and waits for the apply environment reviewer.
+   Terraform 1.9.8 and the S3 backend are pinned; the workflow has no local
+   state fallback.
+6. Apply stacks in order: org creates the demo OU/account/SCP; demo-bootstrap
+   creates the demo-account scan plan/apply roles; demo-account creates the
+   empty demo resources, CloudTrail, and read-only target role; control-plane
+   creates the Fargate control plane. The scan schedule, public stages, and Rin
+   remain disabled by default. After the control-plane stack creates ECR, run
+   the protected Phase 3 scan image workflow and review its verified digest.
+   Enable the scan pipeline and schedule only after the image and Stage 1 plan
+   are reviewed. Enable each later stage only after the preceding live gate,
+   cost estimate, and evidence are reviewed. Do not fill missing values with
+   guesses.
+
+CI runs pinned Terraform formatting and backend-disabled validation without
+AWS credentials. It does not replace protected AWS plan review or live
+acceptance.
+
+### Provider key and Rin controls
+
+- Rin is disabled unless the platform flag, provider secret, approved model,
+  current input/output rates, monthly provider budget, and positive daily cap
+  are configured. A2 is false, so the code uses an external-provider path.
+- Enter or rotate the provider key through the approved Secrets Manager
+  interface. Do not put it in Terraform variables, source files, shell
+  arguments, logs, or browser code. Confirm provider retention, billing, and
+  key-rotation requirements before enabling Rin.
+- The request path rechecks the kill-switch flag before reading the provider
+  secret. It sends one selected public finding and a bounded question; it has
+  no raw scan evidence or AWS tool access.
+- A daily-limit alert reports aggregate usage only. At the monthly AWS 100%
+  notification, the budget topic atomically disables Rin and marks the console
+  static. Budget delivery can be delayed and is not a hard spend limit.
+
+### Kill switch and recovery
+
+1. Check the alert and confirm the feature table has rin_enabled=false and
+   static_mode=true. Verify the public API still serves its last-good
+   sanitized scan and reports static mode; verify the website shows fixture
+   mode and Rin does not call the provider.
+2. Rehearse with an isolated Phase 3 stack and the owner-approved publisher for
+   the exact budget SNS topic. The kill-switch handler ignores message content
+   and accepts only the configured topic. Do not rehearse by changing the
+   public production cap or modifying the target scan role.
+3. Before recovery, review AWS and provider actuals, resolve the cause, verify
+   key/model/budget settings, and re-run the security and resilience checks.
+   Re-enable only through a reviewed Terraform replacement of the platform
+   configuration item. Routine plans ignore item changes so a normal apply
+   cannot silently undo a kill switch. Keep the schedule, Rin, and public
+   stages disabled if cost or evidence is uncertain.
+
+The kill-switch update is atomic. A request already inside the external
+provider call cannot be canceled; its maximum input and output are bounded.
+Record the measured switch and recovery times in docs/evidence after a live
+rehearsal. No live kill-switch test or timing is claimed yet.
+
+## 8. Unsupported scope
 
 The AWS auditor does not resolve permissions boundaries, SCPs, or session
 policies; inspect root account controls, IAM password policy, S3 object-level
 settings, CloudTrail event selectors or log contents; or scan more than the
 documented services. IaC scanning does not render Helm templates or accept
 Terraform `.tf.json`. Supply-chain scanning accepts local saved artifacts, not
-live registry images. There is no hosted multi-tenant service, AWS-managed
-history/dashboard, AWS scheduled orchestration, or AWS remediation apply.
+live registry images. There is no hosted multi-tenant service or AWS
+remediation apply. Phase 3 managed history, scheduled scans, and a public
+dashboard are implemented in Terraform but have not been deployed or accepted;
+see [`phase3-status.md`](phase3-status.md).
