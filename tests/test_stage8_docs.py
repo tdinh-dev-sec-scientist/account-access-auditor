@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import re
+from zipfile import ZipFile
+from xml.etree import ElementTree as ET
 from pathlib import Path
 
 
@@ -24,15 +26,38 @@ def test_readme_and_docs_local_links_resolve():
     assert not missing, "broken local documentation links:\n" + "\n".join(missing)
 
 
-def test_readme_and_status_do_not_claim_phase2_release_completion():
+def test_readme_and_status_record_phase2_release_completion_under_approved_scope():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     status = (ROOT / "docs/implementation-status.md").read_text(encoding="utf-8")
     remediation = (ROOT / "docs/remediation.md").read_text(encoding="utf-8")
+    normalized_remediation = " ".join(remediation.split())
 
-    assert "Phase 2 is not release-complete" in readme
-    assert "Phase 2 is not release-complete" in status
+    assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in readme
+    assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in status
     assert "Phase 3 has not started" in status
-    assert "criterion remains unmet" in remediation
+    assert "AWS sandbox apply is not implemented or claimed" in readme
+    assert "AWS sandbox apply is not implemented or claimed" in status
+    assert "AWS sandbox apply is not implemented or claimed" in normalized_remediation
+    assert "satisfies the amended Phase 2 Stage 6 acceptance" in normalized_remediation
+    assert "phase2-stage6-amendment.md" in status
+
+
+def test_phase2_plan_amendment_explicitly_supersedes_direct_aws_apply_criterion():
+    with ZipFile(ROOT / "AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx") as plan:
+        document = ET.fromstring(plan.read("word/document.xml"))
+    plan_text = " ".join(
+        node.text or ""
+        for node in document.findall(
+            ".//w:t", {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+        )
+    )
+    amendment = (ROOT / "docs/phase2-stage6-amendment.md").read_text(encoding="utf-8")
+
+    assert "Remediation previews can be rescanned; direct apply is sandbox-only." in plan_text
+    assert "User-approved Stage 6 read-only acceptance amendment (2026-11-02)" in amendment
+    assert "does not implement or claim AWS sandbox apply" in amendment
+    assert "remaining Section 13 criteria" in amendment
+    assert "supersedes the plan's direct AWS apply acceptance" in amendment
 
 
 def test_phase2_status_records_live_gatekeeper_acceptance():
@@ -43,8 +68,11 @@ def test_phase2_status_records_live_gatekeeper_acceptance():
     assert "clean Pod was accepted and the violating Pod was denied" in normalized_status
     assert "Checkov 3.4.3 and Conftest 0.71.1 fixture tests passed" in normalized_status
     assert "Grype findings use shared versioned `Finding` records" in normalized_status
-    assert "Stage 6" in normalized_status and "read-only deviation" in normalized_status
-    assert "Local signed-release acceptance passed on 2026-11-03" in normalized_status
+    assert "Stage 6" in normalized_status and "approved read-only amendment" in normalized_status
+    assert "Local signed-release acceptance passed on 2026-11-03 UTC" in normalized_status
+    assert "A read-only live AWS audit completed on 2026-11-02" in normalized_status
+    assert "versioned 1.0.0 contract" in normalized_status
+    assert "10 findings and no collection errors" in normalized_status
     assert "Syft 1.55.0, Grype 0.121.0, and Cosign 3.1.4" in normalized_status
     assert "`HIGH` gate passed" in normalized_status
     assert "all five artifact signatures verified" in normalized_status

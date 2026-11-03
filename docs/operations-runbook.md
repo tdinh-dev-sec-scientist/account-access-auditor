@@ -3,7 +3,7 @@
 This runbook covers the supported local and read-only AWS paths. It does not
 provision cloud infrastructure, deploy production changes, or turn the
 read-only auditor into an AWS writer. Check [Phase 2 status](implementation-status.md)
-for criteria that remain unmet.
+for verified acceptance evidence and documented limitations.
 
 ## 1. Install and reproduce the offline demo
 
@@ -84,8 +84,9 @@ default suite; it was exercised separately on 2026-11-02.
   [`iac-scanning.md`](iac-scanning.md#thresholds-and-exceptions).
 - Preview remediation and review the patch before opening a PR. The supported
   sandbox runs only on a temporary local copy and requires a passing rescan.
-  The plan's AWS sandbox apply remains unmet by design; see
-  [`remediation.md`](remediation.md).
+  AWS sandbox apply is not implemented or claimed. The user-approved
+  [Stage 6 amendment](phase2-stage6-amendment.md) governs repository acceptance;
+  see [`remediation.md`](remediation.md).
 - Use `ai-analyze` only after reviewing the redacted data boundary. It is
   optional, has no AWS access, and never controls the gate. An explicit call
   can incur provider usage charges and provider retention settings apply; see

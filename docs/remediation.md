@@ -5,15 +5,15 @@ open a proposal pull request from a manually dispatched trusted workflow, and
 test an approved patch against a disposable local copy. It never edits the
 source tree or applies changes to AWS.
 
-## Approved Stage 6 plan deviation (2026-11-02)
+## Approved Stage 6 plan amendment (2026-11-02)
 
-The Phase 2 plan specifies allowlisted remediation in a disposable AWS account
-through an isolated remediator role. To preserve the project's AWS read-only
-boundary, this implementation applies the patch only to a temporary local copy.
-It adds no AWS write permissions, APIs, or apply role. This local simulation is
-not AWS remediation: the disposable-account apply and related Phase 2 release
-acceptance criterion remains unmet. Phase 2 must not be reported complete based
-on this local simulation.
+The plan and its controlling [read-only Stage 6 amendment](phase2-stage6-amendment.md)
+preserve the project's AWS read-only boundary. AWS sandbox apply is not
+implemented or claimed. This implementation applies an approved patch only to
+a private temporary local copy and adds no AWS write permissions, APIs, or
+apply role. The local simulation is not AWS remediation; it satisfies the
+amended Phase 2 Stage 6 acceptance when the mandatory rescan and safety checks
+pass.
 
 ## Plan format
 

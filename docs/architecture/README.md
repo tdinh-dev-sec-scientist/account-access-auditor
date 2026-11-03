@@ -1,8 +1,8 @@
 # Architecture decision records
 
 These records explain the implemented boundaries and material departures from
-the Phase 2 plan. The final plan remains the source of truth; a local
-implementation or a recorded deviation does not silently satisfy a plan
+the Phase 2 plan. The final plan and its [user-approved Stage 6 amendment](../phase2-stage6-amendment.md)
+are the source of truth; a local implementation does not silently satisfy an
 acceptance criterion.
 
 | ADR | Decision | Status |

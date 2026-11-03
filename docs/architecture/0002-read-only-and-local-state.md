@@ -19,8 +19,9 @@ to this repository's AWS execution path.
 
 ## Consequences
 
-This is an explicit plan deviation, not an equivalent implementation of the
-planned AWS deployment. The Phase 2 criterion for disposable-account apply
-remains unmet; local scheduling and history also do not provide managed AWS
-availability or backups. See the capability status page before claiming
-completion.
+The user-approved [Stage 6 amendment](../phase2-stage6-amendment.md) supersedes
+the plan's direct AWS apply criterion for this repository. AWS sandbox apply
+remains unimplemented and is not claimed; the local simulation is not
+equivalent to AWS remediation. Local scheduling and history also do not provide
+managed AWS availability or backups. See the [capability status page](../implementation-status.md)
+for acceptance evidence and limitations.

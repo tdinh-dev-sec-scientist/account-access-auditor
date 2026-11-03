@@ -81,8 +81,9 @@ flowchart LR
 - Local Cosign signatures lack a public transparency record and an identity-
   bound CI signer. No registry push or deployment verification is performed.
 - No EventBridge/Step Functions/S3/DynamoDB deployment or AWS sandbox apply is
-  included. The AWS apply criterion remains unmet to preserve the read-only
-  requirement.
+  included. AWS sandbox apply is not implemented or claimed; the user-approved
+  [Stage 6 amendment](phase2-stage6-amendment.md) supersedes it as a Phase 2
+  release blocker while preserving the read-only requirement.
 
 ## Incident response
 

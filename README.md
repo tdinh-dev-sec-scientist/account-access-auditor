@@ -8,12 +8,14 @@ The tool reports **observed configuration**. It does not attempt to prove
 exploitability, and it does not modify anything in the account — a property
 enforced by tests and by a runtime guard, not just promised here.
 
-**Phase 2 is not release-complete.** AWS remains read-only, so the plan's
-disposable-account AWS apply criterion is unmet. The implementation status page
-separates shipped local guardrails from that deviation and other unverified
-acceptance criteria: [Phase 2 status](docs/implementation-status.md). Also see
-the [threat model](docs/threat-model.md), [architecture records](docs/architecture/README.md),
-and [operations runbook](docs/operations-runbook.md).
+**Phase 2 is release-complete under the approved read-only Stage 6 amendment.**
+AWS remains read-only; AWS sandbox apply is not implemented or claimed. The
+dated [Stage 6 amendment](docs/phase2-stage6-amendment.md) supersedes that
+criterion for this repository and preserves the no-write boundary. See
+[Phase 2 status](docs/implementation-status.md) for acceptance evidence and
+remaining limitations, plus the [threat model](docs/threat-model.md),
+[architecture records](docs/architecture/README.md), and [operations
+runbook](docs/operations-runbook.md).
 
 **Python 3.11+ · Boto3 · pytest · AWS guardrails · 5-tier severity model · CIS AWS Foundations Benchmark v3.0.0**
 
@@ -135,7 +137,7 @@ README block from those inputs.
 | Offline fixture cases                  |           98 | `results/fixture_manifest.json` |
 | Fixture cases by category              | clean=17, edge=39, malformed=8, multi=9, severity=6, vulnerable=19 | `results/fixture_manifest.json` |
 | Fixture cases by service               | cloudtrail=15, iam=48, s3=35 | `results/fixture_manifest.json` |
-| Tests passing                          |      969/969 | `results/metrics_sources.json` |
+| Tests passing                          |      970/970 | `results/metrics_sources.json` |
 | Detection-code coverage                |       89.19% | `results/coverage.json` |
 | Overall package coverage               |       87.36% | `results/coverage.json` |
 | CIS-mapped rules                       | 11/14 (v3.0.0) | `results/metrics_sources.json` |
@@ -260,9 +262,10 @@ offline signature verification.
 manually dispatched trusted workflow opens a separate proposal PR; after a
 review, `remediation-sandbox` verifies the approval and runs a mandatory rescan
 on a temporary local copy. It never writes source files or applies changes to
-AWS. This local-only sandbox is an approved deviation from the Phase 2 plan's
-disposable-account apply requirement; that AWS apply criterion remains unmet.
-See [docs/remediation.md](docs/remediation.md).
+AWS. AWS sandbox apply is not implemented or claimed. The user-approved
+[Stage 6 amendment](docs/phase2-stage6-amendment.md) accepts the tested local
+simulation for this repository's Phase 2 Stage 6 criteria. See
+[docs/remediation.md](docs/remediation.md).
 
 `ai-analyze` is a separately invoked, optional explanation step for a saved
 report. Normal scans remain offline and do not call an AI provider. Configure
