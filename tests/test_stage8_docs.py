@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import math
 import re
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -80,15 +79,15 @@ def test_phase2_status_records_live_gatekeeper_acceptance():
 
 def test_phase2_status_and_readme_use_generated_coverage_metric():
     metrics = json.loads((ROOT / "results/metrics.json").read_text(encoding="utf-8"))
-    percent = metrics["metrics"]["coverage"]["overall_branch_inclusive_percent"]
-    lower = math.floor(percent)
-    upper = math.ceil(percent)
-    coverage = f"{lower}%" if lower == upper else f"{lower}–{upper}%"
+    coverage = metrics["metrics"]["coverage"]["overall_branch_inclusive_percent"]
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     status = (ROOT / "docs/implementation-status.md").read_text(encoding="utf-8")
+    normalized_status = " ".join(status.split())
 
-    assert coverage in readme
-    assert coverage in status
+    assert coverage >= 86
+    assert "PASS (86% CI floor)" in readme
+    assert "exact test and coverage values are in `results/metrics.json`" in readme
+    assert "exact percentage is recorded" in normalized_status
 
 
 def test_runbook_describes_gatekeeper_smoke_as_separate_live_check():

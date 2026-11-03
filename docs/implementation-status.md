@@ -54,10 +54,10 @@ acceptance are recorded below. No live GitHub pull request was exercised.
 - The benchmark measures the labeled moto fixture corpus only. It does not
   estimate general real-world precision or recall.
 - The original 90% branch-inclusive CI floor failed on the expanded Phase 2
-  package at 86.23%. CI now requires 86% across all auditor modules; the latest
-  artifact reports coverage in the 86–87% band; exact results remain in
-  `results/metrics.json`. Raising the floor back to 90% remains a test coverage
-  objective. The tradeoff is a lower gate while those missing branches remain.
+  package at 86.23%. CI now requires 86% across all auditor modules; the exact
+  percentage is recorded in the run's metrics artifact. Raising the floor back
+  to 90% remains a test coverage objective. The tradeoff is a lower gate while
+  those missing branches remain.
 
 All remaining Section 13 criteria are verified under the approved amendment.
 Managed AWS services, a live GitHub PR, and a public signing identity remain

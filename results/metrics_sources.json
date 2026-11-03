@@ -8,10 +8,10 @@
       "source_command": "python -m auditor.cli list-rules"
     },
     "tests": {
-      "total": 992,
-      "passed": 992,
+      "total": 996,
+      "passed": 996,
       "failed": 0,
-      "skipped": 9,
+      "skipped": 1,
       "exit_code": 0,
       "source_command": "pytest"
     },
