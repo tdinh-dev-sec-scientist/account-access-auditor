@@ -16,6 +16,7 @@ committed README already contains the newly derived table.
 from __future__ import annotations
 
 import json
+import math
 import os
 import subprocess
 import sys
@@ -58,6 +59,15 @@ def _load(name: str) -> dict[str, Any]:
 
 def _percent(covered: int, total: int) -> float | None:
     return round(100.0 * covered / total, 2) if total else None
+
+
+def coverage_band(percent: float | None) -> str:
+    """Render coverage as a whole-point interval for cross-run portability."""
+    if percent is None:
+        return "not measured"
+    lower = math.floor(percent)
+    upper = math.ceil(percent)
+    return f"{lower}%" if lower == upper else f"{lower}–{upper}%"
 
 
 def coverage_metrics(document: dict[str, Any]) -> dict[str, Any]:
@@ -320,12 +330,12 @@ def render_table(document: dict[str, Any]) -> str:
         ),
         (
             "Detection-code coverage",
-            f"{metrics['coverage']['detection_percent']}%",
+            coverage_band(metrics["coverage"]["detection_percent"]),
             metrics["coverage"]["evidence"],
         ),
         (
             "Overall package coverage",
-            f"{metrics['coverage']['overall_branch_inclusive_percent']:.2f}%",
+            coverage_band(metrics["coverage"]["overall_branch_inclusive_percent"]),
             metrics["coverage"]["evidence"],
         ),
         (

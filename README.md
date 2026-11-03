@@ -131,7 +131,8 @@ Every number below comes from an artifact in `results/`. The generated
 `metrics_sources.json` records the live code, policy, and test inputs; the
 benchmark, fixture, and coverage rows come from their corresponding result
 files. `python scripts/collect_metrics.py` regenerates the artifacts and this
-README block from those inputs.
+README block from those inputs. Coverage appears as a whole-point range for
+cross-run stability; exact percentages remain in `results/metrics.json`.
 
 <!-- BEGIN GENERATED METRICS -->
 
@@ -143,9 +144,9 @@ README block from those inputs.
 | Offline fixture cases                  |           98 | `results/fixture_manifest.json` |
 | Fixture cases by category              | clean=17, edge=39, malformed=8, multi=9, severity=6, vulnerable=19 | `results/fixture_manifest.json` |
 | Fixture cases by service               | cloudtrail=15, iam=48, s3=35 | `results/fixture_manifest.json` |
-| Tests passing                          |      984/984 | `results/metrics_sources.json` |
-| Detection-code coverage                |       87.72% | `results/coverage.json` |
-| Overall package coverage               |       86.78% | `results/coverage.json` |
+| Tests passing                          |      988/988 | `results/metrics_sources.json` |
+| Detection-code coverage                |       87–88% | `results/coverage.json` |
+| Overall package coverage               |       86–87% | `results/coverage.json` |
 | CIS-mapped rules                       | 11/14 (v3.0.0) | `results/metrics_sources.json` |
 | Self-audit of the auditor's own policy |         PASS | `results/metrics_sources.json` |
 | API calls per full scan                |          101 | `results/aws_audit_results.json` |

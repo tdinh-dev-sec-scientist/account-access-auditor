@@ -24,6 +24,14 @@ def test_readme_metrics_replacement_preserves_surrounding_text():
     )
 
 
+@pytest.mark.parametrize(
+    ("percent", "expected"),
+    [(85.9, "85–86%"), (86.0, "86%"), (100.0, "100%"), (None, "not measured")],
+)
+def test_coverage_band_is_stable_and_handles_unmeasured_data(percent, expected):
+    assert collect_metrics.coverage_band(percent) == expected
+
+
 def test_collect_preserves_test_process_exit_code_for_release_gate(monkeypatch):
     fixtures = {"total_cases": 0, "by_category": {}, "by_service": {}, "rules_covered": []}
     audit = {
@@ -125,7 +133,7 @@ def test_collect_preserves_test_process_exit_code_for_release_gate(monkeypatch):
     assert document["metrics"]["security_rules"]["evidence"] == "results/metrics_sources.json"
     assert document["metrics"]["cis_mapped_rules"]["evidence"] == "results/metrics_sources.json"
     assert document["metrics"]["self_audit"]["evidence"] == "results/metrics_sources.json"
-    assert "85.90%" in collect_metrics.render_table(document)
+    assert "85–86%" in collect_metrics.render_table(document)
     assert all("`results/" in row for row in collect_metrics.render_table(document).splitlines()[2:])
 
 

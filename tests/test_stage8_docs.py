@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -79,7 +80,10 @@ def test_phase2_status_records_live_gatekeeper_acceptance():
 
 def test_phase2_status_and_readme_use_generated_coverage_metric():
     metrics = json.loads((ROOT / "results/metrics.json").read_text(encoding="utf-8"))
-    coverage = f"{metrics['metrics']['coverage']['overall_branch_inclusive_percent']:.2f}%"
+    percent = metrics["metrics"]["coverage"]["overall_branch_inclusive_percent"]
+    lower = math.floor(percent)
+    upper = math.ceil(percent)
+    coverage = f"{lower}%" if lower == upper else f"{lower}–{upper}%"
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     status = (ROOT / "docs/implementation-status.md").read_text(encoding="utf-8")
 
