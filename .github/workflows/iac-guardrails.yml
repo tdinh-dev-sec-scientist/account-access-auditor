@@ -1,0 +1,68 @@
+name: IaC guardrails
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    env:
+      IAC_FAIL_ON: ${{ vars.IAC_FAIL_ON || 'MEDIUM' }}
+    steps:
+      - name: Check out source without persisting the token
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+
+      - name: Install pinned credential-free scanners
+        run: |
+          python3 --version
+          python3 -m pip install --disable-pip-version-check -e . -r requirements-scanners.txt
+          mkdir -p "$RUNNER_TEMP/conftest" reports
+          curl --fail --silent --show-error --location \
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.71.1/conftest_0.71.1_Linux_amd64.tar.gz" \
+            --output "$RUNNER_TEMP/conftest/conftest.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.71.1/checksums.txt" \
+            --output "$RUNNER_TEMP/conftest/checksums.txt"
+          echo "5e5d7e2c0e88b3437cb659a921e0b88e997e4e0a49d01be52a9569136f01dbf9  $RUNNER_TEMP/conftest/checksums.txt" | sha256sum --check --status
+          (cd "$RUNNER_TEMP/conftest" && grep 'conftest_0.71.1_Linux_amd64.tar.gz$' checksums.txt | sha256sum --check --status)
+          tar -xzf "$RUNNER_TEMP/conftest/conftest.tar.gz" -C "$RUNNER_TEMP/conftest" conftest
+          echo "$RUNNER_TEMP/conftest" >> "$GITHUB_PATH"
+
+      - name: Run IaC policy gate
+        id: scan
+        continue-on-error: true
+        run: >-
+          python3 -m auditor.cli scan-iac .
+          --allow-empty
+          --exclude 'tests/fixtures/iac/**'
+          --exclude 'deploy/gatekeeper/samples/violating-pod.yaml'
+          --fail-on "$IAC_FAIL_ON"
+          --output reports/iac.json
+          --sarif-output reports/iac.sarif
+
+      - name: Annotate pull request
+        if: always()
+        run: python3 -m auditor.cli annotate-iac reports/iac.json
+
+      - name: Upload JSON and SARIF reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: iac-guardrails-reports
+          path: reports/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Enforce scan result
+        if: always()
+        run: python3 -m auditor.cli gate-iac reports/iac.json

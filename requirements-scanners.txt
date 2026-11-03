@@ -1,0 +1,2 @@
+# Install into an isolated scanner-tools virtual environment.
+checkov==3.4.3

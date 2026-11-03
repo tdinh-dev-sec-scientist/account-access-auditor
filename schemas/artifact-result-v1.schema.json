@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AWS Account & Access Auditor Artifact Result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_type",
+    "location",
+    "format",
+    "sha256",
+    "scanner",
+    "scanner_version",
+    "database_provenance",
+    "signature_identity",
+    "signature_verified",
+    "provenance_verified"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "artifact_type": { "type": "string", "minLength": 1 },
+    "location": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\).+$"
+    },
+    "format": { "type": "string", "minLength": 1 },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "scanner": { "type": "string", "minLength": 1 },
+    "scanner_version": { "type": "string", "minLength": 1 },
+    "database_provenance": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["schema_version", "built_at", "checksum"],
+          "properties": {
+            "schema_version": { "type": "string", "minLength": 1 },
+            "built_at": { "type": "string", "format": "date-time" },
+            "checksum": { "type": ["string", "null"], "minLength": 1 }
+          }
+        }
+      ]
+    },
+    "signature_identity": { "type": ["string", "null"], "minLength": 1 },
+    "signature_verified": { "type": ["boolean", "null"] },
+    "provenance_verified": { "type": ["boolean", "null"] }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "signature_verified": { "const": true } } },
+      "then": { "properties": { "signature_identity": { "type": "string", "minLength": 1 } } }
+    }
+  ]
+}

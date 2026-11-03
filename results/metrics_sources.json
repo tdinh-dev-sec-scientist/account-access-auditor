@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "tool_version": "0.1.0",
+  "metrics": {
+    "security_rules": {
+      "value": 14,
+      "source_file": "auditor/rules/registry.py",
+      "source_command": "python -m auditor.cli list-rules"
+    },
+    "tests": {
+      "total": 961,
+      "passed": 961,
+      "failed": 0,
+      "skipped": 1,
+      "exit_code": 0,
+      "source_command": "pytest"
+    },
+    "cis_mapped_rules": {
+      "value": 11,
+      "of": 14,
+      "benchmark_version": "3.0.0",
+      "status_counts": {
+        "mapped": 11,
+        "partial": 2,
+        "unmapped": 1
+      },
+      "source_file": "compliance/cis_mapping.json",
+      "source_command": "python -c \"from auditor import compliance; print(compliance.mapped_count())\""
+    },
+    "self_audit": {
+      "value": "PASS",
+      "wildcard_findings": 0,
+      "declared_operations_all_read_only": true,
+      "source_file": "policies/auditor-readonly-policy.json",
+      "source_command": "python -m auditor.cli validate-policy"
+    }
+  }
+}

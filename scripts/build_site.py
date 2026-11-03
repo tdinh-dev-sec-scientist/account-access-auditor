@@ -505,8 +505,9 @@ def page(runs: dict[str, dict[str, Any]], primary: str, metrics: dict[str, Any])
   <p>The same scan, on your machine, with no AWS account and no credentials:</p>
   <pre class="cmd">docker build -t account-access-auditor .
 docker run --rm -v "$PWD/reports:/out" account-access-auditor</pre>
-  <p>Or re-derive every number on this page &mdash; test suite, coverage, self-audit,
-  policy-drift check and the scored benchmark &mdash; in one command:</p>
+  <p>Or run the core tests, self-audit, policy-drift check and scored benchmark
+  in one command. Optional IaC scanner integration tests skip unless Checkov
+  and Conftest are installed in the image:</p>
   <pre class="cmd">docker run --rm account-access-auditor verify</pre>
 </section>
 

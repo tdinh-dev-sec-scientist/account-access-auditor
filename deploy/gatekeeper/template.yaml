@@ -1,0 +1,54 @@
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: k8sdenyprivilegedlatest
+  annotations:
+    metadata.gatekeeper.sh/title: Deny privileged containers and mutable latest images
+    metadata.gatekeeper.sh/version: 1.0.0
+spec:
+  crd:
+    spec:
+      names:
+        kind: K8sDenyPrivilegedLatest
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties: {}
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      code:
+        - engine: Rego
+          source:
+            version: "v1"
+            rego: |
+              package k8sdenyprivilegedlatest
+
+              pod := input.review.object if {
+                input.review.object.kind == "Pod"
+              }
+
+              pod := input if {
+                input.kind == "Pod"
+              }
+
+              findings contains {"msg": msg} if {
+                pod.kind == "Pod"
+                some container in pod.spec.containers
+                container.securityContext.privileged == true
+                msg := sprintf("Container %q must not run in privileged mode.", [container.name])
+              }
+
+              findings contains {"msg": msg} if {
+                pod.kind == "Pod"
+                some container in pod.spec.containers
+                endswith(container.image, ":latest")
+                msg := sprintf("Container %q must use a pinned image instead of the latest tag.", [container.name])
+              }
+
+              violation contains finding if {
+                some finding in findings
+              }
+
+              deny contains finding if {
+                some finding in findings
+              }

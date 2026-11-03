@@ -30,11 +30,12 @@ from auditor.readonly import ReadOnlyGuard, install_read_only_guard
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AUDITOR_DIR = os.path.join(REPO_ROOT, "auditor")
-SERVICES = ["iam", "s3", "cloudtrail", "sts"]
+SERVICES = ["iam", "s3", "cloudtrail", "sts", "accessanalyzer"]
 
-# Operation-name prefixes that only read. Everything else in a service model is
-# treated as a write and must not appear in auditor/.
+# Operation-name prefixes that only read. STS AssumeRole is explicitly allowed
+# as a non-mutating identity exchange for configured read-only target roles.
 READ_PREFIXES = ("Get", "List", "Describe", "Head", "Lookup", "Select")
+NON_MUTATING_AUTH_METHODS = {"assume_role", "validate_policy"}
 
 
 def _snake(name: str) -> str:
@@ -58,7 +59,7 @@ WRITE_METHODS: set[str] = {
     method
     for operations in SERVICE_OPERATIONS.values()
     for method, operation in operations.items()
-    if not operation.startswith(READ_PREFIXES)
+    if not operation.startswith(READ_PREFIXES) and method not in NON_MUTATING_AUTH_METHODS
 }
 
 ALL_METHODS: set[str] = {method for operations in SERVICE_OPERATIONS.values() for method in operations}
@@ -139,7 +140,7 @@ def test_inventory_has_no_permission_the_rules_do_not_need():
     """No permission is granted 'just in case'."""
     from auditor.collectors import REQUIRED_PERMISSIONS
 
-    needed = {"sts:GetCallerIdentity"}
+    needed = {"sts:GetCallerIdentity", "sts:AssumeRole"}
     for actions in REQUIRED_PERMISSIONS.values():
         needed.update(actions)
 
@@ -154,6 +155,22 @@ def test_generated_policy_has_no_wildcard_action():
         for action in statement["Action"]:
             assert action != "*", "the auditor policy must never grant Action *"
             assert not action.endswith(":*"), f"service-wide wildcard in the policy: {action}"
+
+
+def test_access_analyzer_permission_is_excluded_from_default_policy():
+    default_actions = {
+        action
+        for statement in permissions.generate_policy()["Statement"]
+        for action in statement["Action"]
+    }
+    optional_actions = {
+        action
+        for statement in permissions.generate_policy(include_optional=True)["Statement"]
+        for action in statement["Action"]
+    }
+
+    assert "access-analyzer:ValidatePolicy" not in default_actions
+    assert "access-analyzer:ValidatePolicy" in optional_actions
 
 
 def test_committed_policy_matches_the_generated_one():

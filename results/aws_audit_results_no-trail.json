@@ -3,7 +3,7 @@
     "tool": "account-access-auditor",
     "tool_version": "0.1.0",
     "run_id": "lab-no-trail",
-    "generated_at": "2026-09-24T02:54:29+00:00",
+    "generated_at": "2026-11-02T23:50:09+00:00",
     "account_id": "123456789012",
     "region": "us-east-1",
     "environment": "lab/no-trail (moto emulated account, not a live AWS account)",
@@ -39,8 +39,8 @@
     ],
     "severity_disclaimer": "Severity is this project's internal prioritisation model. It is not a CVSS score, an AWS risk rating, or a formal industry classification.",
     "read_only": true,
-    "python_version": "3.11.15",
-    "platform": "linux",
+    "python_version": "3.13.7",
+    "platform": "darwin",
     "redacted": {
       "access_key_ids": true,
       "account_ids": false
@@ -76,7 +76,7 @@
     },
     "collection_errors": 0,
     "api_call_count": 12,
-    "duration_seconds": 0.069
+    "duration_seconds": 0.116
   },
   "collection_errors": [],
   "findings": [
@@ -100,12 +100,74 @@
         "control_title": "Ensure CloudTrail is enabled in all regions",
         "status": "mapped"
       },
-      "detected_at": "2026-09-24T02:54:29+00:00",
+      "detected_at": "2026-11-02T23:50:09+00:00",
       "run_id": "no-trail",
       "status": "OPEN",
       "fingerprint": "a1c3c498a4152d8b"
     }
   ],
+  "contract": {
+    "schema_version": "1.0.0",
+    "scan_run": {
+      "schema_version": "1.0.0",
+      "run_id": "lab-no-trail",
+      "scan_source": "aws-account-audit",
+      "commit_ref": null,
+      "workflow_ref": null,
+      "account_refs": [
+        {
+          "provider": "aws",
+          "id": "123456789012"
+        }
+      ],
+      "regions": [
+        "us-east-1"
+      ],
+      "scanner_versions": {
+        "account-access-auditor": "0.1.0"
+      },
+      "policy_pack_version": null,
+      "started_at": "2026-11-02T23:50:08+00:00",
+      "completed_at": "2026-11-02T23:50:09+00:00",
+      "status": "PASS",
+      "gate_status": "NOT_CONFIGURED",
+      "exit_code": 0,
+      "finding_count": 1,
+      "collection_error_count": 0
+    },
+    "findings": [
+      {
+        "schema_version": "1.0.0",
+        "control_id": "CT-001",
+        "scanner": "account-access-auditor",
+        "scanner_rule_id": "CT-001",
+        "source_type": "aws",
+        "resource_reference": "aws-account",
+        "source_location": null,
+        "severity": "HIGH",
+        "source_severity": "HIGH",
+        "title": "No CloudTrail trail configured",
+        "description": "DescribeTrails returned no trails for this account and region. Management-event history is therefore not being retained in a durable, tamper-evident form; the console Event history view keeps only 90 days and is not usable as incident evidence.",
+        "evidence": {
+          "trail_count": 0,
+          "region": "us-east-1"
+        },
+        "remediation": "Create a multi-region trail with log file validation enabled, delivering to a dedicated log bucket with Block Public Access on.",
+        "references": [
+          {
+            "type": "compliance",
+            "framework": "CIS Amazon Web Services Foundations Benchmark v3.0.0",
+            "id": "3.1",
+            "title": "Ensure CloudTrail is enabled in all regions"
+          }
+        ],
+        "fingerprint": "b11228c519e03ea7",
+        "lifecycle_state": "open",
+        "detected_at": "2026-11-02T23:50:09+00:00",
+        "run_id": "lab-no-trail"
+      }
+    ]
+  },
   "lab": {
     "profile": "no-trail",
     "backend": "moto",

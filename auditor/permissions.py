@@ -9,9 +9,10 @@
 3. It documents, per call, why the permission is needed and why its resource
    scope is what it is.
 
-Every entry here is a read operation. There is no write path in the auditor,
-and ``assert_all_read_only()`` -- exercised by the test suite -- states that as
-an executable claim rather than a promise in a README.
+Every entry reads target state or performs the explicitly scoped STS role
+assumption needed to obtain short-lived credentials. There is no AWS resource
+write path in the auditor, and ``assert_all_read_only()`` -- exercised by the
+test suite -- states that as an executable claim rather than a README promise.
 """
 
 from __future__ import annotations
@@ -20,9 +21,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-# Read-only verbs. An AWS API operation whose name does not start with one of
-# these mutates something, so it may not appear in the inventory below.
+# AWS API verbs that read target state. STS AssumeRole and Access Analyzer
+# ValidatePolicy are explicit non-mutating exceptions; both have scoped guards.
 READ_ONLY_VERBS: tuple[str, ...] = ("Get", "List", "Describe", "Head", "Lookup", "Select", "Batch Get")
+NON_MUTATING_AUTH_OPERATIONS = {"sts:AssumeRole", "accessanalyzer:ValidatePolicy"}
 
 # IAM ARN patterns. The account segment is left as "*" because the policy is
 # published as a template; scoping it to one account is a documented, optional
@@ -47,6 +49,7 @@ class ApiCall:
     resources: tuple[str, ...]
     purpose: str
     used_by: tuple[str, ...]  # collector module(s) that make the call
+    optional: bool = False
 
     @property
     def key(self) -> str:
@@ -55,7 +58,7 @@ class ApiCall:
 
     @property
     def is_read_only(self) -> bool:
-        return self.operation.startswith(READ_ONLY_VERBS)
+        return self.operation.startswith(READ_ONLY_VERBS) or self.key in NON_MUTATING_AUTH_OPERATIONS
 
 
 API_CALLS: tuple[ApiCall, ...] = (
@@ -69,6 +72,32 @@ API_CALLS: tuple[ApiCall, ...] = (
         resources=("*",),
         purpose="Resolve the account ID and caller ARN for the report header, and fail fast on bad credentials.",
         used_by=("auditor.aws_session",),
+    ),
+    ApiCall(
+        service="sts",
+        operation="AssumeRole",
+        boto3_method="assume_role",
+        iam_action="sts:AssumeRole",
+        statement_id="AuditorAssumeTargetRole",
+        resources=("arn:aws:iam::*:role/AccountAccessAuditorReadOnly",),
+        purpose=(
+            "Obtain a short-lived session for the configured target account's named read-only role; "
+            "this does not modify target resources."
+        ),
+        used_by=("auditor.aws_session",),
+    ),
+    ApiCall(
+        service="accessanalyzer",
+        operation="ValidatePolicy",
+        boto3_method="validate_policy",
+        iam_action="access-analyzer:ValidatePolicy",
+        statement_id="AuditorOptionalAccessAnalyzerValidation",
+        resources=("*",),
+        purpose=(
+            "Optionally validate a supplied IAM policy document; this evaluates input and does not change AWS resources."
+        ),
+        used_by=("auditor.access_analyzer",),
+        optional=True,
     ),
     # ---------------------------------------------------------------- IAM ---
     ApiCall(
@@ -365,15 +394,20 @@ API_CALLS: tuple[ApiCall, ...] = (
     ),
 )
 
-# ``service:Operation`` keys the runtime guard admits.
-ALLOWED_OPERATIONS: frozenset = frozenset(call.key for call in API_CALLS)
+# ``service:Operation`` keys the default and explicitly opt-in guard allowlists.
+ALLOWED_OPERATIONS: frozenset = frozenset(call.key for call in API_CALLS if not call.optional)
+OPTIONAL_ALLOWED_OPERATIONS: frozenset = frozenset(call.key for call in API_CALLS if call.optional)
 
 # IAM actions the generated policy grants.
-ALLOWED_IAM_ACTIONS: tuple[str, ...] = tuple(sorted({call.iam_action for call in API_CALLS}))
+ALLOWED_IAM_ACTIONS: tuple[str, ...] = tuple(
+    sorted({call.iam_action for call in API_CALLS if not call.optional})
+)
 
 # Statement order in the generated policy, most general first.
 _STATEMENT_ORDER = (
     "AuditorIdentity",
+    "AuditorAssumeTargetRole",
+    "AuditorOptionalAccessAnalyzerValidation",
     "AuditorListPrincipals",
     "AuditorReadUsers",
     "AuditorReadGroups",
@@ -411,7 +445,7 @@ def calls_for(service: str) -> list[ApiCall]:
     return [call for call in API_CALLS if call.service == service]
 
 
-def generate_policy(sid_prefix: str = "") -> dict[str, Any]:
+def generate_policy(sid_prefix: str = "", *, include_optional: bool = False) -> dict[str, Any]:
     """Build the least-privilege policy document from the inventory.
 
     One statement per (statement_id, resource set), actions sorted, no wildcard
@@ -420,6 +454,8 @@ def generate_policy(sid_prefix: str = "") -> dict[str, Any]:
     """
     grouped: dict[str, dict[str, Any]] = {}
     for call in API_CALLS:
+        if call.optional and not include_optional:
+            continue
         entry = grouped.setdefault(call.statement_id, {"actions": set(), "resources": list(call.resources)})
         entry["actions"].add(call.iam_action)
         for resource in call.resources:
@@ -459,6 +495,7 @@ def inventory_rows() -> list[dict[str, Any]]:
             "statement": call.statement_id,
             "resource_scope": list(call.resources),
             "read_only": call.is_read_only,
+            "optional": call.optional,
             "purpose": call.purpose,
             "used_by": list(call.used_by),
         }

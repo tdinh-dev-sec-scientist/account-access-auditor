@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: guardrails-violating-demo
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+    - name: app
+      image: nginx:latest
+      securityContext:
+        privileged: true

@@ -2,8 +2,9 @@
 # Container entry point.
 #
 #   demo [args...]    audit the emulated lab account and write reports to /out
-#   verify            re-derive every number the README claims, then copy the
-#                     artifacts they came from to /out
+#   verify            run the core test and AWS benchmark checks, then copy
+#                     their artifacts to /out; scanner integration tests skip
+#                     unless optional tools are installed in the image
 #   <anything else>   passed through to `python -m auditor.cli`
 #
 # `set -e` matters here: `verify` is a sequence of checks, and a failure in the
@@ -27,9 +28,10 @@ case "$command" in
         # that is the layout scripts/collect_metrics.py reads and the layout the
         # README documents. The artifacts are copied out at the end.
         echo "== test suite =========================================================="
+        # .coveragerc enables branch coverage; the package-wide Phase 2 floor is 86%.
         python -m pytest -q --cov=auditor --cov-report=term-missing \
                             --cov-report=json:results/coverage.json \
-                            --cov-fail-under=90
+                            --cov-fail-under=86
         echo
         echo "== self-audit of the auditor's own IAM policy =========================="
         python -m auditor.cli validate-policy

@@ -10,12 +10,14 @@ from __future__ import annotations
 
 import platform
 import sys
+import uuid
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from ..compliance import benchmark_version, mapped_count
 from ..severity import Severity, counts, ordered_names
+from .contracts import CONTRACT_VERSION, GateStatus, ScanRun, classify_scan, finding_record
 from .finding import Finding
 
 SEVERITY_DISCLAIMER = (
@@ -48,17 +50,55 @@ def build_report(
     duration_seconds: float | None = None,
     api_call_count: int | None = None,
     environment_label: str | None = None,
+    scan_source: str = "aws-account-audit",
+    scan_started_at: str | None = None,
+    commit_ref: str | None = None,
+    workflow_ref: str | None = None,
+    scanner_versions: dict[str, str] | None = None,
+    policy_pack_version: str | None = None,
+    gate_status: GateStatus | str | None = None,
 ) -> dict[str, Any]:
     ordered = sorted(findings, key=lambda f: f.sort_key)
     errors = collection_errors or []
     affected = sorted({f.resource for f in ordered})
+    generated_at = datetime.now(UTC).isoformat(timespec="seconds")
+    completed_at = generated_at
+    started_at = scan_started_at
+    if started_at is None and duration_seconds is not None:
+        started_at = (
+            datetime.fromisoformat(completed_at) - timedelta(seconds=max(duration_seconds, 0))
+        ).isoformat(timespec="seconds")
+    if started_at is None:
+        started_at = completed_at
+
+    outcome = classify_scan(errors, gate_status)
+    contract_run_id = run_id or uuid.uuid4().hex
+    scan_run = ScanRun(
+        schema_version=CONTRACT_VERSION,
+        run_id=contract_run_id,
+        scan_source=scan_source,
+        commit_ref=commit_ref,
+        workflow_ref=workflow_ref,
+        account_refs=([{"provider": "aws", "id": account_id}] if account_id else []),
+        regions=([region] if region else []),
+        scanner_versions=scanner_versions or {"account-access-auditor": tool_version},
+        policy_pack_version=policy_pack_version,
+        started_at=started_at,
+        completed_at=completed_at,
+        status=outcome.status,
+        gate_status=outcome.gate_status,
+        exit_code=outcome.exit_code,
+        finding_count=len(ordered),
+        collection_error_count=len(errors),
+    ).to_dict()
+    contract_findings = [finding_record(finding, run_id=contract_run_id) for finding in ordered]
 
     return {
         "metadata": {
             "tool": "account-access-auditor",
             "tool_version": tool_version,
             "run_id": run_id,
-            "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+            "generated_at": generated_at,
             "account_id": account_id,
             "region": region,
             "environment": environment_label,
@@ -86,6 +126,11 @@ def build_report(
         },
         "collection_errors": errors,
         "findings": [f.to_dict() for f in ordered],
+        "contract": {
+            "schema_version": CONTRACT_VERSION,
+            "scan_run": scan_run,
+            "findings": contract_findings,
+        },
     }
 
 

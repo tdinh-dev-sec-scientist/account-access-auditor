@@ -19,7 +19,10 @@ auditor = "auditor.cli:main"
 
 [tool.setuptools]
 packages = ["auditor", "auditor.collectors", "auditor.normalize", "auditor.models",
-            "auditor.reporters", "auditor.rules", "auditor.utils"]
+            "auditor.reporters", "auditor.rules", "auditor.utils", "auditor.iac"]
+
+[tool.setuptools.package-data]
+"auditor.iac" = ["policies/*.rego"]
 
 [tool.ruff]
 line-length = 110
