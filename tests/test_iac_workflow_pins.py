@@ -14,6 +14,8 @@ def test_pinned_conftest_download_names_match_published_linux_asset():
         workflow = workflow_path.read_text(encoding="utf-8")
         assert CONFTEST_ASSET in workflow
         assert f"grep '{CONFTEST_ASSET}$'" in workflow
+        assert f'--output "$RUNNER_TEMP/conftest/{CONFTEST_ASSET}"' in workflow
+        assert f'tar -xzf "$RUNNER_TEMP/conftest/{CONFTEST_ASSET}"' in workflow
         assert "conftest_0.71.1_Linux_amd64.tar.gz" not in workflow
 
 
