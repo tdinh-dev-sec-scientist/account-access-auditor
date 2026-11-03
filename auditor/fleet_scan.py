@@ -107,12 +107,8 @@ def run_fleet_scan(
         )
         if first_guard is not None:
             target_guards.append(first_guard)
-        if first_session is None:
-            _record_incomplete_coverage(coverage, account, fleet_config)
-            errors.extend(account_errors)
-            continue
-
-        if expected_global:
+        global_scanned = not expected_global
+        if expected_global and first_session is not None:
             _collect_scope(
                 first_session,
                 account,
@@ -126,6 +122,38 @@ def run_fleet_scan(
                 resource_counts,
                 account_coverage,
             )
+            global_scanned = True
+        elif expected_global and "cloudtrail" not in fleet_config.services:
+            for region in regions[1:]:
+                session, guard = _target_session(
+                    assume,
+                    read_identity,
+                    source_session,
+                    account,
+                    external_id,
+                    region,
+                    actual_run_id,
+                    account_errors,
+                )
+                if guard is not None:
+                    target_guards.append(guard)
+                if session is None:
+                    continue
+                _collect_scope(
+                    session,
+                    account,
+                    "aws-global",
+                    expected_global,
+                    audit_config,
+                    actual_run_id,
+                    scan_target,
+                    account_findings,
+                    account_errors,
+                    resource_counts,
+                    account_coverage,
+                )
+                global_scanned = True
+                break
 
         if "cloudtrail" in fleet_config.services:
             for region_index, region in enumerate(regions):
@@ -149,6 +177,21 @@ def run_fleet_scan(
                         {"account_id": account.account_id, "service": "cloudtrail", "region": region, "complete": False}
                     )
                     continue
+                if expected_global and not global_scanned:
+                    _collect_scope(
+                        session,
+                        account,
+                        "aws-global",
+                        expected_global,
+                        audit_config,
+                        actual_run_id,
+                        scan_target,
+                        account_findings,
+                        account_errors,
+                        resource_counts,
+                        account_coverage,
+                    )
+                    global_scanned = True
                 _collect_scope(
                     session,
                     account,
@@ -161,6 +204,12 @@ def run_fleet_scan(
                     account_errors,
                     resource_counts,
                     account_coverage,
+                )
+
+        if not global_scanned:
+            for service in expected_global:
+                account_coverage.append(
+                    {"account_id": account.account_id, "service": service, "region": "aws-global", "complete": False}
                 )
 
         findings.extend(account_findings)

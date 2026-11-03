@@ -3,8 +3,9 @@
     python -m lab.run_benchmark      # produces the artifacts this reads
     python scripts/build_site.py     # writes site/
 
-The site is three files: a landing page that replays a scan, the full HTML
-report, and the machine-readable artifacts the page's numbers came from.
+The site contains a landing page that replays a scan, a static read-only
+security console, the full HTML report, and the machine-readable artifacts the
+pages' numbers came from.
 
 Nothing on the page is typed in. The terminal transcript it replays is captured
 from ``auditor.reporters.terminal`` -- the same reporter a real run prints
@@ -47,6 +48,7 @@ RESULTS = os.path.join(REPO_ROOT, "results")
 SITE = os.path.join(REPO_ROOT, "site")
 
 REPO_URL = "https://github.com/tdinh-dev-sec-scientist/account-access-auditor"
+CONSOLE_SOURCE = os.path.join(REPO_ROOT, "scripts", "console")
 
 # The two lab profiles, in the order the selector shows them.
 PROFILES = [
@@ -494,6 +496,7 @@ def page(runs: dict[str, dict[str, Any]], primary: str, metrics: dict[str, Any])
   <p class="note">Each finding in the full report also carries its evidence, why it matters,
   how to remediate it, and a stable fingerprint for de-duplication across scans.</p>
   <div class="cta">
+    <a class="primary" href="console/">Open the security console</a>
     <a class="primary" href="report.html">Open the full HTML report</a>
     <a href="{REPO_URL}">Source on GitHub</a>
     <a href="aws_audit_results.json">The raw JSON</a>
@@ -559,16 +562,120 @@ def build_run(key: str, filename: str, label: str, scoring: dict[str, Any]) -> d
     }
 
 
+def console_profile(key: str, label: str, report: dict[str, Any]) -> dict[str, Any]:
+    """Return only the evidence needed by the offline console UI."""
+    metadata = report.get("metadata") or {}
+    summary = report.get("summary") or {}
+    scan_run = (report.get("contract") or {}).get("scan_run") or {}
+    account_refs = scan_run.get("account_refs") or []
+    account_id = next(
+        (
+            item.get("id")
+            for item in account_refs
+            if isinstance(item, dict) and item.get("provider") == "aws" and item.get("id")
+        ),
+        "",
+    )
+    account_id = str(account_id) if account_id else ""
+    findings = []
+    for finding in report.get("findings") or []:
+        compliance = finding.get("compliance") or {}
+        findings.append(
+            {
+                "severity": finding.get("severity") or "UNKNOWN",
+                "title": finding.get("title") or "Untitled finding",
+                "ruleId": finding.get("rule_id") or "Unknown rule",
+                "service": finding.get("service") or "Unknown source",
+                "resource": finding.get("resource") or "Unknown resource",
+                "resourceType": finding.get("resource_type") or "Unknown resource type",
+                "status": str(finding.get("status") or "UNKNOWN"),
+                "controlId": compliance.get("control_id") or "Unmapped",
+                "controlTitle": compliance.get("control_title") or "No mapped control",
+                "description": finding.get("description") or "No description was recorded.",
+                "rationale": finding.get("rationale") or "No technical rationale was recorded.",
+                "remediation": finding.get("remediation") or "No remediation guidance was recorded.",
+                "evidence": finding.get("evidence") or {},
+                "fingerprint": finding.get("fingerprint") or "Unavailable",
+                "detectedAt": finding.get("detected_at") or metadata.get("generated_at") or "",
+            }
+        )
+
+    severity_counts = summary.get("by_severity") or {}
+    open_findings = sum(1 for finding in findings if finding["status"].upper() == "OPEN")
+    return {
+        "key": key,
+        "label": label,
+        "environment": metadata.get("environment") or "Unknown environment",
+        "generatedAt": metadata.get("generated_at") or "",
+        "region": metadata.get("region") or "Unknown region",
+        "accountIdSuffix": account_id[-4:] if account_id else "",
+        "readOnly": metadata.get("read_only") is True,
+        "servicesScanned": metadata.get("services_scanned") or [],
+        "resourcesScanned": summary.get("resources_scanned") or {},
+        "findingCount": summary.get("total_findings", len(findings)),
+        "openFindingCount": open_findings,
+        "severityCounts": {
+            severity: severity_counts.get(severity, 0)
+            for severity in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO")
+        },
+        "collectionErrorCount": summary.get("collection_errors", 0),
+        "run": {
+            "runId": scan_run.get("run_id") or metadata.get("run_id") or "Unavailable",
+            "scanSource": scan_run.get("scan_source") or "Unknown source",
+            "startedAt": scan_run.get("started_at") or "",
+            "completedAt": scan_run.get("completed_at") or metadata.get("generated_at") or "",
+            "executionStatus": scan_run.get("status") or "UNKNOWN",
+            "gateStatus": scan_run.get("gate_status") or "UNKNOWN",
+            "exitCode": scan_run.get("exit_code"),
+            "findingCount": scan_run.get("finding_count", len(findings)),
+            "collectionErrorCount": scan_run.get(
+                "collection_error_count", summary.get("collection_errors", 0)
+            ),
+            "durationSeconds": summary.get("duration_seconds"),
+            "apiCallCount": summary.get("api_call_count"),
+            "scannerVersions": scan_run.get("scanner_versions") or {},
+            "policyPackVersion": scan_run.get("policy_pack_version"),
+        },
+        "findings": findings,
+    }
+
+
+def write_console(reports: dict[str, dict[str, Any]]) -> None:
+    """Build the standalone console from the same checked-in report artifacts."""
+    profiles = {
+        key: console_profile(key, label, reports[key])
+        for key, _, label in PROFILES
+    }
+    data = json.dumps(
+        {"profiles": profiles}, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    )
+    data = data.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
+    with open(os.path.join(CONSOLE_SOURCE, "index.html"), encoding="utf-8") as handle:
+        template = handle.read()
+
+    console_dir = os.path.join(SITE, "console")
+    os.makedirs(console_dir, exist_ok=True)
+    with open(os.path.join(console_dir, "index.html"), "w", encoding="utf-8") as handle:
+        handle.write(template.replace("{{CONSOLE_DATA}}", data))
+    for name in ("console.css", "console.js"):
+        shutil.copy(os.path.join(CONSOLE_SOURCE, name), os.path.join(console_dir, name))
+
+
 def main() -> int:
     scoring = {item["profile"]: item for item in _load("expected_vs_actual.json")["profiles"]}
     metrics = _load("metrics.json")["metrics"]
 
-    runs = {key: build_run(key, filename, label, scoring[key]) for key, filename, label in PROFILES}
+    reports = {key: _load(filename) for key, filename, _ in PROFILES}
+    runs = {
+        key: build_run(key, filename, label, scoring[key])
+        for key, filename, label in PROFILES
+    }
     primary = PROFILES[0][0]
 
     os.makedirs(SITE, exist_ok=True)
     with open(os.path.join(SITE, "index.html"), "w", encoding="utf-8") as handle:
         handle.write(page(runs, primary, metrics))
+    write_console(reports)
 
     # The report and the artifacts its numbers came from, beside the page, so a
     # reader can check the page against them without cloning anything.

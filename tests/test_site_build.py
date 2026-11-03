@@ -119,3 +119,225 @@ def test_the_page_says_the_scan_is_a_replay(index):
 def test_both_lab_profiles_are_offered(runs):
     assert set(runs) == {"misconfigured", "no-trail"}
     assert runs["misconfigured"]["total"] > runs["no-trail"]["total"]
+
+
+def test_read_only_console_is_built_as_a_separate_workspace(site, index):
+    console = site / "console"
+    assert (console / "index.html").exists()
+    assert (console / "console.css").exists()
+    assert (console / "console.js").exists()
+    assert 'href="console/"' in index
+
+
+@pytest.fixture(scope="module")
+def console(site):
+    return (site / "console" / "index.html").read_text(encoding="utf-8")
+
+
+@pytest.fixture(scope="module")
+def console_data(console):
+    blob = re.search(r'<script type="application/json" id="console-data">(.*?)</script>', console, re.S)
+    assert blob, "the console does not carry its source data"
+    return json.loads(blob.group(1).replace("<\\/", "</"))
+
+
+def test_console_data_matches_the_read_only_lab_reports(console_data, primary):
+    profile = console_data["profiles"]["misconfigured"]
+    assert profile["readOnly"] is True
+    assert profile["findingCount"] == primary["summary"]["total_findings"]
+    assert profile["severityCounts"] == primary["summary"]["by_severity"]
+    assert len(profile["findings"]) == len(primary["findings"])
+    assert profile["run"]["executionStatus"] == primary["contract"]["scan_run"]["status"]
+    assert profile["run"]["gateStatus"] == primary["contract"]["scan_run"]["gate_status"]
+    assert profile["findings"][0]["evidence"] == primary["findings"][0]["evidence"]
+
+
+def test_console_masks_numeric_fixture_account_ids(primary):
+    report = json.loads(json.dumps(primary))
+    report["contract"]["scan_run"]["account_refs"][0]["id"] = 123456789012
+    profile = build_site.console_profile("fixture", "Fixture", report)
+    assert profile["accountIdSuffix"] == "9012"
+
+
+def test_console_exposes_all_modules_and_truthful_empty_states(console, site):
+    for view in (
+        "overview", "aws-accounts", "security-scans", "findings", "drift-history",
+        "iac-security", "ci-cd", "supply-chain", "exceptions", "ai-analyst", "settings",
+    ):
+        assert f'data-view="{view}"' in console
+    application = console + (site / "console" / "console.js").read_text(encoding="utf-8")
+    assert "Moto demo data" in application
+    assert "Historical snapshots unavailable" in application
+    assert "No CI run data" in application
+    assert "No artifact assessment data" in application
+    assert "AI-generated recommendations are advisory" in application
+    assert "Exception workflows are not enabled" in application
+
+
+def test_console_preserves_execution_and_security_gate_as_separate_states(console_data, console):
+    run = console_data["profiles"]["misconfigured"]["run"]
+    assert run["executionStatus"] == "PASS"
+    assert run["findingCount"] > 0
+    assert run["gateStatus"] == "NOT_CONFIGURED"
+    assert "Execution status does not mean the findings are absent" in console
+    assert "NOT CONFIGURED" in console
+
+
+def test_console_json_blob_cannot_close_its_script_element(console, console_data):
+    blob = re.search(r'id="console-data">(.*?)</script>', console, re.S).group(1)
+    assert "</" not in blob
+    assert console_data["profiles"], "the data remains parseable after escaping"
+
+
+def test_console_is_offline_only_and_has_responsive_accessible_styles(site, console):
+    script = (site / "console" / "console.js").read_text(encoding="utf-8")
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    assert "connect-src 'none'" in console
+    assert "form-action 'none'" in console
+    assert "fetch(" not in script
+    assert "XMLHttpRequest" not in script
+    assert "@media" in styles
+    assert "prefers-reduced-motion" in styles
+    assert ":focus-visible" in styles
+
+
+def test_console_distinguishes_scan_states_and_displays_snapshot_time(site, console):
+    script = (site / "console" / "console.js").read_text(encoding="utf-8")
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    for state, marker in (("PASS", "✓"), ("FAIL", "×"), ("UNKNOWN", "?"), ("ERROR", "!")):
+        assert f'{state}: "{marker}"' in script
+        assert f".status-{state.lower()} .status-marker" in styles
+    assert 'id="snapshot-generated-at"' in console
+    assert "snapshot-generated-at" in script
+
+
+def test_console_has_persistent_dark_and_light_modes(console, site):
+    script = (site / "console" / "console.js").read_text(encoding="utf-8")
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    assert 'id="theme-toggle"' in console
+    assert 'data-theme="dark"' in console
+    assert '[data-theme="light"]' in styles
+    assert 'setAttribute("data-theme"' in script
+    assert "localStorage" in script
+    assert "--app-bg: #202326" in styles
+    assert "--accent: #c079d2" in styles
+
+
+def test_console_sidebar_has_desktop_collapse_and_accessible_mobile_drawer(console, site):
+    script = (site / "console" / "console.js").read_text(encoding="utf-8")
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    assert 'aria-controls="sidebar"' in console
+    assert ".app-frame.is-collapsed" in styles
+    assert "aria-hidden" in script
+    assert "inert" in script
+    assert 'event.key === "Escape"' in script
+    assert 'setAttribute("aria-label", "Expand navigation")' in script
+    assert "window.scrollTo(0, 0)" in script
+    assert 'focus({ preventScroll: true })' in script
+
+
+def test_collapsed_sidebar_navigation_items_keep_accessible_names_and_tooltips(console):
+    nav_items = re.findall(r'<button class="nav-item[^\"]*"[^>]*>', console)
+    assert nav_items
+    assert all(re.search(r'aria-label="[^"]+"', item) for item in nav_items)
+    assert all(re.search(r'title="[^"]+"', item) for item in nav_items)
+
+
+def test_console_assistant_is_a_local_fixture_helper_not_a_fake_ai_service(console, site):
+    script = (site / "console" / "console.js").read_text(encoding="utf-8")
+    assert 'id="assistant-dialog"' in console
+    assert 'id="assistant-launcher"' in console
+    assert console.index('id="assistant-launcher"') < console.index('class="readonly-chip"')
+    assert 'id="assistant-form"' in console
+    assert "Local fixture assistant" in console
+    assert "No AI model is connected" in console
+    assert "answerFromFixture" in script
+    assert "severityCounts" in script
+    assert "fetch(" not in script
+    assert "XMLHttpRequest" not in script
+    assert "connect-src 'none'" in console
+
+
+def test_console_uses_the_vorrin_brand_in_the_title_and_navigation(console):
+    assert "<title>Security Overview · Vorrin</title>" in console
+    assert 'aria-label="Vorrin Cloud Security home"' in console
+    assert '<span class="brand-copy"><strong>Vorrin</strong><small>Cloud Security</small></span>' in console
+
+
+def test_console_names_rin_and_keeps_the_assistant_grounded(console, site):
+    script = (site / "console" / "console.js").read_text(encoding="utf-8")
+    assert '<h2 id="assistant-title">Rin</h2>' in console
+    assert "I follow the evidence. I don't guess." in console
+    assert "I keep the evidence close and the guesses out." in script
+    assert "No AI model is connected" in console
+    assert "no live AWS or model calls" in console
+    assert 'class="assistant-avatar-stage" aria-hidden="true"' in console
+
+
+def test_console_supports_keyboard_skip_and_touch_sized_navigation(console, site):
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    assert '<a class="skip-link" href="#main-content">Skip to main content</a>' in console
+    assert re.search(r"\.skip-link:focus-visible\s*\{", styles)
+    assert re.search(r"\.nav-item\s*\{[^}]*min-height:\s*44px", styles, re.S)
+    assert re.search(r"\.menu-toggle\s*\{[^}]*min-width:\s*44px[^}]*min-height:\s*44px", styles, re.S)
+
+
+def test_console_uses_local_sysdig_inspired_type_and_a_reduced_motion_3d_mascot(console, site):
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    assert "font-family: Inter, ui-sans-serif, system-ui" in styles
+    assert "fonts.googleapis.com" not in styles
+    assert ".assistant-avatar-face" in styles
+    assert "perspective: 150px" in styles
+    assert "clip-path: polygon" in styles
+    assert "@media (prefers-reduced-motion: reduce)" in styles
+
+
+def test_console_type_never_drops_below_ten_pixels_and_mobile_body_is_sixteen(console, site):
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    pixel_sizes = [int(size) for size in re.findall(r"font-size:\s*(\d+)px", styles)]
+    assert min(pixel_sizes) >= 12
+    assert "body { font-size: 16px; }" in styles
+
+
+def test_dark_primary_action_text_meets_wcag_aa_contrast(console, site):
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    dark_tokens = styles.split(':root[data-theme="light"]', maxsplit=1)[0]
+    foreground = re.search(r"--accent-text:\s*(#[0-9a-fA-F]{6})", dark_tokens).group(1)
+    background = re.search(r"--accent-strong:\s*(#[0-9a-fA-F]{6})", dark_tokens).group(1)
+
+    def luminance(color):
+        channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    light, dark = sorted((luminance(foreground), luminance(background)), reverse=True)
+    assert (light + 0.05) / (dark + 0.05) >= 4.5
+
+
+def test_console_footer_does_not_imply_an_ai_result_exists(console):
+    assert "AI features are optional; recommendations are advisory." in console
+    assert "AI-generated recommendations are advisory" not in console
+
+
+def test_light_theme_dim_text_meets_wcag_aa_contrast(console, site):
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    light_tokens = styles.split(':root[data-theme="light"]', maxsplit=1)[1].split("}", maxsplit=1)[0]
+    foreground = re.search(r"--text-dim:\s*(#[0-9a-fA-F]{6})", light_tokens).group(1)
+    background = re.search(r"--app-bg:\s*(#[0-9a-fA-F]{6})", light_tokens).group(1)
+
+    def luminance(color):
+        channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+    light, dark = sorted((luminance(foreground), luminance(background)), reverse=True)
+    assert (light + 0.05) / (dark + 0.05) >= 4.5
+
+
+def test_topbar_inputs_and_assistant_launcher_have_44px_targets(console, site):
+    styles = (site / "console" / "console.css").read_text(encoding="utf-8")
+    assert re.search(r"\.search-box\s*\{[^}]*min-height:\s*44px", styles, re.S)
+    assert re.search(r"\.scope-select-wrap select\s*\{[^}]*min-height:\s*44px", styles, re.S)
+    assert re.search(r"\.assistant-launcher\s*\{[^}]*min-height:\s*44px", styles, re.S)
+    assert not re.search(r"\.assistant-launcher\s*\{[^}]*\bwidth:\s*40px", styles)
+    assert not re.search(r"\.assistant-launcher\s*\{[^}]*\bflex:\s*0 0 40px", styles)

@@ -99,6 +99,117 @@ def test_fleet_scan_marks_a_missing_target_as_unknown_and_continues(monkeypatch)
     assert report["collection_errors"][0]["account_id"] == first.account_id
 
 
+def test_fleet_scan_continues_to_reachable_regions_after_first_region_role_failure(monkeypatch):
+    from auditor import fleet_scan
+
+    account = TargetAccount(
+        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
+    )
+    config = FleetConfig((account,), ("us-east-1", "us-west-2"), ("cloudtrail",))
+    attempts = []
+    scanned = []
+
+    def assume(_source, *, role_arn, role_session_name, external_id, region_name):
+        attempts.append(region_name)
+        if region_name == "us-east-1":
+            raise RuntimeError("first region unavailable")
+        return FakeSession(account.account_id, region_name), None
+
+    monkeypatch.setattr(fleet_scan, "_assume_role", assume)
+    monkeypatch.setattr(fleet_scan, "_describe_caller", lambda session: (session.account_id, "arn"))
+    monkeypatch.setattr(
+        fleet_scan,
+        "_run_scan",
+        lambda session, services, *_args: (scanned.append(session.region_name) or [], [], {}),
+    )
+
+    report = fleet_scan.run_fleet_scan(config, {}, FakeSession("source", "us-east-1"), run_id="run-regional")
+
+    assert attempts == ["us-east-1", "us-west-2"]
+    assert scanned == ["us-west-2"]
+    assert report["contract"]["scan_run"]["status"] == "UNKNOWN"
+    assert report["contract"]["scan_run"]["exit_code"] == 3
+    assert report["metadata"]["scan_coverage"] == [
+        {"account_id": account.account_id, "service": "cloudtrail", "region": "us-east-1", "complete": False},
+        {"account_id": account.account_id, "service": "cloudtrail", "region": "us-west-2", "complete": True},
+    ]
+
+
+def test_fleet_scan_collects_global_services_from_first_reachable_region(monkeypatch):
+    from auditor import fleet_scan
+
+    account = TargetAccount(
+        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
+    )
+    config = FleetConfig((account,), ("us-east-1", "us-west-2"), ("iam", "s3", "cloudtrail"))
+    attempts = []
+    calls = []
+
+    def assume(_source, *, role_arn, role_session_name, external_id, region_name):
+        attempts.append(region_name)
+        if region_name == "us-east-1":
+            raise RuntimeError("first region unavailable")
+        return FakeSession(account.account_id, region_name), None
+
+    def scan(session, services, *_args):
+        calls.append((session.region_name, tuple(services)))
+        return [], [], {}
+
+    monkeypatch.setattr(fleet_scan, "_assume_role", assume)
+    monkeypatch.setattr(fleet_scan, "_describe_caller", lambda session: (session.account_id, "arn"))
+    monkeypatch.setattr(fleet_scan, "_run_scan", scan)
+
+    report = fleet_scan.run_fleet_scan(config, {}, FakeSession("source", "us-east-1"), run_id="run-global-fallback")
+
+    assert attempts == ["us-east-1", "us-west-2"]
+    assert calls == [("us-west-2", ("iam", "s3")), ("us-west-2", ("cloudtrail",))]
+    assert {
+        (item["service"], item["region"], item["complete"])
+        for item in report["metadata"]["scan_coverage"]
+    } == {
+        ("iam", "aws-global", True),
+        ("s3", "aws-global", True),
+        ("cloudtrail", "us-east-1", False),
+        ("cloudtrail", "us-west-2", True),
+    }
+    assert report["contract"]["scan_run"]["status"] == "UNKNOWN"
+
+
+def test_fleet_scan_retries_global_only_services_in_later_region(monkeypatch):
+    from auditor import fleet_scan
+
+    account = TargetAccount(
+        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
+    )
+    config = FleetConfig((account,), ("us-east-1", "us-west-2"), ("iam", "s3"))
+    attempts = []
+    calls = []
+
+    def assume(_source, *, role_arn, role_session_name, external_id, region_name):
+        attempts.append(region_name)
+        if region_name == "us-east-1":
+            raise RuntimeError("first region unavailable")
+        return FakeSession(account.account_id, region_name), None
+
+    def scan(session, services, *_args):
+        calls.append((session.region_name, tuple(services)))
+        return [], [], {}
+
+    monkeypatch.setattr(fleet_scan, "_assume_role", assume)
+    monkeypatch.setattr(fleet_scan, "_describe_caller", lambda session: (session.account_id, "arn"))
+    monkeypatch.setattr(fleet_scan, "_run_scan", scan)
+
+    report = fleet_scan.run_fleet_scan(config, {}, FakeSession("source", "us-east-1"), run_id="run-global-only")
+
+    assert attempts == ["us-east-1", "us-west-2"]
+    assert calls == [("us-west-2", ("iam", "s3"))]
+    assert {
+        (item["service"], item["region"], item["complete"])
+        for item in report["metadata"]["scan_coverage"]
+    } == {("iam", "aws-global", True), ("s3", "aws-global", True)}
+    assert report["contract"]["scan_run"]["status"] == "UNKNOWN"
+
+
 def _finding(rule_id: str, resource: str) -> Finding:
     return Finding(
         rule_id=rule_id,
