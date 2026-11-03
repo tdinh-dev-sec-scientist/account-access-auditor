@@ -97,21 +97,17 @@ def test_real_checkov_directory_scan_keeps_cross_file_graph_context(tmp_path):
     )
     (tmp_path / "public-access.tf").write_text(
         'resource "aws_s3_bucket_public_access_block" "example" {\n'
-        '  bucket = aws_s3_bucket.example.id\n'
-        '  block_public_acls = true\n'
-        '  block_public_policy = true\n'
-        '  ignore_public_acls = true\n'
-        '  restrict_public_buckets = true\n'
-        '}\n'
+        "  bucket = aws_s3_bucket.example.id\n"
+        "  block_public_acls = true\n"
+        "  block_public_policy = true\n"
+        "  ignore_public_acls = true\n"
+        "  restrict_public_buckets = true\n"
+        "}\n"
     )
 
-    report = scan_paths(
-        [tmp_path / "bucket.tf", tmp_path], run_id="terraform-graph-context"
-    )
+    report = scan_paths([tmp_path / "bucket.tf", tmp_path], run_id="terraform-graph-context")
 
-    assert "CHECKOV-CKV2_AWS_6" not in {
-        finding["control_id"] for finding in report["contract"]["findings"]
-    }
+    assert "CHECKOV-CKV2_AWS_6" not in {finding["control_id"] for finding in report["contract"]["findings"]}
 
 
 @pytest.mark.integration
@@ -126,13 +122,11 @@ def test_checkov_directory_scan_honors_excluded_fixture_paths(tmp_path):
         'resource "aws_s3_bucket" "vulnerable" {\n'
         '  bucket = "excluded-demo-bucket"\n'
         '  acl = "public-read"\n'
-        '}\n'
+        "}\n"
     )
     clean = tmp_path / "infra"
     clean.mkdir()
-    (clean / "main.tf").write_text(
-        (FIXTURES / "terraform" / "clean" / "main.tf").read_text()
-    )
+    (clean / "main.tf").write_text((FIXTURES / "terraform" / "clean" / "main.tf").read_text())
 
     report = scan_paths(
         [tmp_path],
@@ -175,7 +169,7 @@ def test_checkov_adapter_preserves_upstream_identity_location_and_evidence():
                     "file_abs_path": "/repo/infra/main.tf",
                     "file_line_range": [8, 14],
                     "evaluated_keys": ["versioning/enabled"],
-                    "code_block": [[8, "secret = \"do-not-copy\"\n"]],
+                    "code_block": [[8, 'secret = "do-not-copy"\n']],
                     "check_result": {"result": "FAILED"},
                 }
             ],
@@ -218,9 +212,7 @@ def test_checkov_parser_accepts_valid_zero_resource_summary():
         "checkov_version": "3.4.3",
     }
 
-    assert parse_checkov_output(
-        json.dumps(payload), source_type="terraform", root=Path(".")
-    ) == []
+    assert parse_checkov_output(json.dumps(payload), source_type="terraform", root=Path(".")) == []
 
 
 def test_conftest_adapter_preserves_policy_metadata_and_file_only_location():
@@ -357,7 +349,9 @@ def test_local_scan_reports_iam_findings_and_never_passes_aws_credentials(monkey
         assert "AZURE_CLIENT_SECRET" not in scanner_env
         assert "KUBECONFIG" not in scanner_env
         assert scanner_env["AWS_EC2_METADATA_DISABLED"] == "true"
-    checkov_call = next(command for command, _ in calls if command[0] == "checkov" and "--version" not in command)
+    checkov_call = next(
+        command for command, _ in calls if command[0] == "checkov" and "--version" not in command
+    )
     assert "--skip-download" in checkov_call
     assert "--skip-results-upload" in checkov_call
     report_json = json.dumps(report)
@@ -444,9 +438,7 @@ def test_scan_threshold_controls_gate_without_removing_findings(monkeypatch):
     assert all(finding["gate"] is False for finding in report["findings"])
 
 
-def test_active_exception_is_applied_to_iac_report_without_hiding_finding(
-    monkeypatch, tmp_path
-):
+def test_active_exception_is_applied_to_iac_report_without_hiding_finding(monkeypatch, tmp_path):
     exceptions_path = tmp_path / "exceptions.yaml"
     exceptions_path.write_text(
         "exceptions:\n"
@@ -628,7 +620,9 @@ def test_real_scanners_detect_vulnerable_fixtures(kind, fixture, expected_contro
 def test_real_scanners_accept_clean_fixtures(fixture, helm_rendered):
     from shutil import which
 
-    if not which("conftest") or (fixture.startswith(("terraform/", "kubernetes/", "helm/")) and not which("checkov")):
+    if not which("conftest") or (
+        fixture.startswith(("terraform/", "kubernetes/", "helm/")) and not which("checkov")
+    ):
         pytest.skip("Checkov and Conftest are optional local scanner binaries")
 
     report = scan_paths([FIXTURES / fixture], helm_rendered=helm_rendered, run_id="clean-scan")

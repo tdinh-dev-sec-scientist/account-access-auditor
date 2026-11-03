@@ -53,9 +53,7 @@ EXIT_ERROR = 2
 EXIT_UNKNOWN = 3
 
 DEFAULT_POLICY_PATH = os.path.join("policies", "auditor-readonly-policy.json")
-DEFAULT_HISTORY_DIR = os.path.join(
-    "~", ".local", "state", "account-access-auditor", "history"
-)
+DEFAULT_HISTORY_DIR = os.path.join("~", ".local", "state", "account-access-auditor", "history")
 
 
 # ------------------------------------------------------------------ parsing --
@@ -224,9 +222,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the JSON report to this path (default: stdout).",
     )
 
-    annotate = sub.add_parser(
-        "annotate-iac", help="Emit GitHub Actions annotations from an IaC JSON report."
-    )
+    annotate = sub.add_parser("annotate-iac", help="Emit GitHub Actions annotations from an IaC JSON report.")
     annotate.add_argument("report", help="Path to an IaC JSON report.")
 
     gate = sub.add_parser("gate-iac", help="Return the gate exit code recorded in an IaC JSON report.")
@@ -267,16 +263,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Generate and scan local SBOMs, then sign and verify a container archive (no AWS access).",
     )
     supply.add_argument("--source", default=".", help="Source package directory to catalog (default: .).")
-    supply.add_argument("--image-archive", required=True, help="Saved Docker or OCI image archive to release.")
+    supply.add_argument(
+        "--image-archive", required=True, help="Saved Docker or OCI image archive to release."
+    )
     supply.add_argument(
         "--image-format",
         choices=["docker-archive", "oci-archive"],
         default="docker-archive",
         help="Archive format (default: docker-archive).",
     )
-    supply.add_argument("--output-dir", required=True, help="New or existing directory for release artifacts.")
-    supply.add_argument("--signing-key", required=True, help="Cosign private key file; password via COSIGN_PASSWORD.")
-    supply.add_argument("--public-key", required=True, help="Matching Cosign public key file for offline verification.")
+    supply.add_argument(
+        "--output-dir", required=True, help="New or existing directory for release artifacts."
+    )
+    supply.add_argument(
+        "--signing-key", required=True, help="Cosign private key file; password via COSIGN_PASSWORD."
+    )
+    supply.add_argument(
+        "--public-key", required=True, help="Matching Cosign public key file for offline verification."
+    )
     supply.add_argument(
         "--fail-on",
         type=str.upper,
@@ -297,8 +301,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Apply an approved remediation to a temporary local copy and require a passing IaC rescan.",
     )
     remediation_sandbox.add_argument("--source", required=True, help="Source directory containing IaC files.")
-    remediation_sandbox.add_argument("--plan", required=True, help="Approved, preview-bound JSON remediation plan.")
-    remediation_sandbox.add_argument("--output-dir", required=True, help="Directory for patch and rescan evidence.")
+    remediation_sandbox.add_argument(
+        "--plan", required=True, help="Approved, preview-bound JSON remediation plan."
+    )
+    remediation_sandbox.add_argument(
+        "--output-dir", required=True, help="Directory for patch and rescan evidence."
+    )
     remediation_sandbox.add_argument(
         "--fail-on",
         type=str.upper,
@@ -662,7 +670,7 @@ def command_validate_policy(args) -> int:
 def command_validate_access_analyzer(args) -> int:
     """Use the separately guarded, optional IAM Access Analyzer validation call."""
     from .access_analyzer import MAX_POLICY_BYTES, validate_policy_document
-    from .models.contracts import CONTRACT_VERSION, ScanRun, GateStatus, classify_scan
+    from .models.contracts import CONTRACT_VERSION, GateStatus, ScanRun, classify_scan
     from .severity import Severity
 
     try:
@@ -758,9 +766,7 @@ def command_fleet_scan(args) -> int:
     try:
         fleet_config = load_fleet_config(args.fleet_config)
         audit_config = load_config(args.config)
-        source_session, source_guard = build_session(
-            profile=args.profile, region=fleet_config.regions[0]
-        )
+        source_session, source_guard = build_session(profile=args.profile, region=fleet_config.regions[0])
         report = run_fleet_scan(
             fleet_config,
             audit_config,
@@ -1020,9 +1026,7 @@ def command_gate_iac(args) -> int:
 
 
 def command_generate_policy(args) -> int:
-    document = permissions.generate_policy(
-        include_optional=args.include_optional_access_analyzer
-    )
+    document = permissions.generate_policy(include_optional=args.include_optional_access_analyzer)
     payload = json.dumps(document, indent=2) + "\n"
     if args.write:
         os.makedirs(os.path.dirname(os.path.abspath(args.path)), exist_ok=True)

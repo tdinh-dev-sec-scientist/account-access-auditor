@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import stat
 import sqlite3
+import stat
 
 import pytest
 
@@ -165,7 +165,9 @@ def _report(
             "scan_coverage": coverage,
         },
         "summary": {},
-        "collection_errors": [] if complete else [{"service": "CloudTrail", "operation": "list", "code": "AccessDenied"}],
+        "collection_errors": []
+        if complete
+        else [{"service": "CloudTrail", "operation": "list", "code": "AccessDenied"}],
         "findings": findings,
         "contract": {
             "scan_run": {

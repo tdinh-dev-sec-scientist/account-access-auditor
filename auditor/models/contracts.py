@@ -13,8 +13,8 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 
-from .finding import Finding
 from ..severity import Severity
+from .finding import Finding
 
 CONTRACT_VERSION = "1.0.0"
 
@@ -139,7 +139,10 @@ def finding_record(
     canonical_control = control_id or finding.rule_id
     source_rule = scanner_rule_id or finding.rule_id
     resource = finding.resource if resource_reference is None else resource_reference
-    if not all(isinstance(value, str) and value.strip() for value in (canonical_control, source_rule, scanner, source_type)):
+    if not all(
+        isinstance(value, str) and value.strip()
+        for value in (canonical_control, source_rule, scanner, source_type)
+    ):
         raise ValueError("control_id, scanner, and source_type must be non-empty")
     if resource is not None and not isinstance(resource, str):
         raise ValueError("resource_reference must be a string or None")
@@ -318,9 +321,11 @@ class ScanRun:
             raise ValueError("completed_at must not precede started_at")
         if min(self.finding_count, self.collection_error_count) < 0:
             raise ValueError("record counts must not be negative")
-        if self.gate_threshold is not None:
-            if Severity.from_string(self.gate_threshold).value != self.gate_threshold:
-                raise ValueError("gate_threshold must use a canonical uppercase severity")
+        if (
+            self.gate_threshold is not None
+            and Severity.from_string(self.gate_threshold).value != self.gate_threshold
+        ):
+            raise ValueError("gate_threshold must use a canonical uppercase severity")
 
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
@@ -370,15 +375,19 @@ class ArtifactResult:
                 self.scanner_version,
             )
         ):
-            raise ValueError("artifact_type, location, format, scanner, and scanner_version must be non-empty")
+            raise ValueError(
+                "artifact_type, location, format, scanner, and scanner_version must be non-empty"
+            )
         if (
             self.location.startswith("/")
             or "\\" in self.location
             or any(part in {"", ".", ".."} for part in self.location.split("/"))
         ):
             raise ValueError("location must be a safe relative path")
-        if not isinstance(self.sha256, str) or len(self.sha256) != 64 or any(
-            char not in "0123456789abcdef" for char in self.sha256
+        if (
+            not isinstance(self.sha256, str)
+            or len(self.sha256) != 64
+            or any(char not in "0123456789abcdef" for char in self.sha256)
         ):
             raise ValueError("sha256 must be 64 lowercase hexadecimal characters")
         if self.database_provenance is not None:

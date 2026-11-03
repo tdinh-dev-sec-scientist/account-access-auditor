@@ -38,9 +38,7 @@ class SessionError(RuntimeError):
     """A usable AWS session could not be established."""
 
 
-_READ_ONLY_ROLE_ARN = re.compile(
-    r"^arn:aws:iam::[0-9]{12}:role/AccountAccessAuditorReadOnly$"
-)
+_READ_ONLY_ROLE_ARN = re.compile(r"^arn:aws:iam::[0-9]{12}:role/AccountAccessAuditorReadOnly$")
 _ROLE_SESSION_NAME = re.compile(r"^[A-Za-z0-9+=,.@_-]{2,64}$")
 _REGION_NAME = re.compile(r"^[a-z]{2,}(?:-[a-z0-9]+)+-[0-9]+$")
 

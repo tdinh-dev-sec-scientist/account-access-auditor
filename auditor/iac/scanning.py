@@ -62,9 +62,7 @@ class ScanInput:
     checkov_scope: Path | None = None
 
 
-def classify_input(
-    path: str | Path, *, helm_rendered: bool = False, strict: bool = True
-) -> ScanInput | None:
+def classify_input(path: str | Path, *, helm_rendered: bool = False, strict: bool = True) -> ScanInput | None:
     """Classify one supported Terraform, IAM, Kubernetes, or rendered Helm file."""
     source = Path(path)
     if source.is_symlink():
@@ -88,8 +86,7 @@ def classify_input(
             return ScanInput(source, "iam", "json", None)
         if "apiVersion" in document or "kind" in document:
             if not all(
-                isinstance(document.get(key), str) and document[key].strip()
-                for key in ("apiVersion", "kind")
+                isinstance(document.get(key), str) and document[key].strip() for key in ("apiVersion", "kind")
             ):
                 raise InputError("Kubernetes JSON requires non-empty apiVersion and kind strings")
             return ScanInput(source, "kubernetes", "json", "kubernetes")
@@ -176,7 +173,9 @@ def _safe_relative_path(value: Any, root: Path) -> str | None:
     candidate = Path(value)
     try:
         resolved_root = root.resolve()
-        resolved_path = candidate.resolve() if candidate.is_absolute() else (resolved_root / candidate).resolve()
+        resolved_path = (
+            candidate.resolve() if candidate.is_absolute() else (resolved_root / candidate).resolve()
+        )
         return resolved_path.relative_to(resolved_root).as_posix()
     except (OSError, ValueError):
         return candidate.name or None
@@ -204,9 +203,7 @@ def _is_valid_empty_checkov_summary(payload: Any) -> bool:
         return False
     counters = ("passed", "failed", "skipped", "parsing_errors", "resource_count")
     if not all(
-        isinstance(payload.get(key), int)
-        and not isinstance(payload.get(key), bool)
-        and payload[key] == 0
+        isinstance(payload.get(key), int) and not isinstance(payload.get(key), bool) and payload[key] == 0
         for key in counters
     ):
         return False
@@ -293,10 +290,7 @@ def parse_checkov_output(
 
 def _conftest_location(failure: dict[str, Any], metadata: dict[str, Any], filename: str, root: Path):
     location = (
-        failure.get("_loc")
-        or metadata.get("_loc")
-        or metadata.get("loc")
-        or metadata.get("source_location")
+        failure.get("_loc") or metadata.get("_loc") or metadata.get("loc") or metadata.get("source_location")
     )
     if not isinstance(location, dict):
         location = {}
@@ -478,9 +472,7 @@ def _directory_candidates(
     for current, directories, filenames in os.walk(directory, followlinks=False, onerror=on_walk_error):
         current_path = Path(current)
         directories[:] = [
-            name
-            for name in directories
-            if not _matches_exclude(current_path / name, root, excludes)
+            name for name in directories if not _matches_exclude(current_path / name, root, excludes)
         ]
         symlink_directories = sorted(name for name in directories if (current_path / name).is_symlink())
         for name in symlink_directories:
@@ -501,7 +493,9 @@ def _directory_candidates(
             lower = name.lower()
             if path.is_symlink():
                 if lower.endswith((".tf", ".tf.json", ".json", ".yaml", ".yml")):
-                    errors.append(_error(path, root, "scan-input", "UnsupportedInput", "symbolic-link input skipped"))
+                    errors.append(
+                        _error(path, root, "scan-input", "UnsupportedInput", "symbolic-link input skipped")
+                    )
                 continue
             is_known_extension = lower.endswith((".tf", ".tf.json", ".yaml", ".yml"))
             if not is_known_extension and path.suffix.lower() != ".json":
@@ -515,7 +509,9 @@ def _directory_candidates(
                     try:
                         document = _load_json(path)
                     except InputError as json_exc:
-                        if "invalid JSON" in str(json_exc) and any(word in lower for word in ("iam", "policy")):
+                        if "invalid JSON" in str(json_exc) and any(
+                            word in lower for word in ("iam", "policy")
+                        ):
                             errors.append(_error(path, root, "scan-input", "InvalidInput", str(json_exc)))
                     else:
                         if any(key in document for key in ("apiVersion", "kind", "resource", "data")):
@@ -547,9 +543,7 @@ def _discover_inputs(
             if not path.exists():
                 raise InputError("input path does not exist")
             if path.is_dir():
-                discovered, discovery_errors = _directory_candidates(
-                    path, root, helm_rendered, exclude_paths
-                )
+                discovered, discovery_errors = _directory_candidates(path, root, helm_rendered, exclude_paths)
                 for item in discovered:
                     resolved = item.path.resolve()
                     candidate_index = seen.get(resolved)
@@ -567,7 +561,13 @@ def _discover_inputs(
                 errors.extend(discovery_errors)
                 if not discovered:
                     errors.append(
-                        _error(path, root, "scan-input", "NoSupportedInputs", "directory contains no supported inputs")
+                        _error(
+                            path,
+                            root,
+                            "scan-input",
+                            "NoSupportedInputs",
+                            "directory contains no supported inputs",
+                        )
                     )
                 continue
             item = classify_input(path, helm_rendered=helm_rendered)
@@ -641,9 +641,7 @@ def _run_checkov(
     exclude_paths: list[str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     source_arguments = (
-        ["-d", str(item.checkov_scope)]
-        if item.checkov_scope is not None
-        else ["-f", str(item.path)]
+        ["-d", str(item.checkov_scope)] if item.checkov_scope is not None else ["-f", str(item.path)]
     )
     command = [
         executable,
@@ -671,9 +669,7 @@ def _run_checkov(
         command.extend(("--skip-path", fnmatch.translate(checkov_path)))
     result = _run(command, environment)
     try:
-        findings = parse_checkov_output(
-            result.stdout, source_type=item.source_type, root=root, run_id=run_id
-        )
+        findings = parse_checkov_output(result.stdout, source_type=item.source_type, root=root, run_id=run_id)
         payload = json.loads(result.stdout)
     except (ScannerOutputError, json.JSONDecodeError) as exc:
         return [], [_error(item.path, root, "checkov", "InvalidScannerOutput", str(exc))]
@@ -682,13 +678,25 @@ def _run_checkov(
     parsing_errors = payload.get("results", {}).get("parsing_errors", [])
     if isinstance(parsing_errors, list) and parsing_errors:
         errors.append(
-            _error(item.path, root, "checkov", "ParseFailure", f"Checkov reported {len(parsing_errors)} parsing error(s)")
+            _error(
+                item.path,
+                root,
+                "checkov",
+                "ParseFailure",
+                f"Checkov reported {len(parsing_errors)} parsing error(s)",
+            )
         )
     elif not isinstance(parsing_errors, list):
-        errors.append(_error(item.path, root, "checkov", "InvalidScannerOutput", "Checkov parsing_errors must be a list"))
+        errors.append(
+            _error(
+                item.path, root, "checkov", "InvalidScannerOutput", "Checkov parsing_errors must be a list"
+            )
+        )
     if result.returncode != 0:
         errors.append(
-            _error(item.path, root, "checkov", "ScannerExit", f"Checkov exited with status {result.returncode}")
+            _error(
+                item.path, root, "checkov", "ScannerExit", f"Checkov exited with status {result.returncode}"
+            )
         )
     return findings, errors
 
@@ -733,11 +741,15 @@ def _run_conftest(
         if isinstance(file_result, dict)
     ):
         errors.append(
-            _error(item.path, root, "conftest", "PolicyEvaluationError", "Conftest reported evaluation errors")
+            _error(
+                item.path, root, "conftest", "PolicyEvaluationError", "Conftest reported evaluation errors"
+            )
         )
     if result.returncode not in ({0, 1} if has_failures else {0}):
         errors.append(
-            _error(item.path, root, "conftest", "ScannerExit", f"Conftest exited with status {result.returncode}")
+            _error(
+                item.path, root, "conftest", "ScannerExit", f"Conftest exited with status {result.returncode}"
+            )
         )
     return findings, errors
 
@@ -937,7 +949,13 @@ def scan_paths(
         if conftest_path:
             if not policy_path.is_dir():
                 errors.append(
-                    _error(item.path, scan_root, "conftest", "PolicyPackUnavailable", "project policy pack was not found")
+                    _error(
+                        item.path,
+                        scan_root,
+                        "conftest",
+                        "PolicyPackUnavailable",
+                        "project policy pack was not found",
+                    )
                 )
                 continue
             try:
@@ -964,9 +982,7 @@ def scan_paths(
     )
     outcome = classify_scan(errors, gate)
     completed_at = datetime.now(UTC).isoformat(timespec="seconds")
-    scanner_versions = _ordered_scanner_versions(
-        used_checkov, checkov_version, conftest_version, opa_version
-    )
+    scanner_versions = _ordered_scanner_versions(used_checkov, checkov_version, conftest_version, opa_version)
     scan_run = ScanRun(
         schema_version=CONTRACT_VERSION,
         run_id=actual_run_id,

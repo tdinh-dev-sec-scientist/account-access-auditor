@@ -3,7 +3,6 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
-import os
 import stat
 from pathlib import Path
 from types import SimpleNamespace
@@ -108,14 +107,16 @@ def _github_pull(preview_sha256, *, head="c" * 40):
 
 
 def _github_approval(*, state="APPROVED", head="c" * 40):
-    return [[
-        {
-            "user": {"login": "security-lead"},
-            "state": state,
-            "submitted_at": "2026-11-02T10:00:00Z",
-            "commit_id": head,
-        }
-    ]]
+    return [
+        [
+            {
+                "user": {"login": "security-lead"},
+                "state": state,
+                "submitted_at": "2026-11-02T10:00:00Z",
+                "commit_id": head,
+            }
+        ]
+    ]
 
 
 def _github_file_responses(contents='acl = "private"\n'):
@@ -147,8 +148,8 @@ def test_preview_returns_a_patch_without_changing_source(tmp_path):
     assert preview["status"] == "PREVIEW"
     assert preview["review"]["status"] == "PENDING"
     assert preview["target_fingerprints"] == ["a1b2c3d4e5f60718"]
-    assert "acl = \"public-read\"" in preview["patch"]
-    assert "acl = \"private\"" in preview["patch"]
+    assert 'acl = "public-read"' in preview["patch"]
+    assert 'acl = "private"' in preview["patch"]
     assert len(preview["preview_sha256"]) == 64
     assert (source / "main.tf").read_text() == original
 
@@ -208,7 +209,7 @@ def test_preview_rejects_sensitive_paths_even_when_the_file_is_json(tmp_path):
             'resource "demo" "item" {\n'
             '  SecretAccessKey = "synthetic-camel-case-secret-value"\n'
             '  acl = "public-read"\n'
-            '}\n',
+            "}\n",
             'acl = "public-read"',
             'acl = "private"',
         ),
@@ -292,9 +293,7 @@ def test_preview_rejects_sensitive_paths_even_when_the_file_is_json(tmp_path):
         ),
     ],
 )
-def test_preview_rejects_camel_case_secrets_in_changed_file(
-    tmp_path, filename, original, before, after
-):
+def test_preview_rejects_camel_case_secrets_in_changed_file(tmp_path, filename, original, before, after):
     source = _source(tmp_path)
     (source / filename).write_text(original)
     plan = _pending_plan()
@@ -475,17 +474,12 @@ def test_preview_omits_unmodified_lines_from_patch_context(tmp_path):
     source = _source(tmp_path)
     path = source / "main.tf"
     context = '  description = "context-marker-that-must-not-appear-in-preview"\n'
-    path.write_text(
-        'resource "aws_s3_bucket" "data" {\n'
-        + context
-        + '  acl = "public-read"\n'
-        + '}\n'
-    )
+    path.write_text('resource "aws_s3_bucket" "data" {\n' + context + '  acl = "public-read"\n' + "}\n")
 
     preview = remediation.create_remediation_preview(source_dir=source, plan=_pending_plan())
 
-    assert "acl = \"public-read\"" in preview["patch"]
-    assert "acl = \"private\"" in preview["patch"]
+    assert 'acl = "public-read"' in preview["patch"]
+    assert 'acl = "private"' in preview["patch"]
     assert "context-marker-that-must-not-appear-in-preview" not in preview["patch"]
 
 
@@ -521,7 +515,7 @@ def test_preview_does_not_expose_secret_in_diff_context(tmp_path):
         'resource "aws_s3_bucket" "data" {\n'
         '  acl = "public-read"\n'
         '  password = "literal-password-value-123"\n'
-        '}\n'
+        "}\n"
     )
 
     with pytest.raises(remediation.RemediationError, match="credential or private-key material"):
@@ -748,9 +742,7 @@ def test_github_review_verification_requires_digest_and_approved_reviewer(monkey
         "preview_sha256": preview_sha256,
     }
 
-    assert remediation._verify_github_review(
-        review, _github_preview(preview_sha256), Path(".")
-    ) is True
+    assert remediation._verify_github_review(review, _github_preview(preview_sha256), Path(".")) is True
     assert commands[0][:3] == ["gh", "pr", "view"]
     assert commands[1][:2] == ["gh", "api"]
     assert "repos/example/auditor/pulls/42/reviews" in commands[1]
@@ -861,9 +853,11 @@ def test_github_preview_content_verification_fails_closed(monkeypatch, case, rai
     def fake_run(command, **_kwargs):
         is_contents = "/contents/" in command[2]
         current_case = (
-            case if is_contents and case.startswith("file_") else
-            case if not is_contents and case.startswith("blob_") else
-            "ok"
+            case
+            if is_contents and case.startswith("file_")
+            else case
+            if not is_contents and case.startswith("blob_")
+            else "ok"
         )
         if current_case.endswith("missing"):
             raise FileNotFoundError
@@ -920,14 +914,16 @@ def test_github_review_verification_rejects_unapproved_or_wrong_digest(monkeypat
             "body": "Remediation Preview SHA-256: " + "c" * 64,
             "headRefOid": "c" * 40,
         },
-        [[
-            {
-                "user": {"login": "security-lead"},
-                "state": "CHANGES_REQUESTED",
-                "submitted_at": "2026-11-02T10:00:00Z",
-                "commit_id": "c" * 40,
-            }
-        ]],
+        [
+            [
+                {
+                    "user": {"login": "security-lead"},
+                    "state": "CHANGES_REQUESTED",
+                    "submitted_at": "2026-11-02T10:00:00Z",
+                    "commit_id": "c" * 40,
+                }
+            ]
+        ],
     ]
     monkeypatch.setattr(
         remediation.subprocess,
@@ -937,14 +933,17 @@ def test_github_review_verification_rejects_unapproved_or_wrong_digest(monkeypat
         ),
     )
 
-    assert remediation._verify_github_review(
-        {
-            "reviewer": "security-lead",
-            "reference": "https://github.com/example/auditor/pull/42",
-        },
-        _github_preview("b" * 64),
-        Path("."),
-    ) is False
+    assert (
+        remediation._verify_github_review(
+            {
+                "reviewer": "security-lead",
+                "reference": "https://github.com/example/auditor/pull/42",
+            },
+            _github_preview("b" * 64),
+            Path("."),
+        )
+        is False
+    )
 
 
 def test_github_review_verification_rejects_a_pr_with_unrelated_files(monkeypatch):
@@ -1052,20 +1051,22 @@ def test_github_review_verification_uses_the_reviewers_latest_decision(monkeypat
             "body": f"Remediation Preview SHA-256: {preview_sha256}",
             "headRefOid": "c" * 40,
         },
-        [[
-            {
-                "user": {"login": "security-lead"},
-                "state": "APPROVED",
-                "submitted_at": "2026-11-02T09:00:00Z",
-                "commit_id": "c" * 40,
-            },
-            {
-                "user": {"login": "security-lead"},
-                "state": "CHANGES_REQUESTED",
-                "submitted_at": "2026-11-02T10:00:00Z",
-                "commit_id": "c" * 40,
-            },
-        ]],
+        [
+            [
+                {
+                    "user": {"login": "security-lead"},
+                    "state": "APPROVED",
+                    "submitted_at": "2026-11-02T09:00:00Z",
+                    "commit_id": "c" * 40,
+                },
+                {
+                    "user": {"login": "security-lead"},
+                    "state": "CHANGES_REQUESTED",
+                    "submitted_at": "2026-11-02T10:00:00Z",
+                    "commit_id": "c" * 40,
+                },
+            ]
+        ],
     ]
     monkeypatch.setattr(
         remediation.subprocess,
@@ -1096,20 +1097,22 @@ def test_github_review_verification_fails_closed_for_ambiguous_latest_reviews(mo
             "body": f"Remediation Preview SHA-256: {preview_sha256}",
             "headRefOid": "c" * 40,
         },
-        [[
-            {
-                "user": {"login": "security-lead"},
-                "state": "APPROVED",
-                "submitted_at": "2026-11-02T10:00:00Z",
-                "commit_id": "c" * 40,
-            },
-            {
-                "user": {"login": "security-lead"},
-                "state": "CHANGES_REQUESTED",
-                "submitted_at": "2026-11-02T10:00:00Z",
-                "commit_id": "c" * 40,
-            },
-        ]],
+        [
+            [
+                {
+                    "user": {"login": "security-lead"},
+                    "state": "APPROVED",
+                    "submitted_at": "2026-11-02T10:00:00Z",
+                    "commit_id": "c" * 40,
+                },
+                {
+                    "user": {"login": "security-lead"},
+                    "state": "CHANGES_REQUESTED",
+                    "submitted_at": "2026-11-02T10:00:00Z",
+                    "commit_id": "c" * 40,
+                },
+            ]
+        ],
     ]
     monkeypatch.setattr(
         remediation.subprocess,
@@ -1140,14 +1143,16 @@ def test_github_review_verification_rejects_approval_for_stale_head(monkeypatch)
             "body": f"Remediation Preview SHA-256: {preview_sha256}",
             "headRefOid": "d" * 40,
         },
-        [[
-            {
-                "user": {"login": "security-lead"},
-                "state": "APPROVED",
-                "submitted_at": "2026-11-02T10:00:00Z",
-                "commit_id": "e" * 40,
-            }
-        ]],
+        [
+            [
+                {
+                    "user": {"login": "security-lead"},
+                    "state": "APPROVED",
+                    "submitted_at": "2026-11-02T10:00:00Z",
+                    "commit_id": "e" * 40,
+                }
+            ]
+        ],
     ]
     monkeypatch.setattr(
         remediation.subprocess,

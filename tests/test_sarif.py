@@ -17,9 +17,7 @@ def test_sarif_maps_findings_to_rules_locations_and_exception_properties():
                 "remediation": "Disable privileged mode.",
                 "source_location": {"file": "k8s/api.yaml", "line": 12},
                 "fingerprint": "0123456789abcdef",
-                "exceptions": [
-                    {"id": "EXC-1", "state": "ACTIVE", "owner": "platform", "reason": "reviewed"}
-                ],
+                "exceptions": [{"id": "EXC-1", "state": "ACTIVE", "owner": "platform", "reason": "reviewed"}],
                 "gate": False,
             },
             {

@@ -10,12 +10,13 @@ from __future__ import annotations
 import json
 import os
 import re
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable
+from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-from .redaction import ACCOUNT_ID_PATTERN, ACCESS_KEY_PATTERN, mask_access_keys, mask_account_ids
+from .redaction import ACCESS_KEY_PATTERN, ACCOUNT_ID_PATTERN, mask_access_keys, mask_account_ids
 from .remediation import RemediationError, rescan_local_patch_proposal
 
 SCHEMA_VERSION = "1.0.0"
@@ -139,7 +140,9 @@ def _scan_state(report: dict[str, Any]) -> tuple[str, str]:
     contract = report.get("contract")
     scan_run = contract.get("scan_run") if isinstance(contract, dict) else None
     if not isinstance(summary, dict) or not isinstance(scan_run, dict):
-        raise AIAnalystError("scan report is missing summary or contract scan status", code="InvalidScanReport")
+        raise AIAnalystError(
+            "scan report is missing summary or contract scan status", code="InvalidScanReport"
+        )
     status = scan_run.get("status")
     gate_status = scan_run.get("gate_status")
     if (
@@ -263,7 +266,9 @@ def _build_request(report: dict[str, Any], *, model: str) -> tuple[dict[str, Any
         fingerprint = finding.get("fingerprint")
         severity = finding.get("severity")
         if not isinstance(fingerprint, str) or not _FINGERPRINT.fullmatch(fingerprint):
-            raise AIAnalystError("scan report contains an invalid finding fingerprint", code="InvalidScanReport")
+            raise AIAnalystError(
+                "scan report contains an invalid finding fingerprint", code="InvalidScanReport"
+            )
         if severity not in {"CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"}:
             raise AIAnalystError("scan report contains an invalid finding severity", code="InvalidScanReport")
         catalog = _catalog_for_finding(
@@ -320,9 +325,7 @@ def _build_request(report: dict[str, Any], *, model: str) -> tuple[dict[str, Any
     return request, supplied_findings
 
 
-def _validate_model_output(
-    response: Any, supplied_findings: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _validate_model_output(response: Any, supplied_findings: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not isinstance(response, dict) or set(response) != {"schema_version", "analyses"}:
         raise AIAnalystError("AI output does not match the required schema", code="InvalidOutputSchema")
     if response.get("schema_version") != SCHEMA_VERSION or not isinstance(response.get("analyses"), list):
@@ -336,7 +339,9 @@ def _validate_model_output(
             raise AIAnalystError("AI output analysis has unsupported fields", code="InvalidOutputSchema")
         fingerprint = item["fingerprint"]
         if not isinstance(fingerprint, str) or fingerprint not in expected or fingerprint in received:
-            raise AIAnalystError("AI output does not match the scanned finding set", code="InvalidOutputSchema")
+            raise AIAnalystError(
+                "AI output does not match the scanned finding set", code="InvalidOutputSchema"
+            )
         received.add(fingerprint)
         explanation, uncertainty = item["explanation"], item["uncertainty"]
         if (
@@ -347,23 +352,31 @@ def _validate_model_output(
             or not uncertainty.strip()
             or len(uncertainty) > 1000
         ):
-            raise AIAnalystError("AI explanation or uncertainty is missing or too long", code="InvalidOutputSchema")
+            raise AIAnalystError(
+                "AI explanation or uncertainty is missing or too long", code="InvalidOutputSchema"
+            )
         citations = item["citations"]
         allowed_citations = set(expected[fingerprint]["citation_catalog"])
         if (
             not isinstance(citations, list)
             or not citations
-            or any(not isinstance(citation, str) or citation not in allowed_citations for citation in citations)
+            or any(
+                not isinstance(citation, str) or citation not in allowed_citations for citation in citations
+            )
             or len(citations) != len(set(citations))
         ):
-            raise AIAnalystError("AI output cites a reference outside the approved catalog", code="InvalidCitation")
+            raise AIAnalystError(
+                "AI output cites a reference outside the approved catalog", code="InvalidCitation"
+            )
         if _contains_sensitive(explanation) or _contains_sensitive(uncertainty):
             raise AIAnalystError("AI output contains sensitive data", code="SensitiveOutputBlocked")
         proposal = item["proposal"]
         safe_proposal: dict[str, Any] | None = None
         if proposal is not None:
             if not isinstance(proposal, dict) or set(proposal) != {"summary", "operations"}:
-                raise AIAnalystError("AI patch proposal does not match the required schema", code="InvalidOutputSchema")
+                raise AIAnalystError(
+                    "AI patch proposal does not match the required schema", code="InvalidOutputSchema"
+                )
             summary = proposal["summary"]
             operations = proposal["operations"]
             if (
@@ -382,7 +395,9 @@ def _validate_model_output(
             ):
                 raise AIAnalystError("AI patch operation is invalid", code="InvalidOutputSchema")
             if any(_contains_sensitive(value) for operation in operations for value in operation.values()):
-                raise AIAnalystError("AI patch proposal contains sensitive data", code="SensitiveOutputBlocked")
+                raise AIAnalystError(
+                    "AI patch proposal contains sensitive data", code="SensitiveOutputBlocked"
+                )
             safe_proposal = {"summary": summary, "operations": operations}
         catalog = expected[fingerprint]["citation_catalog"]
         analyses.append(
@@ -564,11 +579,19 @@ def _openai_responses(request: dict[str, Any], *, api_key: str) -> dict[str, Any
         for content in contents:
             if isinstance(content, dict) and content.get("type") == "refusal":
                 raise AIAnalystError("AI provider refused the request", code="ProviderRefusal")
-            if isinstance(content, dict) and content.get("type") == "output_text" and isinstance(content.get("text"), str):
+            if (
+                isinstance(content, dict)
+                and content.get("type") == "output_text"
+                and isinstance(content.get("text"), str)
+            ):
                 texts.append(content["text"])
     if len(texts) != 1:
-        raise AIAnalystError("AI provider returned ambiguous structured output", code="ProviderInvalidResponse")
+        raise AIAnalystError(
+            "AI provider returned ambiguous structured output", code="ProviderInvalidResponse"
+        )
     try:
         return json.loads(texts[0], object_pairs_hook=_unique_object)
     except (json.JSONDecodeError, AIAnalystError):
-        raise AIAnalystError("AI provider output is not valid structured JSON", code="InvalidOutputSchema") from None
+        raise AIAnalystError(
+            "AI provider output is not valid structured JSON", code="InvalidOutputSchema"
+        ) from None

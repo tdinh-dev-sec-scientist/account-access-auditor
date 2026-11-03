@@ -8,12 +8,9 @@ from typing import Any
 
 def escape_command_data(value: Any) -> str:
     """Escape GitHub workflow command properties."""
-    normalized = "".join(
-        char if ord(char) >= 32 or char in "\r\n" else " " for char in str(value)
-    )
+    normalized = "".join(char if ord(char) >= 32 or char in "\r\n" else " " for char in str(value))
     return (
-        normalized
-        .replace("%", "%25")
+        normalized.replace("%", "%25")
         .replace("\r", "%0D")
         .replace("\n", "%0A")
         .replace(":", "%3A")
@@ -22,9 +19,7 @@ def escape_command_data(value: Any) -> str:
 
 
 def _escape_message(value: Any) -> str:
-    normalized = "".join(
-        char if ord(char) >= 32 or char in "\r\n" else " " for char in str(value)
-    )
+    normalized = "".join(char if ord(char) >= 32 or char in "\r\n" else " " for char in str(value))
     return normalized.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
@@ -74,14 +69,12 @@ def annotations_for_report(report: dict[str, Any]) -> str:
         operation = str(error.get("operation") or "scan")
         message = str(error.get("message") or "scanner failed")
         lines.append(
-            "::error title=IaC scanner error::"
-            + _escape_message(f"{service} {operation}: {message}")
+            "::error title=IaC scanner error::" + _escape_message(f"{service} {operation}: {message}")
         )
 
     status = report.get("contract", {}).get("scan_run", {}).get("status")
     if isinstance(status, str) and status in {"ERROR", "UNKNOWN"} and not report.get("collection_errors"):
         lines.append(
-            "::error title=IaC scan incomplete::"
-            + _escape_message(f"IaC scan finished with status {status}")
+            "::error title=IaC scan incomplete::" + _escape_message(f"IaC scan finished with status {status}")
         )
     return "\n".join(lines) + ("\n" if lines else "")

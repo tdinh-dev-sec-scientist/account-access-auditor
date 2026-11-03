@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import base64
 import difflib
-import fnmatch
 import hashlib
 import json
 import os
@@ -13,8 +12,9 @@ import shutil
 import stat
 import subprocess
 import tempfile
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import quote, urlsplit
 
 import yaml
@@ -32,9 +32,7 @@ MAX_FILE_BYTES = 2_097_152
 MAX_SOURCE_BYTES = 1_073_741_824
 _FINGERPRINT = re.compile(r"^[a-f0-9]{16}$")
 _REVIEWER = re.compile(r"^[A-Za-z0-9-]{1,39}$")
-_REVIEW_URL = re.compile(
-    r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)$"
-)
+_REVIEW_URL = re.compile(r"^https://github\.com/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/pull/([1-9][0-9]*)$")
 _PRIVATE_TEXT = re.compile(
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|xox[baprs]-[A-Za-z0-9-]{20,})\b"
 )
@@ -86,9 +84,7 @@ class RemediationError(ValueError):
 
 def _contains_credential_material(value: str) -> bool:
     return bool(
-        ACCESS_KEY_PATTERN.search(value)
-        or _PRIVATE_TEXT.search(value)
-        or _LITERAL_SECRET.search(value)
+        ACCESS_KEY_PATTERN.search(value) or _PRIVATE_TEXT.search(value) or _LITERAL_SECRET.search(value)
     )
 
 
@@ -130,8 +126,7 @@ def _contains_sensitive_yaml_block(value: str) -> bool:
 
 def _contains_file_credential_material(value: str, path: str) -> bool:
     return _contains_credential_material(value) or (
-        Path(path).suffix.lower() in {".yaml", ".yml"}
-        and _contains_sensitive_yaml_block(value)
+        Path(path).suffix.lower() in {".yaml", ".yml"} and _contains_sensitive_yaml_block(value)
     )
 
 
@@ -170,24 +165,35 @@ def _validate_plan(document: Any, *, require_approval: bool) -> None:
     if document["schema_version"] != SCHEMA_VERSION:
         raise RemediationError("unsupported remediation plan schema version")
     if document["target"] == "production":
-        raise RemediationError("production remediation is never applied by the auditor", code="ProductionApplyBlocked")
+        raise RemediationError(
+            "production remediation is never applied by the auditor", code="ProductionApplyBlocked"
+        )
     if document["target"] != "sandbox":
         raise RemediationError("target must be the isolated local sandbox")
 
     review = document["review"]
-    if not isinstance(review, dict) or not isinstance(review.get("status"), str) or review["status"] not in {
-        "PENDING",
-        "APPROVED",
-    }:
+    if (
+        not isinstance(review, dict)
+        or not isinstance(review.get("status"), str)
+        or review["status"]
+        not in {
+            "PENDING",
+            "APPROVED",
+        }
+    ):
         raise RemediationError("review must be PENDING or APPROVED")
     if review["status"] == "PENDING":
         if set(review) != {"status"}:
             raise RemediationError("pending review cannot carry approval metadata")
         if require_approval:
-            raise RemediationError("sandbox apply requires an approved pull request review", code="ReviewRequired")
+            raise RemediationError(
+                "sandbox apply requires an approved pull request review", code="ReviewRequired"
+            )
     else:
         if set(review) != {"status", "reviewer", "reference", "preview_sha256"}:
-            raise RemediationError("approved review must identify its reviewer, pull request, and preview digest")
+            raise RemediationError(
+                "approved review must identify its reviewer, pull request, and preview digest"
+            )
         reviewer = review["reviewer"]
         reference = review["reference"]
         digest = review["preview_sha256"]
@@ -231,7 +237,10 @@ def _validate_plan(document: Any, *, require_approval: bool) -> None:
         ):
             raise RemediationError("replace_text requires distinct, bounded UTF-8 text values")
         if _contains_credential_material(before) or _contains_credential_material(after):
-            raise RemediationError("remediation preview cannot contain credential or private-key material", code="SensitiveRemediationBlocked")
+            raise RemediationError(
+                "remediation preview cannot contain credential or private-key material",
+                code="SensitiveRemediationBlocked",
+            )
 
 
 def _validate_relative_iac_path(value: Any) -> PurePosixPath:
@@ -301,7 +310,11 @@ def _read_changes(source: Path, plan: dict[str, Any]) -> tuple[dict[str, tuple[s
                 code="SensitiveRemediationBlocked",
             )
         target = source.joinpath(*relative.parts)
-        if target.is_symlink() or not target.is_file() or not target.resolve().is_relative_to(source.resolve()):
+        if (
+            target.is_symlink()
+            or not target.is_file()
+            or not target.resolve().is_relative_to(source.resolve())
+        ):
             raise RemediationError("remediation target must be a regular file inside the source tree")
         if target.stat().st_size > MAX_FILE_BYTES:
             raise RemediationError("remediation target exceeds the 2 MiB size limit")
@@ -350,7 +363,9 @@ def _read_changes(source: Path, plan: dict[str, Any]) -> tuple[dict[str, tuple[s
     return changes, patch_text
 
 
-def create_remediation_preview(*, source_dir: str | Path, plan: dict[str, Any] | str | Path) -> dict[str, Any]:
+def create_remediation_preview(
+    *, source_dir: str | Path, plan: dict[str, Any] | str | Path
+) -> dict[str, Any]:
     """Render a deterministic patch preview without modifying source files."""
     source = Path(source_dir)
     if source.is_symlink() or not source.is_dir():
@@ -505,9 +520,7 @@ def _github_source_context(source_dir: Path) -> tuple[str, str, str]:
         owner, repository = origin_parts
         if repository.endswith(".git"):
             repository = repository[:-4]
-    if not re.fullmatch(r"[A-Za-z0-9_.-]+", owner) or not re.fullmatch(
-        r"[A-Za-z0-9_.-]+", repository
-    ):
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", owner) or not re.fullmatch(r"[A-Za-z0-9_.-]+", repository):
         raise RemediationError(
             "source origin must be a GitHub repository", code="ReviewVerificationUnavailable"
         )
@@ -657,9 +670,7 @@ def _verify_preview_files(
     return True
 
 
-def _verify_github_review(
-    review: dict[str, Any], preview: dict[str, Any], source_dir: Path
-) -> bool:
+def _verify_github_review(review: dict[str, Any], preview: dict[str, Any], source_dir: Path) -> bool:
     """Confirm the PR approval and changed file contents match the local preview."""
     token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
@@ -711,16 +722,24 @@ def _verify_github_review(
             env=environment,
         )
     except FileNotFoundError:
-        raise RemediationError("GitHub CLI is unavailable for review verification", code="ReviewVerificationUnavailable") from None
+        raise RemediationError(
+            "GitHub CLI is unavailable for review verification", code="ReviewVerificationUnavailable"
+        ) from None
     except subprocess.TimeoutExpired:
-        raise RemediationError("GitHub pull request review verification timed out", code="ReviewVerificationUnavailable") from None
+        raise RemediationError(
+            "GitHub pull request review verification timed out", code="ReviewVerificationUnavailable"
+        ) from None
     if pull_result.returncode or reviews_result.returncode:
-        raise RemediationError("GitHub pull request review could not be verified", code="ReviewVerificationUnavailable")
+        raise RemediationError(
+            "GitHub pull request review could not be verified", code="ReviewVerificationUnavailable"
+        )
     try:
         document = json.loads(pull_result.stdout)
         review_pages = json.loads(reviews_result.stdout)
     except (json.JSONDecodeError, TypeError):
-        raise RemediationError("GitHub pull request review returned invalid JSON", code="ReviewVerificationUnavailable") from None
+        raise RemediationError(
+            "GitHub pull request review returned invalid JSON", code="ReviewVerificationUnavailable"
+        ) from None
     if (
         not isinstance(document, dict)
         or document.get("state") != "OPEN"
@@ -884,7 +903,11 @@ def rescan_local_patch_proposal(
             summary = report.get("summary")
             metadata = report.get("metadata")
             contract = report.get("contract")
-            if not isinstance(summary, dict) or not isinstance(metadata, dict) or not isinstance(contract, dict):
+            if (
+                not isinstance(summary, dict)
+                or not isinstance(metadata, dict)
+                or not isinstance(contract, dict)
+            ):
                 return blocked("InvalidRescanOutput", "proposal rescan returned an invalid report")
             findings = report.get("findings")
             contract_findings = contract.get("findings")

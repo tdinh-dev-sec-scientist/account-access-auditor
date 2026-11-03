@@ -7,7 +7,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -41,10 +40,7 @@ def test_sarif_upload_uses_a_separate_trusted_workflow_run():
     assert "github.event.workflow_run.event == 'pull_request'" in raw
     assert "head_repository.full_name == github.repository" in raw
     assert "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093" in raw
-    assert (
-        "github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee"
-        in raw
-    )
+    assert "github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee" in raw
     assert "checkout@" not in raw
 
 
@@ -65,7 +61,7 @@ def test_gatekeeper_demo_contains_deny_policy_constraint_and_examples():
     assert source["version"] == "v1"
     rego = source["rego"]
     assert "securityContext.privileged == true" in rego
-    assert "endswith(container.image, \":latest\")" in rego
+    assert 'endswith(container.image, ":latest")' in rego
     assert constraint["apiVersion"] == "constraints.gatekeeper.sh/v1beta1"
     assert constraint["spec"]["enforcementAction"] == "deny"
     assert constraint["spec"]["match"]["kinds"][0]["apiGroups"] == [""]
@@ -101,7 +97,7 @@ def test_gatekeeper_demo_script_refuses_a_nonlocal_cluster(tmp_path):
     kubectl = stub_bin / "kubectl"
     kubectl.write_text(
         "#!/bin/sh\n"
-        "if [ \"$*\" = \"config current-context\" ]; then\n"
+        'if [ "$*" = "config current-context" ]; then\n'
         "  echo kind-account-access-auditor-demo\n"
         "else\n"
         "  echo https://remote.example.com:6443\n"

@@ -7,7 +7,6 @@ import yaml
 
 from auditor.exceptions import ExceptionConfigError, evaluate_exceptions, load_exceptions
 
-
 AS_OF = datetime(2026, 11, 2, 12, tzinfo=UTC)
 FINDING = {
     "fingerprint": "0123456789abcdef",
@@ -101,9 +100,7 @@ def test_unmatched_exception_is_visible_in_evaluation(tmp_path):
         as_of=AS_OF,
     )
 
-    _, evaluations, violations = evaluate_exceptions(
-        [FINDING], exceptions, threshold="HIGH", as_of=AS_OF
-    )
+    _, evaluations, violations = evaluate_exceptions([FINDING], exceptions, threshold="HIGH", as_of=AS_OF)
 
     assert violations == 1
     assert evaluations[0]["state"] == "UNMATCHED_ACTIVE"

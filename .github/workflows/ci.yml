@@ -39,13 +39,13 @@ jobs:
           python -m pip install --disable-pip-version-check -e . -r requirements-scanners.txt
           mkdir -p "$RUNNER_TEMP/conftest"
           curl --fail --silent --show-error --location \
-            "https://github.com/open-policy-agent/conftest/releases/download/v0.71.1/conftest_0.71.1_Linux_amd64.tar.gz" \
+            "https://github.com/open-policy-agent/conftest/releases/download/v0.71.1/conftest_0.71.1_Linux_x86_64.tar.gz" \
             --output "$RUNNER_TEMP/conftest/conftest.tar.gz"
           curl --fail --silent --show-error --location \
             "https://github.com/open-policy-agent/conftest/releases/download/v0.71.1/checksums.txt" \
             --output "$RUNNER_TEMP/conftest/checksums.txt"
           echo "5e5d7e2c0e88b3437cb659a921e0b88e997e4e0a49d01be52a9569136f01dbf9  $RUNNER_TEMP/conftest/checksums.txt" | sha256sum --check --status
-          (cd "$RUNNER_TEMP/conftest" && grep 'conftest_0.71.1_Linux_amd64.tar.gz$' checksums.txt | sha256sum --check --status)
+          (cd "$RUNNER_TEMP/conftest" && grep 'conftest_0.71.1_Linux_x86_64.tar.gz$' checksums.txt | sha256sum --check --status)
           tar -xzf "$RUNNER_TEMP/conftest/conftest.tar.gz" -C "$RUNNER_TEMP/conftest" conftest
           echo "$RUNNER_TEMP/conftest" >> "$GITHUB_PATH"
 
@@ -100,6 +100,6 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install ruff
+      - run: pip install ruff==0.17.3
       - run: ruff check auditor lab tests scripts
       - run: ruff format --check auditor lab tests scripts

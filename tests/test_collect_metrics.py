@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("collect_metrics", ROOT / "scripts/collect_metrics.py")
 assert SPEC and SPEC.loader
@@ -14,11 +13,7 @@ SPEC.loader.exec_module(collect_metrics)
 
 
 def test_readme_metrics_replacement_preserves_surrounding_text():
-    original = (
-        "before\n"
-        "<!-- BEGIN GENERATED METRICS -->\nold values\n<!-- END GENERATED METRICS -->\n"
-        "after\n"
-    )
+    original = "before\n<!-- BEGIN GENERATED METRICS -->\nold values\n<!-- END GENERATED METRICS -->\nafter\n"
 
     updated = collect_metrics.replace_readme_metrics(original, "| Metric | Value |")
 
@@ -131,10 +126,7 @@ def test_collect_preserves_test_process_exit_code_for_release_gate(monkeypatch):
     assert document["metrics"]["cis_mapped_rules"]["evidence"] == "results/metrics_sources.json"
     assert document["metrics"]["self_audit"]["evidence"] == "results/metrics_sources.json"
     assert "85.90%" in collect_metrics.render_table(document)
-    assert all(
-        "`results/" in row
-        for row in collect_metrics.render_table(document).splitlines()[2:]
-    )
+    assert all("`results/" in row for row in collect_metrics.render_table(document).splitlines()[2:])
 
 
 def test_source_metrics_records_test_and_policy_inputs_as_result_artifact(monkeypatch):
@@ -168,8 +160,7 @@ def test_source_metrics_records_test_and_policy_inputs_as_result_artifact(monkey
         "No generated block",
         "<!-- BEGIN GENERATED METRICS -->\nmissing end",
         "<!-- END GENERATED METRICS -->\n<!-- BEGIN GENERATED METRICS -->",
-        "<!-- BEGIN GENERATED METRICS --><!-- BEGIN GENERATED METRICS -->"
-        "<!-- END GENERATED METRICS -->",
+        "<!-- BEGIN GENERATED METRICS --><!-- BEGIN GENERATED METRICS --><!-- END GENERATED METRICS -->",
     ],
 )
 def test_readme_metrics_replacement_rejects_missing_duplicate_or_reversed_markers(readme):

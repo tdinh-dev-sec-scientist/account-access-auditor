@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from botocore.stub import Stubber
 import pytest
+from botocore.stub import Stubber
 
 from auditor.access_analyzer import validate_policy_document
 from auditor.aws_session import build_access_analyzer_session

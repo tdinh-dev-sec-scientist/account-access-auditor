@@ -31,9 +31,7 @@ def test_scanner_errors_emit_failing_workflow_annotations():
         {
             "contract": {"scan_run": {"status": "ERROR"}},
             "findings": [],
-            "collection_errors": [
-                {"service": "IaC", "operation": "conftest", "message": "failed to start"}
-            ],
+            "collection_errors": [{"service": "IaC", "operation": "conftest", "message": "failed to start"}],
         }
     )
 

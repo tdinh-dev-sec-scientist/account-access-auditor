@@ -205,7 +205,9 @@ def test_provider_outage_preserves_scan_status_and_gate_status():
 
 
 def test_http_provider_outage_is_unavailable_not_an_output_rejection(monkeypatch):
-    monkeypatch.setattr(ai_analyst, "_open_request", lambda *_args: (_ for _ in ()).throw(URLError("offline")))
+    monkeypatch.setattr(
+        ai_analyst, "_open_request", lambda *_args: (_ for _ in ()).throw(URLError("offline"))
+    )
 
     result = ai_analyst.analyze_report(_report(), model="test-model", api_key="test-token")
 
@@ -336,7 +338,7 @@ def test_patch_is_rescanned_on_local_copy_before_it_is_returned(tmp_path):
     proposal = result["analyses"][0]["proposal"]
     assert result["status"] == "COMPLETE"
     assert proposal["status"] == "RESCANNED"
-    assert "acl = \"private\"" in proposal["patch"]
+    assert 'acl = "private"' in proposal["patch"]
     assert len(proposal["patch_sha256"]) == 64
     assert len(rescans) == 1 and rescans[0][1] == "HIGH"
     assert (source / "main.tf").read_bytes() == original
@@ -428,8 +430,14 @@ def test_openai_request_uses_fixed_endpoint_and_never_sends_aws_credentials(monk
 
     monkeypatch.setattr(ai_analyst, "_open_request", fake_open_request)
     result = ai_analyst._openai_responses(
-        {"instructions": "test", "input": "{}", "model": "test-model", "tools": [], "store": False,
-         "text": {"format": {"type": "json_schema", "name": "analysis", "strict": True, "schema": {}}}},
+        {
+            "instructions": "test",
+            "input": "{}",
+            "model": "test-model",
+            "tools": [],
+            "store": False,
+            "text": {"format": {"type": "json_schema", "name": "analysis", "strict": True, "schema": {}}},
+        },
         api_key="api-secret",
     )
 

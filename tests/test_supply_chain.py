@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -84,8 +83,7 @@ def test_grype_results_apply_explicit_severity_gate(severities, threshold, expec
     assert len(result["findings"]) == len(severities)
     assert [finding["source_severity"] for finding in result["findings"]] == severities
     assert [finding["severity"] for finding in result["findings"]] == [
-        "INFO" if severity.upper() == "NEGLIGIBLE" else severity.upper()
-        for severity in severities
+        "INFO" if severity.upper() == "NEGLIGIBLE" else severity.upper() for severity in severities
     ]
 
 
@@ -245,8 +243,16 @@ def test_grype_report_rejects_invalid_nested_database_status():
 @pytest.mark.parametrize(
     "database_used",
     [
-        {"schema_version": "5.0.0", "built_at": "2026-11-02T11:00:00+00:00", "checksum": "sha256:db-checksum"},
-        {"schema_version": "6.0.0", "built_at": "2026-11-02T10:00:00+00:00", "checksum": "sha256:db-checksum"},
+        {
+            "schema_version": "5.0.0",
+            "built_at": "2026-11-02T11:00:00+00:00",
+            "checksum": "sha256:db-checksum",
+        },
+        {
+            "schema_version": "6.0.0",
+            "built_at": "2026-11-02T10:00:00+00:00",
+            "checksum": "sha256:db-checksum",
+        },
         {"schema_version": "6.0.0", "built_at": "2026-11-02T11:00:00+00:00", "checksum": "sha256:other"},
     ],
 )
@@ -393,9 +399,9 @@ def test_run_release_applies_gate_and_signs_only_a_passing_release(
     assert scan_run["gate_status"] == ("FAIL" if severities else "PASS")
     assert scan_run["finding_count"] == 2 * len(severities)
     assert len(contract["findings"]) == scan_run["finding_count"]
-    assert {
-        finding["source_type"] for finding in contract["findings"]
-    } == ({"supply-chain-source", "supply-chain-image"} if severities else set())
+    assert {finding["source_type"] for finding in contract["findings"]} == (
+        {"supply-chain-source", "supply-chain-image"} if severities else set()
+    )
     assert all(finding["run_id"] == scan_run["run_id"] for finding in contract["findings"])
     assert scan_run["scanner_versions"]["syft"] == supply_chain.PINNED_TOOL_VERSIONS["syft"]
     artifact_results = contract["artifact_results"]
@@ -415,10 +421,7 @@ def test_run_release_applies_gate_and_signs_only_a_passing_release(
         assert all(item["signature_verified"] is False for item in artifact_results)
         assert all(item["signature_identity"] is None for item in artifact_results)
     assert result["vulnerability_database"]["schema_version"] == "6.0.0"
-    assert all(
-        scan["database_used"]["checksum"] == "sha256:db-checksum"
-        for scan in result["scans"].values()
-    )
+    assert all(scan["database_used"]["checksum"] == "sha256:db-checksum" for scan in result["scans"].values())
     expected_gate = "FAIL" if severities else "PASS"
     assert result["scans"]["source"]["gate_status"] == expected_gate
     assert result["scans"]["image"]["gate_status"] == expected_gate
@@ -449,9 +452,11 @@ def test_run_release_applies_gate_and_signs_only_a_passing_release(
     assert "**/.ssh/**" in source_scan
     assert "**/.npmrc" in source_scan
     assert "**/*.pem" in source_scan
-    image_scan = next(command for command in calls if command[0] == "syft" and command[1].startswith("docker-archive:"))
+    image_scan = next(
+        command for command in calls if command[0] == "syft" and command[1].startswith("docker-archive:")
+    )
+    assert image_scan[1] == f"docker-archive:{image_archive}"
     for command, tool_env in environments:
-        tool = command[0]
         assert "AWS_ACCESS_KEY_ID" not in tool_env
         assert "GITHUB_TOKEN" not in tool_env
         assert "GRYPE_FAIL_ON_SEVERITY" not in tool_env
@@ -548,9 +553,7 @@ def test_run_release_records_tool_unavailability_as_contract_error(monkeypatch, 
     assert contract_run["exit_code"] == 2
     assert contract_run["gate_status"] == "NOT_CONFIGURED"
     assert result["contract"]["artifact_results"] == []
-    assert json.loads((output / "supply-chain-status.json").read_text())["contract"] == result[
-        "contract"
-    ]
+    assert json.loads((output / "supply-chain-status.json").read_text())["contract"] == result["contract"]
 
 
 def test_run_release_refuses_to_overwrite_existing_artifacts(monkeypatch, tmp_path):

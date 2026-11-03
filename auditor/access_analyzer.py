@@ -53,7 +53,9 @@ def validate_policy_document(
     ):
         return [], [_input_error("InvalidResourceType", "resource type is not valid for this policy type")]
     if not isinstance(source_file, str) or not source_file.strip() or len(source_file) > 1024:
-        return [], [_input_error("InvalidSourceFile", "source file must be non-empty text of at most 1024 characters")]
+        return [], [
+            _input_error("InvalidSourceFile", "source file must be non-empty text of at most 1024 characters")
+        ]
     if not isinstance(policy_document, dict):
         return [], [_input_error("InvalidPolicyDocument", "policy document must be a JSON object")]
     try:
@@ -84,7 +86,11 @@ def validate_policy_document(
         try:
             page = client.validate_policy(**page_request)
         except (ClientError, BotoCoreError) as exc:
-            code = exc.response.get("Error", {}).get("Code", "Unknown") if isinstance(exc, ClientError) else exc.__class__.__name__
+            code = (
+                exc.response.get("Error", {}).get("Code", "Unknown")
+                if isinstance(exc, ClientError)
+                else exc.__class__.__name__
+            )
             errors.append(
                 {
                     "service": "Access Analyzer",
@@ -103,14 +109,18 @@ def validate_policy_document(
         for raw_finding in raw_findings:
             record = _finding_record(raw_finding, source_file, account_ref, region)
             if record is None:
-                errors.append(_input_error("InvalidScannerOutput", "Access Analyzer returned a malformed finding"))
+                errors.append(
+                    _input_error("InvalidScannerOutput", "Access Analyzer returned a malformed finding")
+                )
             else:
                 findings.append(record)
         token = page.get("nextToken")
         if token is None:
             return findings, errors
         if not isinstance(token, str) or not token or token in seen_tokens:
-            errors.append(_input_error("InvalidScannerOutput", "Access Analyzer returned an invalid pagination token"))
+            errors.append(
+                _input_error("InvalidScannerOutput", "Access Analyzer returned an invalid pagination token")
+            )
             return findings, errors
         seen_tokens.add(token)
     errors.append(_input_error("ResultLimitExceeded", "Access Analyzer returned more than 100 result pages"))

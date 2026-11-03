@@ -11,7 +11,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from auditor.cli import EXIT_ERROR, EXIT_OK, main as cli_main  # noqa: E402
+from auditor.cli import EXIT_ERROR, EXIT_OK  # noqa: E402
+from auditor.cli import main as cli_main
 
 
 def main() -> int:
@@ -72,7 +73,10 @@ def main() -> int:
         finally:
             os.close(descriptor)
     except OSError as exc:
-        print(f"Scheduled fleet scan could not prepare its private lock ({exc.__class__.__name__}).", file=sys.stderr)
+        print(
+            f"Scheduled fleet scan could not prepare its private lock ({exc.__class__.__name__}).",
+            file=sys.stderr,
+        )
         return EXIT_ERROR
 
 

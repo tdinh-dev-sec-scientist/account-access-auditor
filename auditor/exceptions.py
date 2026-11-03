@@ -51,9 +51,7 @@ def _construct_mapping(loader, node, deep=False):
     return mapping
 
 
-_UniqueKeyLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping
-)
+_UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping)
 
 
 def _timestamp(value: Any, field: str) -> datetime:
@@ -115,7 +113,9 @@ def _scope(record: dict[str, Any]) -> dict[str, str]:
         or any(part in {"", ".", ".."} for part in path.parts)
         or any(char in source_file for char in "*?[]")
     ):
-        raise ExceptionConfigError("source_file must be an exact relative path without wildcards or traversal")
+        raise ExceptionConfigError(
+            "source_file must be an exact relative path without wildcards or traversal"
+        )
     return {"control_id": control_id, "source_file": path.as_posix()}
 
 
@@ -211,11 +211,7 @@ def evaluate_exceptions(
     for exception in exceptions:
         matches = [finding for finding in findings if _matches(finding, exception)]
         timestamp_state = exception["state"]
-        state = (
-            f"MATCHED_{timestamp_state}"
-            if matches
-            else f"UNMATCHED_{timestamp_state}"
-        )
+        state = f"MATCHED_{timestamp_state}" if matches else f"UNMATCHED_{timestamp_state}"
         evaluations.append({**exception, "state": state, "match_count": len(matches)})
 
     for finding in findings:

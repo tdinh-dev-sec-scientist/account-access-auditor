@@ -162,8 +162,7 @@ def test_generate_policy_includes_access_analyzer_only_when_requested(capsys):
     default = cli.permissions.generate_policy()
     assert generated != default
     assert any(
-        "access-analyzer:ValidatePolicy" in statement["Action"]
-        for statement in generated["Statement"]
+        "access-analyzer:ValidatePolicy" in statement["Action"] for statement in generated["Statement"]
     )
 
 
@@ -226,9 +225,12 @@ def test_history_command_renders_html_to_a_file(tmp_path, capsys):
     HistoryStore(directory)
     destination = tmp_path / "dashboard.html"
 
-    assert cli.main(
-        ["history", "--history-dir", str(directory), "--format", "html", "--output", str(destination)]
-    ) == cli.EXIT_OK
+    assert (
+        cli.main(
+            ["history", "--history-dir", str(directory), "--format", "html", "--output", str(destination)]
+        )
+        == cli.EXIT_OK
+    )
     assert "AWS posture history" in destination.read_text()
     assert "AWS posture history" not in capsys.readouterr().out
 
@@ -444,16 +446,20 @@ def test_fail_on_returns_a_nonzero_exit_code(tmp_path):
 @pytest.mark.usefixtures("aws")
 def test_partial_collection_returns_unknown_exit_and_persists_run_status(monkeypatch, tmp_path):
     def partial_scan(*args, **kwargs):
-        return [], [
-            {
-                "service": "S3",
-                "operation": "s3:GetBucketAcl",
-                "resource": "restricted-bucket",
-                "code": "AccessDenied",
-                "category": "access_denied",
-                "message": "access denied",
-            }
-        ], {"s3_buckets": 1}
+        return (
+            [],
+            [
+                {
+                    "service": "S3",
+                    "operation": "s3:GetBucketAcl",
+                    "resource": "restricted-bucket",
+                    "code": "AccessDenied",
+                    "category": "access_denied",
+                    "message": "access denied",
+                }
+            ],
+            {"s3_buckets": 1},
+        )
 
     monkeypatch.setattr(cli, "run_scan", partial_scan)
     code = cli.main(

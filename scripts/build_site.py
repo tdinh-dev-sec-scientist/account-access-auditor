@@ -642,13 +642,8 @@ def console_profile(key: str, label: str, report: dict[str, Any]) -> dict[str, A
 
 def write_console(reports: dict[str, dict[str, Any]]) -> None:
     """Build the standalone console from the same checked-in report artifacts."""
-    profiles = {
-        key: console_profile(key, label, reports[key])
-        for key, _, label in PROFILES
-    }
-    data = json.dumps(
-        {"profiles": profiles}, separators=(",", ":"), ensure_ascii=False, allow_nan=False
-    )
+    profiles = {key: console_profile(key, label, reports[key]) for key, _, label in PROFILES}
+    data = json.dumps({"profiles": profiles}, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
     data = data.replace("&", "\\u0026").replace("<", "\\u003c").replace(">", "\\u003e")
     with open(os.path.join(CONSOLE_SOURCE, "index.html"), encoding="utf-8") as handle:
         template = handle.read()
@@ -666,10 +661,7 @@ def main() -> int:
     metrics = _load("metrics.json")["metrics"]
 
     reports = {key: _load(filename) for key, filename, _ in PROFILES}
-    runs = {
-        key: build_run(key, filename, label, scoring[key])
-        for key, filename, label in PROFILES
-    }
+    runs = {key: build_run(key, filename, label, scoring[key]) for key, filename, label in PROFILES}
     primary = PROFILES[0][0]
 
     os.makedirs(SITE, exist_ok=True)

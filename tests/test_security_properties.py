@@ -159,9 +159,7 @@ def test_generated_policy_has_no_wildcard_action():
 
 def test_access_analyzer_permission_is_excluded_from_default_policy():
     default_actions = {
-        action
-        for statement in permissions.generate_policy()["Statement"]
-        for action in statement["Action"]
+        action for statement in permissions.generate_policy()["Statement"] for action in statement["Action"]
     }
     optional_actions = {
         action

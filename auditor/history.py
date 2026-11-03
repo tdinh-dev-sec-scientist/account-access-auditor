@@ -277,7 +277,7 @@ class HistoryStore:
             for row in rows:
                 report = json.loads(row["report_json"])
                 transitions = self._read_drift(connection, row["run_id"])
-                by_state = {state: 0 for state in _DRIFT_STATES}
+                by_state = dict.fromkeys(_DRIFT_STATES, 0)
                 for transition in transitions:
                     by_state[transition["state"]] += 1
                 result.append(
@@ -349,8 +349,8 @@ class HistoryStore:
             for item in transitions
         )
         return (
-            "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">"
-            "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+            '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width,initial-scale=1">'
             "<title>AWS posture history</title><style>"
             "body{font:16px system-ui,sans-serif;margin:2rem;color:#172033;background:#f6f8fb}"
             "main{max-width:1200px;margin:auto}section{background:white;padding:1rem 1.25rem;margin:1rem 0;border:1px solid #d8dee8;border-radius:8px}"
@@ -373,8 +373,7 @@ def _validate_report(report: dict[str, Any]):
     contract = report.get("contract")
     run = contract.get("scan_run") if isinstance(contract, dict) else None
     if not isinstance(run, dict) or not all(
-        isinstance(run.get(key), str) and run[key]
-        for key in ("run_id", "status", "completed_at")
+        isinstance(run.get(key), str) and run[key] for key in ("run_id", "status", "completed_at")
     ):
         raise HistoryError("scan report has an invalid scan-run contract")
     if run["status"] not in {"PASS", "FAIL", "UNKNOWN", "ERROR"}:
@@ -399,10 +398,7 @@ def _validate_report(report: dict[str, Any]):
     if not isinstance(raw_findings, list):
         raise HistoryError("scan report findings must be a list")
     validated_findings = []
-    scopes = {
-        (item["account_id"], item["service"], item["region"])
-        for item in validated_coverage
-    }
+    scopes = {(item["account_id"], item["service"], item["region"]) for item in validated_coverage}
     for finding in raw_findings:
         if (
             not isinstance(finding, dict)
@@ -445,7 +441,7 @@ def _transition(state: str, finding: dict[str, Any]) -> dict[str, Any]:
 def _enrich(report: dict[str, Any], transitions: list[dict[str, Any]]) -> dict[str, Any]:
     enriched = copy.deepcopy(report)
     enriched["drift"] = transitions
-    counts = {state: 0 for state in _DRIFT_STATES}
+    counts = dict.fromkeys(_DRIFT_STATES, 0)
     for transition in transitions:
         counts[transition["state"]] += 1
     enriched.setdefault("summary", {})["drift"] = counts

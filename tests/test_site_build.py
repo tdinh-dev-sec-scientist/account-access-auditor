@@ -161,8 +161,17 @@ def test_console_masks_numeric_fixture_account_ids(primary):
 
 def test_console_exposes_all_modules_and_truthful_empty_states(console, site):
     for view in (
-        "overview", "aws-accounts", "security-scans", "findings", "drift-history",
-        "iac-security", "ci-cd", "supply-chain", "exceptions", "ai-analyst", "settings",
+        "overview",
+        "aws-accounts",
+        "security-scans",
+        "findings",
+        "drift-history",
+        "iac-security",
+        "ci-cd",
+        "supply-chain",
+        "exceptions",
+        "ai-analyst",
+        "settings",
     ):
         assert f'data-view="{view}"' in console
     application = console + (site / "console" / "console.js").read_text(encoding="utf-8")
@@ -233,7 +242,7 @@ def test_console_sidebar_has_desktop_collapse_and_accessible_mobile_drawer(conso
     assert 'event.key === "Escape"' in script
     assert 'setAttribute("aria-label", "Expand navigation")' in script
     assert "window.scrollTo(0, 0)" in script
-    assert 'focus({ preventScroll: true })' in script
+    assert "focus({ preventScroll: true })" in script
 
 
 def test_collapsed_sidebar_navigation_items_keep_accessible_names_and_tooltips(console):
@@ -307,7 +316,9 @@ def test_dark_primary_action_text_meets_wcag_aa_contrast(console, site):
 
     def luminance(color):
         channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
-        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels]
+        linear = [
+            value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels
+        ]
         return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
     light, dark = sorted((luminance(foreground), luminance(background)), reverse=True)
@@ -327,7 +338,9 @@ def test_light_theme_dim_text_meets_wcag_aa_contrast(console, site):
 
     def luminance(color):
         channels = [int(color[index : index + 2], 16) / 255 for index in (1, 3, 5)]
-        linear = [value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels]
+        linear = [
+            value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4 for value in channels
+        ]
         return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
 
     light, dark = sorted((luminance(foreground), luminance(background)), reverse=True)

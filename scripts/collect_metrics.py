@@ -364,14 +364,7 @@ def replace_readme_metrics(readme: str, table: str) -> str:
     end = readme.index(README_METRICS_END)
     if start >= end:
         raise ValueError("README generated metrics markers are out of order")
-    return (
-        readme[:start]
-        + README_METRICS_START
-        + "\n\n"
-        + table
-        + "\n\n"
-        + readme[end:]
-    )
+    return readme[:start] + README_METRICS_START + "\n\n" + table + "\n\n" + readme[end:]
 
 
 def main() -> int:
@@ -390,7 +383,9 @@ def main() -> int:
         return 2
     tests = document["metrics"]["tests"]
     if tests["exit_code"] != 0 or tests["failed"] or tests["value"] == 0:
-        print(f"error: metric collection requires a passing test suite ({tests['evidence']})", file=sys.stderr)
+        print(
+            f"error: metric collection requires a passing test suite ({tests['evidence']})", file=sys.stderr
+        )
         return 1
 
     os.makedirs(RESULTS, exist_ok=True)

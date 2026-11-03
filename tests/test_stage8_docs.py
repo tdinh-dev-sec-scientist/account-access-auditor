@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import json
 import re
-from zipfile import ZipFile
-from xml.etree import ElementTree as ET
 from pathlib import Path
-
+from xml.etree import ElementTree as ET
+from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
@@ -104,4 +103,4 @@ def test_ci_installs_optional_scanners_before_metrics_collection():
 
     assert scanner_install < coverage < metrics
     assert "requirements-scanners.txt" in workflow
-    assert "conftest_0.71.1_Linux_amd64.tar.gz" in workflow
+    assert "conftest_0.71.1_Linux_x86_64.tar.gz" in workflow

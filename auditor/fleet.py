@@ -14,9 +14,7 @@ MAX_CONFIG_BYTES = 1_048_576
 MAX_ACCOUNTS = 100
 MAX_REGIONS = 32
 _ACCOUNT_ID = re.compile(r"^[0-9]{12}$")
-_ROLE_ARN = re.compile(
-    r"^arn:aws:iam::(?P<account>[0-9]{12}):role/AccountAccessAuditorReadOnly$"
-)
+_ROLE_ARN = re.compile(r"^arn:aws:iam::(?P<account>[0-9]{12}):role/AccountAccessAuditorReadOnly$")
 _REGION = re.compile(r"^[a-z]{2,}(?:-[a-z0-9]+)+-[0-9]+$")
 _EXTERNAL_ID_ENV_NAME = re.compile(r"^AUDITOR_EXTERNAL_ID_[A-Z0-9_]{1,64}$")
 _CREDENTIAL_LIKE_ENV_NAME = re.compile(
@@ -69,9 +67,7 @@ def _construct_mapping(loader: _UniqueKeyLoader, node, deep=False):
     return mapping
 
 
-_UniqueKeyLoader.add_constructor(
-    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping
-)
+_UniqueKeyLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _construct_mapping)
 
 
 def load_fleet_config(path: str | Path) -> FleetConfig:
@@ -143,9 +139,7 @@ def _parse_account(record: Any, index: int) -> TargetAccount:
         raise FleetConfigError(f"account {index} account_id must be a quoted 12-digit string")
     match = _ROLE_ARN.fullmatch(role_arn) if isinstance(role_arn, str) else None
     if not match:
-        raise FleetConfigError(
-            f"account {index} role_arn must name the AccountAccessAuditorReadOnly role"
-        )
+        raise FleetConfigError(f"account {index} role_arn must name the AccountAccessAuditorReadOnly role")
     if match.group("account") != account_id:
         raise FleetConfigError("role ARN account must match account_id")
     external_id_env = record.get("external_id_env")

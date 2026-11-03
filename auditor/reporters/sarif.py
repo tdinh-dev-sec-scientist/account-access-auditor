@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from pathlib import PurePosixPath
-from urllib.parse import quote
 from typing import Any
+from urllib.parse import quote
 
 SARIF_SCHEMA = "https://json.schemastore.org/sarif-2.1.0.json"
 
@@ -49,7 +49,9 @@ def to_sarif(report: dict[str, Any]) -> dict[str, Any]:
             "shortDescription": {"text": title_by_id[rule_id][:1024]},
             "help": {
                 "text": next(
-                    str(finding.get("remediation") or finding.get("description") or "Review this finding.")[:4000]
+                    str(finding.get("remediation") or finding.get("description") or "Review this finding.")[
+                        :4000
+                    ]
                     for finding in findings
                     if finding.get("control_id") == rule_id
                 )

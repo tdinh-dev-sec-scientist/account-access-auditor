@@ -162,9 +162,7 @@ def canonical_sbom_digest(document: dict[str, Any]) -> str:
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
-def _normalize_grype_match(
-    match: Any, *, artifact_scope: str
-) -> tuple[dict[str, Any], str]:
+def _normalize_grype_match(match: Any, *, artifact_scope: str) -> tuple[dict[str, Any], str]:
     """Adapt one untrusted Grype match into a stable, scanner-neutral finding."""
     if artifact_scope not in {"dependency", "source", "image"}:
         raise SupplyChainError("Grype report has an unsupported artifact scope", code="InvalidGrypeReport")
@@ -180,10 +178,7 @@ def _normalize_grype_match(
         )
 
     vulnerability_id = vulnerability.get("id")
-    if (
-        not isinstance(vulnerability_id, str)
-        or not _GRYPE_VULNERABILITY_ID.fullmatch(vulnerability_id)
-    ):
+    if not isinstance(vulnerability_id, str) or not _GRYPE_VULNERABILITY_ID.fullmatch(vulnerability_id):
         raise SupplyChainError("Grype report contains an invalid vulnerability ID", code="InvalidGrypeReport")
 
     source_severity = vulnerability.get("severity")
@@ -232,8 +227,7 @@ def _normalize_grype_match(
         source_severity=normalized_source_severity,
         title=f"{vulnerability_id} affects {package_name} {package_version}",
         description=(
-            f"Grype reported {vulnerability_id} for {package_type} package "
-            f"{package_name}@{package_version}."
+            f"Grype reported {vulnerability_id} for {package_type} package {package_name}@{package_version}."
         ),
         remediation=f"Update {package_name} to a non-vulnerable version when available.",
         evidence={
@@ -260,7 +254,7 @@ def assess_grype_report(
     if not isinstance(matches, list):
         raise SupplyChainError("Grype report must contain a matches array", code="InvalidGrypeReport")
 
-    counts = {severity: 0 for severity in VULNERABILITY_SEVERITIES}
+    counts = dict.fromkeys(VULNERABILITY_SEVERITIES, 0)
     findings = []
     for match in matches:
         finding, severity = _normalize_grype_match(match, artifact_scope=artifact_scope)
@@ -287,7 +281,10 @@ def _grype_database_provenance(document: dict[str, Any]) -> dict[str, Any]:
         or descriptor.get("name") != "grype"
         or descriptor.get("version") != PINNED_TOOL_VERSIONS["grype"]
     ):
-        raise SupplyChainError("Grype report descriptor is missing or does not match the pinned scanner", code="InvalidGrypeReport")
+        raise SupplyChainError(
+            "Grype report descriptor is missing or does not match the pinned scanner",
+            code="InvalidGrypeReport",
+        )
     database = descriptor.get("db")
     if not isinstance(database, dict):
         raise SupplyChainError(
@@ -333,12 +330,12 @@ def _database_status_value(document: dict[str, Any], *, allow_unmarked: bool) ->
     return None
 
 
-def normalize_database_status(
-    document: dict[str, Any], *, now: datetime | None = None
-) -> dict[str, Any]:
+def normalize_database_status(document: dict[str, Any], *, now: datetime | None = None) -> dict[str, Any]:
     """Validate Grype DB status and return provenance with a strict 120h age cap."""
     if not isinstance(document, dict):
-        raise SupplyChainError("Grype database status is not a JSON object", code="VulnerabilityDatabaseUnavailable")
+        raise SupplyChainError(
+            "Grype database status is not a JSON object", code="VulnerabilityDatabaseUnavailable"
+        )
     normalized_status = _database_status_value(document, allow_unmarked=False)
     if normalized_status is None:
         raise SupplyChainError(
@@ -446,7 +443,9 @@ def _run(command: list[str], *, timeout: int = 900, env: dict[str, str] | None =
             env=environment,
         )
     except FileNotFoundError:
-        raise SupplyChainError(f"required tool is unavailable: {Path(command[0]).name}", code="ToolUnavailable") from None
+        raise SupplyChainError(
+            f"required tool is unavailable: {Path(command[0]).name}", code="ToolUnavailable"
+        ) from None
     except subprocess.TimeoutExpired:
         raise SupplyChainError(f"tool timed out: {Path(command[0]).name}", code="ToolTimeout") from None
     if result.returncode:
@@ -724,9 +723,7 @@ def _database_provenance(document: dict[str, Any] | None) -> dict[str, Any] | No
         "status": _database_status_value(status_fields, allow_unmarked=False) or "unknown",
         "schema_version": str(schema) if schema is not None else None,
         "built_at": None,
-        "checksum": status_fields.get("checksum")
-        if isinstance(status_fields.get("checksum"), str)
-        else None,
+        "checksum": status_fields.get("checksum") if isinstance(status_fields.get("checksum"), str) else None,
     }
     if isinstance(built, str):
         try:
@@ -965,9 +962,7 @@ def run_release(
             "schema_version": SCHEMA_VERSION,
             "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
             "started_at": started_at,
-            "status": "FAIL"
-            if any(scan["gate_status"] == "FAIL" for scan in scans.values())
-            else "PASS",
+            "status": "FAIL" if any(scan["gate_status"] == "FAIL" for scan in scans.values()) else "PASS",
             "gate_threshold": threshold,
             "tool_versions": tool_versions,
             "vulnerability_database": database,

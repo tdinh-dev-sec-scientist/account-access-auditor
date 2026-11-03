@@ -69,12 +69,8 @@ def test_fleet_scan_collects_global_services_once_and_cloudtrail_per_region(monk
 def test_fleet_scan_marks_a_missing_target_as_unknown_and_continues(monkeypatch):
     from auditor import fleet_scan
 
-    first = TargetAccount(
-        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
-    )
-    second = TargetAccount(
-        "210987654321", "arn:aws:iam::210987654321:role/AccountAccessAuditorReadOnly"
-    )
+    first = TargetAccount("123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly")
+    second = TargetAccount("210987654321", "arn:aws:iam::210987654321:role/AccountAccessAuditorReadOnly")
     config = FleetConfig((first, second), ("us-east-1",), ("cloudtrail",))
     collected = []
 
@@ -102,9 +98,7 @@ def test_fleet_scan_marks_a_missing_target_as_unknown_and_continues(monkeypatch)
 def test_fleet_scan_continues_to_reachable_regions_after_first_region_role_failure(monkeypatch):
     from auditor import fleet_scan
 
-    account = TargetAccount(
-        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
-    )
+    account = TargetAccount("123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly")
     config = FleetConfig((account,), ("us-east-1", "us-west-2"), ("cloudtrail",))
     attempts = []
     scanned = []
@@ -138,9 +132,7 @@ def test_fleet_scan_continues_to_reachable_regions_after_first_region_role_failu
 def test_fleet_scan_collects_global_services_from_first_reachable_region(monkeypatch):
     from auditor import fleet_scan
 
-    account = TargetAccount(
-        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
-    )
+    account = TargetAccount("123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly")
     config = FleetConfig((account,), ("us-east-1", "us-west-2"), ("iam", "s3", "cloudtrail"))
     attempts = []
     calls = []
@@ -159,13 +151,14 @@ def test_fleet_scan_collects_global_services_from_first_reachable_region(monkeyp
     monkeypatch.setattr(fleet_scan, "_describe_caller", lambda session: (session.account_id, "arn"))
     monkeypatch.setattr(fleet_scan, "_run_scan", scan)
 
-    report = fleet_scan.run_fleet_scan(config, {}, FakeSession("source", "us-east-1"), run_id="run-global-fallback")
+    report = fleet_scan.run_fleet_scan(
+        config, {}, FakeSession("source", "us-east-1"), run_id="run-global-fallback"
+    )
 
     assert attempts == ["us-east-1", "us-west-2"]
     assert calls == [("us-west-2", ("iam", "s3")), ("us-west-2", ("cloudtrail",))]
     assert {
-        (item["service"], item["region"], item["complete"])
-        for item in report["metadata"]["scan_coverage"]
+        (item["service"], item["region"], item["complete"]) for item in report["metadata"]["scan_coverage"]
     } == {
         ("iam", "aws-global", True),
         ("s3", "aws-global", True),
@@ -178,9 +171,7 @@ def test_fleet_scan_collects_global_services_from_first_reachable_region(monkeyp
 def test_fleet_scan_retries_global_only_services_in_later_region(monkeypatch):
     from auditor import fleet_scan
 
-    account = TargetAccount(
-        "123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
-    )
+    account = TargetAccount("123456789012", "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly")
     config = FleetConfig((account,), ("us-east-1", "us-west-2"), ("iam", "s3"))
     attempts = []
     calls = []
@@ -199,13 +190,14 @@ def test_fleet_scan_retries_global_only_services_in_later_region(monkeypatch):
     monkeypatch.setattr(fleet_scan, "_describe_caller", lambda session: (session.account_id, "arn"))
     monkeypatch.setattr(fleet_scan, "_run_scan", scan)
 
-    report = fleet_scan.run_fleet_scan(config, {}, FakeSession("source", "us-east-1"), run_id="run-global-only")
+    report = fleet_scan.run_fleet_scan(
+        config, {}, FakeSession("source", "us-east-1"), run_id="run-global-only"
+    )
 
     assert attempts == ["us-east-1", "us-west-2"]
     assert calls == [("us-west-2", ("iam", "s3"))]
     assert {
-        (item["service"], item["region"], item["complete"])
-        for item in report["metadata"]["scan_coverage"]
+        (item["service"], item["region"], item["complete"]) for item in report["metadata"]["scan_coverage"]
     } == {("iam", "aws-global", True), ("s3", "aws-global", True)}
     assert report["contract"]["scan_run"]["status"] == "UNKNOWN"
 

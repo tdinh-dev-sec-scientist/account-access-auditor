@@ -6,7 +6,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "scheduled_fleet_scan.py"
 
 
@@ -75,7 +74,6 @@ def test_scheduled_runner_uses_private_lock_and_forwards_configuration(monkeypat
 
 
 def test_scheduled_runner_skips_a_concurrent_scan(monkeypatch, tmp_path, capsys):
-    import fcntl
 
     from auditor.cli import EXIT_OK
 

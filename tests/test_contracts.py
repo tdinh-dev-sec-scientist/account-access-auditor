@@ -49,17 +49,16 @@ def test_finding_contract_preserves_control_and_scanner_rule_identity():
 
 def test_fingerprint_uses_control_source_and_stable_resource_identity():
     first = Finding.build("IAM-001", "user:operator", "First description")
-    changed_copy = Finding.build(
-        "IAM-001", "user:operator", "Updated description", title="Updated title"
-    )
+    changed_copy = Finding.build("IAM-001", "user:operator", "Updated description", title="Updated title")
 
     assert finding_record(first)["fingerprint"] == finding_record(changed_copy)["fingerprint"]
-    assert finding_record(first, source_type="terraform")["fingerprint"] != finding_record(first)[
-        "fingerprint"
-    ]
-    assert finding_record(first, resource_reference="user:other")["fingerprint"] != finding_record(first)[
-        "fingerprint"
-    ]
+    assert (
+        finding_record(first, source_type="terraform")["fingerprint"] != finding_record(first)["fingerprint"]
+    )
+    assert (
+        finding_record(first, resource_reference="user:other")["fingerprint"]
+        != finding_record(first)["fingerprint"]
+    )
 
 
 def test_finding_contract_rejects_malformed_external_source_locations():
@@ -150,7 +149,12 @@ def test_fingerprint_uses_file_and_line_when_resource_reference_is_unstable():
     [
         ([], GateStatus.NOT_CONFIGURED, ScanStatus.PASS, 0),
         ([], GateStatus.FAIL, ScanStatus.FAIL, 1),
-        ([{"operation": "s3:GetBucketAcl", "category": "access_denied"}], GateStatus.PASS, ScanStatus.UNKNOWN, 3),
+        (
+            [{"operation": "s3:GetBucketAcl", "category": "access_denied"}],
+            GateStatus.PASS,
+            ScanStatus.UNKNOWN,
+            3,
+        ),
         ([{"operation": "collect", "category": "error"}], GateStatus.PASS, ScanStatus.ERROR, 2),
     ],
 )
@@ -164,9 +168,7 @@ def test_scan_status_and_exit_code_distinguish_complete_partial_and_failed_runs(
 
 
 def test_partial_collection_remains_unknown_even_when_gate_would_fail():
-    outcome = classify_scan(
-        [{"operation": "iam:ListUsers", "category": "access_denied"}], GateStatus.FAIL
-    )
+    outcome = classify_scan([{"operation": "iam:ListUsers", "category": "access_denied"}], GateStatus.FAIL)
 
     assert outcome.status is ScanStatus.UNKNOWN
     assert outcome.gate_status is GateStatus.FAIL

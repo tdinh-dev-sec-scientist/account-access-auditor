@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable
+from typing import Any
 
 from . import __version__
 from .aws_session import ReadOnlyGuard, build_assumed_role_session, describe_caller
@@ -174,7 +175,12 @@ def run_fleet_scan(
                         target_guards.append(guard)
                 if session is None:
                     account_coverage.append(
-                        {"account_id": account.account_id, "service": "cloudtrail", "region": region, "complete": False}
+                        {
+                            "account_id": account.account_id,
+                            "service": "cloudtrail",
+                            "region": region,
+                            "complete": False,
+                        }
                     )
                     continue
                 if expected_global and not global_scanned:
@@ -209,7 +215,12 @@ def run_fleet_scan(
         if not global_scanned:
             for service in expected_global:
                 account_coverage.append(
-                    {"account_id": account.account_id, "service": service, "region": "aws-global", "complete": False}
+                    {
+                        "account_id": account.account_id,
+                        "service": service,
+                        "region": "aws-global",
+                        "complete": False,
+                    }
                 )
 
         findings.extend(account_findings)
@@ -298,7 +309,9 @@ def _target_session(assume, read_identity, source_session, account, external_id,
         )
         actual_account_id, _caller_arn = read_identity(session)
     except Exception as exc:
-        errors.append(_account_error(account, region, "assume-role", exc.__class__.__name__, _safe_error(exc)))
+        errors.append(
+            _account_error(account, region, "assume-role", exc.__class__.__name__, _safe_error(exc))
+        )
         return None, None
     if actual_account_id != account.account_id:
         errors.append(
@@ -365,8 +378,7 @@ def _collect_scope(
         relevant = [
             error
             for error in scan_errors
-            if error.get("service") in {service, _SERVICE_LABELS[service]}
-            or error.get("operation") == "scan"
+            if error.get("service") in {service, _SERVICE_LABELS[service]} or error.get("operation") == "scan"
         ]
         coverage.append(
             {
@@ -407,4 +419,6 @@ def _safe_error(exc: Exception) -> str:
 
 def _deduplicate_contract_findings(findings: list[dict[str, Any]]) -> None:
     unique = {item["fingerprint"]: item for item in findings}
-    findings[:] = sorted(unique.values(), key=lambda item: (item["severity"], item["control_id"], item["fingerprint"]))
+    findings[:] = sorted(
+        unique.values(), key=lambda item: (item["severity"], item["control_id"], item["fingerprint"])
+    )
