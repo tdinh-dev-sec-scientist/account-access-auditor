@@ -15,3 +15,9 @@ def test_pyproject_version_matches_runtime_version():
 
     assert project["version"] == __version__
 
+
+def test_license_names_a_copyright_holder():
+    first_lines = (REPO_ROOT / "LICENSE").read_text(encoding="utf-8").splitlines()[:3]
+
+    copyright_line = next(line for line in first_lines if line.startswith("Copyright"))
+    assert copyright_line.strip() != "Copyright (c) 2026"
