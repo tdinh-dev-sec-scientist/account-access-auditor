@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import os
@@ -162,11 +163,15 @@ def collect_role_evidence(*, iam_client: Any, role_arn: str) -> dict[str, Any]:
                 or response.get("RoleName") != role_name
                 or response.get("PolicyName") != policy_name
             ):
-                raise RoleCaptureError("AWS returned an inline policy that does not match the requested role policy")
-            inline_policies.append({
-                "PolicyName": policy_name,
-                "PolicyDocument": _policy_document(response.get("PolicyDocument")),
-            })
+                raise RoleCaptureError(
+                    "AWS returned an inline policy that does not match the requested role policy"
+                )
+            inline_policies.append(
+                {
+                    "PolicyName": policy_name,
+                    "PolicyDocument": _policy_document(response.get("PolicyDocument")),
+                }
+            )
 
     permissions_boundary = role.get("PermissionsBoundary")
     if permissions_boundary is None:
@@ -216,16 +221,24 @@ def _redact_account_ids(value: Any, replacements: dict[str, str]) -> Any:
     if isinstance(value, dict):
         output = {}
         for key, child in value.items():
-            if isinstance(key, str) and any(token in key.lower() for token in ("externalid", "external_id", "external-id")):
+            if isinstance(key, str) and any(
+                token in key.lower() for token in ("externalid", "external_id", "external-id")
+            ):
                 if isinstance(child, str):
                     redacted_external_id: Any = "<EXTERNAL_ID>"
                 elif isinstance(child, list) and all(isinstance(item, str) for item in child):
                     redacted_external_id = ["<EXTERNAL_ID>" for _ in child]
                 else:
                     raise RoleCaptureError("AWS returned an unsupported external ID condition shape")
-                output[_ACCOUNT_ID.sub(lambda match: replacements[match.group(1)], key)] = redacted_external_id
+                output[_ACCOUNT_ID.sub(lambda match: replacements[match.group(1)], key)] = (
+                    redacted_external_id
+                )
                 continue
-            safe_key = _ACCOUNT_ID.sub(lambda match: replacements[match.group(1)], key) if isinstance(key, str) else key
+            safe_key = (
+                _ACCOUNT_ID.sub(lambda match: replacements[match.group(1)], key)
+                if isinstance(key, str)
+                else key
+            )
             if safe_key in output:
                 raise RoleCaptureError("Account redaction produced a duplicate policy key")
             output[safe_key] = _redact_account_ids(child, replacements)
@@ -269,8 +282,10 @@ def _redact_condition_value(value: Any) -> Any:
         if any(not isinstance(item, str) for item in value):
             raise RoleCaptureError("AWS returned a non-string IAM condition value")
         return [_redact_condition_value(item) for item in value]
-    if isinstance(value, str) and value not in {"*", "<TARGET_ACCOUNT>", "<EXTERNAL_ID>"} and not re.fullmatch(
-        r"<ACCOUNT_[1-9][0-9]*>", value
+    if (
+        isinstance(value, str)
+        and value not in {"*", "<TARGET_ACCOUNT>", "<EXTERNAL_ID>"}
+        and not re.fullmatch(r"<ACCOUNT_[1-9][0-9]*>", value)
     ):
         return "<CONDITION_VALUE>"
     if isinstance(value, str):
@@ -315,16 +330,26 @@ def _redact_principal(value: Any) -> Any:
         for key, child in value.items():
             principal_values = child if isinstance(child, list) else [child]
             if key == "Service":
-                raise RoleCaptureError("AWS returned an unexpected service principal for a GitHub Terraform role")
+                raise RoleCaptureError(
+                    "AWS returned an unexpected service principal for a GitHub Terraform role"
+                )
             elif key == "Federated":
                 expected_provider = re.compile(
                     r"arn:[a-z0-9-]+:iam::<TARGET_ACCOUNT>:oidc-provider/token\.actions\.githubusercontent\.com"
                 )
-                redacted[key] = [
-                    item if isinstance(item, str) and expected_provider.fullmatch(item) else _redact_resource(item)
-                    for item in principal_values
-                ] if isinstance(child, list) else (
-                    child if isinstance(child, str) and expected_provider.fullmatch(child) else _redact_resource(child)
+                redacted[key] = (
+                    [
+                        item
+                        if isinstance(item, str) and expected_provider.fullmatch(item)
+                        else _redact_resource(item)
+                        for item in principal_values
+                    ]
+                    if isinstance(child, list)
+                    else (
+                        child
+                        if isinstance(child, str) and expected_provider.fullmatch(child)
+                        else _redact_resource(child)
+                    )
                 )
             else:
                 redacted[key] = _redact_resource(child)
@@ -349,10 +374,16 @@ def _redact_policy_identifiers(value: Any, *, key: str | None = None, stack: str
                     raise RoleCaptureError("AWS returned an unsupported IAM condition shape")
                 conditions_by_operator = {}
                 for operator, conditions in sorted(child.items()):
-                    if not isinstance(operator, str) or not _CONDITION_OPERATOR.fullmatch(operator) or not isinstance(conditions, dict):
+                    if (
+                        not isinstance(operator, str)
+                        or not _CONDITION_OPERATOR.fullmatch(operator)
+                        or not isinstance(conditions, dict)
+                    ):
                         raise RoleCaptureError("AWS returned an unsupported IAM condition shape")
                     redacted_conditions = {}
-                    for index, (condition_key, condition_value) in enumerate(sorted(conditions.items()), start=1):
+                    for index, (condition_key, condition_value) in enumerate(
+                        sorted(conditions.items()), start=1
+                    ):
                         safe_key = _redacted_condition_key(
                             condition_key,
                             index=index,
@@ -361,7 +392,9 @@ def _redact_policy_identifiers(value: Any, *, key: str | None = None, stack: str
                             value=condition_value,
                         )
                         if safe_key in redacted_conditions:
-                            raise RoleCaptureError("Condition-key redaction produced a duplicate IAM condition")
+                            raise RoleCaptureError(
+                                "Condition-key redaction produced a duplicate IAM condition"
+                            )
                         redacted_conditions[safe_key] = (
                             condition_value
                             if condition_key in _GITHUB_CLAIM_VALUES
@@ -405,7 +438,9 @@ def _redact_policy_identifiers(value: Any, *, key: str | None = None, stack: str
     return value
 
 
-def redact_role_artifacts(artifacts: dict[str, Any], *, role_arn: str, stack: str, phase: str) -> dict[str, Any]:
+def redact_role_artifacts(
+    artifacts: dict[str, Any], *, role_arn: str, stack: str, phase: str
+) -> dict[str, Any]:
     """Return a review projection without account, resource, or condition identifiers."""
     _role_name(role_arn)
     if stack not in ROLE_EVIDENCE_FILES or phase not in ROLE_EVIDENCE_FILES[stack]:
@@ -469,10 +504,8 @@ def _write_artifacts(
                     written.append((output, metadata.st_dev, metadata.st_ino))
                     handle = os.fdopen(descriptor, "wb")
                 except BaseException:
-                    try:
+                    with contextlib.suppress(OSError):
                         os.close(descriptor)
-                    except OSError:
-                        pass
                     raise
                 with handle:
                     handle.write(content)
@@ -493,10 +526,8 @@ def _write_artifacts(
             except OSError:
                 pass
         if created:
-            try:
+            with contextlib.suppress(OSError):
                 directory.rmdir()
-            except OSError:
-                pass
         raise RoleCaptureError("Could not write the captured role evidence files") from None
     return digests
 
@@ -589,7 +620,11 @@ def verify_role_capture(
     source_digests: dict[str, str] = {}
     for relative in source_relative_paths:
         source_path = evidence_root / relative
-        if source_path.is_symlink() or not source_path.is_file() or stat.S_IMODE(source_path.stat().st_mode) & 0o077:
+        if (
+            source_path.is_symlink()
+            or not source_path.is_file()
+            or stat.S_IMODE(source_path.stat().st_mode) & 0o077
+        ):
             raise RoleCaptureError("Private role capture files must be regular owner-only files")
         artifact, content = _read_capture_json(source_path)
         if Path(relative).name == "capture-metadata.json":
@@ -622,7 +657,9 @@ def verify_role_capture(
         if path.is_symlink() or not path.is_file():
             raise RoleCaptureError("Redacted role projections are missing or unsafe")
         content = path.read_bytes()
-        expected = (json.dumps(redacted_artifacts[Path(relative).name], sort_keys=True, indent=2) + "\n").encode("utf-8")
+        expected = (
+            json.dumps(redacted_artifacts[Path(relative).name], sort_keys=True, indent=2) + "\n"
+        ).encode("utf-8")
         if content != expected:
             raise RoleCaptureError("Redacted role projection does not match its private source capture")
         projection_digests[relative] = hashlib.sha256(content).hexdigest()
@@ -687,7 +724,9 @@ def capture_role_evidence(
     tracked_destination = tracked_stack_root / phase
     private_destination = private_stack_root / phase
     if any(path.exists() or path.is_symlink() for path in (tracked_destination, private_destination)):
-        raise RoleCaptureError("Role evidence capture directory already exists; existing evidence was not overwritten")
+        raise RoleCaptureError(
+            "Role evidence capture directory already exists; existing evidence was not overwritten"
+        )
 
     artifacts = collect_role_evidence(iam_client=iam_client, role_arn=role_arn)
     _reject_credential_patterns(artifacts)
@@ -719,11 +758,15 @@ def capture_role_evidence(
         "capture-metadata.json": {"schema_version": 1, "role_arn_sha256": role_fingerprint},
     }
     try:
-        tracked_digests = _write_artifacts(tracked_destination, redacted_artifacts, stack=stack, private=False)
+        tracked_digests = _write_artifacts(
+            tracked_destination, redacted_artifacts, stack=stack, private=False
+        )
         source_digests = _write_artifacts(private_destination, private_artifacts, stack=stack, private=True)
     except FileExistsError:
         _rollback_artifacts(tracked_destination, tracked_digests)
-        raise RoleCaptureError("Role evidence capture directory already exists; existing evidence was not overwritten") from None
+        raise RoleCaptureError(
+            "Role evidence capture directory already exists; existing evidence was not overwritten"
+        ) from None
     except RoleCaptureError:
         _rollback_artifacts(tracked_destination, tracked_digests)
         raise

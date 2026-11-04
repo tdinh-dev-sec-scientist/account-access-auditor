@@ -14,7 +14,7 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 pip install -r requirements-dev.txt
-pytest --cov=auditor --cov-report=term-missing \
+pytest --cov=auditor --cov=phase3 --cov-report=term-missing \
   --cov-report=json:results/coverage.json --cov-fail-under=86
 python -m lab.run_benchmark
 python scripts/collect_metrics.py

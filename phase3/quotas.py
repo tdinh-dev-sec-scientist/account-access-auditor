@@ -115,11 +115,13 @@ def _emit_daily_limit_metric() -> None:
     record = {
         "_aws": {
             "Timestamp": int(time.time() * 1000),
-            "CloudWatchMetrics": [{
-                "Namespace": "Phase3/Rin",
-                "Dimensions": [["Service"]],
-                "Metrics": [{"Name": "DailyLimitReached", "Unit": "Count"}],
-            }],
+            "CloudWatchMetrics": [
+                {
+                    "Namespace": "Phase3/Rin",
+                    "Dimensions": [["Service"]],
+                    "Metrics": [{"Name": "DailyLimitReached", "Unit": "Count"}],
+                }
+            ],
         },
         "Service": "Rin",
         "DailyLimitReached": 1,

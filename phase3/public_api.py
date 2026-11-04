@@ -6,6 +6,7 @@ import json
 import os
 import re
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 import boto3
@@ -82,15 +83,13 @@ class AwsPublicReadStore:
             snapshot_id = item.get("snapshot_id")
             completed_at = item.get("completed_at")
             status = item.get("scan_status")
-            count = item.get("finding_count")
+            count = _index_count(item.get("finding_count"))
             if (
                 not isinstance(snapshot_id, str)
                 or not re.fullmatch(r"[a-f0-9]{24}", snapshot_id)
                 or not isinstance(completed_at, str)
                 or status not in {"PASS", "FAIL"}
-                or not isinstance(count, int)
-                or isinstance(count, bool)
-                or count < 0
+                or count is None
             ):
                 continue
             runs.append(
@@ -152,6 +151,19 @@ class AwsPublicReadStore:
         }
 
 
+def _index_count(value: Any) -> int | None:
+    """Return a non-negative integer count, accepting DynamoDB's Decimal numbers."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        count = value
+    elif isinstance(value, Decimal) and value.is_finite() and value == value.to_integral_value():
+        count = int(value)
+    else:
+        return None
+    return count if count >= 0 else None
+
+
 def public_response(
     event: Any,
     *,
@@ -204,7 +216,9 @@ def public_response(
             severity = query.get("severity")
             if severity is not None and severity not in _SEVERITIES:
                 return _response(400, {"error": "INVALID_QUERY"}, method=method)
-            findings = [item for item in snapshot["findings"] if severity is None or item["severity"] == severity]
+            findings = [
+                item for item in snapshot["findings"] if severity is None or item["severity"] == severity
+            ]
             return _response(
                 200,
                 {"snapshot_id": snapshot["snapshot_id"], "findings": findings[:limit]},
@@ -235,13 +249,10 @@ def _latest_response(
     completed = datetime.fromisoformat(snapshot["scan"]["completed_at"])
     age_seconds = max(0, int((current.astimezone(UTC) - completed.astimezone(UTC)).total_seconds()))
     newer_attempt = bool(
-        attempt
-        and datetime.fromisoformat(attempt["completed_at"]) > completed.astimezone(UTC)
+        attempt and datetime.fromisoformat(attempt["completed_at"]) > completed.astimezone(UTC)
     )
     attempt_status = attempt["status"] if newer_attempt and attempt else None
-    publication_paused = bool(
-        newer_attempt and attempt and attempt.get("publication_status") == "PAUSED"
-    )
+    publication_paused = bool(newer_attempt and attempt and attempt.get("publication_status") == "PAUSED")
     data = {
         "data": snapshot,
         "freshness": {
@@ -250,9 +261,7 @@ def _latest_response(
             "latest_attempt_status": attempt_status,
             "last_good_preserved": attempt_status in {"UNKNOWN", "ERROR"},
             "publication_paused": publication_paused,
-            "affected_services": (
-                attempt.get("affected_services", []) if newer_attempt and attempt else []
-            ),
+            "affected_services": (attempt.get("affected_services", []) if newer_attempt and attempt else []),
         },
     }
     return _response(200, data, method=method)

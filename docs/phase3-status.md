@@ -1,8 +1,8 @@
 # Phase 3 status
 
 **Local implementation for all four stages is prepared. No live stage gate has passed.**
-The checked-in [Phase 3 plan](plans/AWS_Cloud_Security_Guardrails_Phase_3_Plan.docx)
-is the source of truth. Local tests and Terraform code do not count as live
+The stage gates in `docs/evidence/phase3-stage-acceptance.json` are the source
+of truth. Local tests and Terraform code do not count as live
 acceptance.
 
 Terraform 1.9.8 `fmt -check -recursive infra/phase3` passed, and
@@ -12,8 +12,10 @@ and `control-plane` roots. Each root was initialized with `-backend=false` and
 count as live acceptance.
 
 The README now gives visitors a short console walkthrough and links each view
-to its source report and JSON evidence. The embedded demo GIF remains omitted
-at the owner's request; a recording artifact is still outstanding.
+to its source report and JSON evidence. The embedded walkthrough GIF
+(`docs/images/console-walkthrough.gif`) is recorded from the locally built
+fixture site by `scripts/render_console_gif.py`; it shows saved fixtures, not
+a live AWS account.
 
 ## Stage status
 

@@ -28,8 +28,8 @@ case "$command" in
         # that is the layout scripts/collect_metrics.py reads and the layout the
         # README documents. The artifacts are copied out at the end.
         echo "== test suite =========================================================="
-        # .coveragerc enables branch coverage; the package-wide Phase 2 floor is 86%.
-        python -m pytest -q --cov=auditor --cov-report=term-missing \
+        # .coveragerc enables branch coverage; the floor covers auditor/ and phase3/ at 86%.
+        python -m pytest -q --cov=auditor --cov=phase3 --cov-report=term-missing \
                             --cov-report=json:results/coverage.json \
                             --cov-fail-under=86
         echo

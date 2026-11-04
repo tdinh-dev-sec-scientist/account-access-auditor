@@ -4,7 +4,7 @@ Nothing in this script computes a number by hand. Each metric names the artifact
 it came from and the command that produced that artifact, so any claim made
 about this project can be traced to a file and re-derived from a clean checkout.
 
-    python -m pytest --cov=auditor --cov-report=json:results/coverage.json
+    python -m pytest --cov=auditor --cov=phase3 --cov-report=json:results/coverage.json
     python -m lab.run_benchmark
     python scripts/collect_metrics.py
 
@@ -50,7 +50,7 @@ def _load(name: str) -> dict[str, Any]:
     if not os.path.exists(path):
         raise MissingArtifact(
             f"{os.path.relpath(path, REPO_ROOT)} is missing. "
-            "Run the full workflow in README 'Reproducing the numbers' first."
+            "Run the tests with --cov-report=json:results/coverage.json and python -m lab.run_benchmark first."
         )
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
@@ -257,7 +257,7 @@ def collect() -> dict[str, Any]:
                 "overall_branch_inclusive_percent": coverage["overall_branch_inclusive_percent"],
                 "overall_statements": coverage["overall_statements"],
                 "evidence": "results/coverage.json",
-                "command": "pytest --cov=auditor --cov-report=json:results/coverage.json",
+                "command": "pytest --cov=auditor --cov=phase3 --cov-report=json:results/coverage.json",
             },
             "cis_mapped_rules": {
                 **source["cis_mapped_rules"],

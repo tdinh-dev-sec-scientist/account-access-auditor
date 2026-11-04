@@ -10,9 +10,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-
 _PHASES = {"plan", "apply"}
-_ROLE_EVIDENCE_NAMES = {"trust-policy.json", "attached-policies.json", "inline-policies.json", "permissions-boundary.json"}
+_ROLE_EVIDENCE_NAMES = {
+    "trust-policy.json",
+    "attached-policies.json",
+    "inline-policies.json",
+    "permissions-boundary.json",
+}
 ROLE_EVIDENCE_FILES = {
     stack: {
         phase: {f"terraform-roles/{stack}/{phase}/{name}" for name in _ROLE_EVIDENCE_NAMES}
@@ -34,7 +38,9 @@ _ALL_STACKS = {"org", "demo-bootstrap", "demo-account", "control-plane"}
 _ROLE_ARN = re.compile(r"^arn:[a-z0-9-]+:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _ACCOUNT_ID_VALUE = re.compile(r"(?<![0-9])[0-9]{12}(?![0-9])")
-_POLICY_ARN = re.compile(r"^arn:[a-z0-9-]+:iam::(?:[0-9]{12}|aws|<TARGET_ACCOUNT>|<ACCOUNT_[1-9][0-9]*>):policy/.+$")
+_POLICY_ARN = re.compile(
+    r"^arn:[a-z0-9-]+:iam::(?:[0-9]{12}|aws|<TARGET_ACCOUNT>|<ACCOUNT_[1-9][0-9]*>):policy/.+$"
+)
 _POLICY_VERSION = re.compile(r"^v[0-9]+$")
 _GITHUB_OIDC = "token.actions.githubusercontent.com"
 _GITHUB_REPOSITORY = "tdinh-dev-sec-scientist/Vorrin"
@@ -102,7 +108,9 @@ def _validate_redacted_values(value: Any, *, context: str) -> None:
         for key, child in value.items():
             if isinstance(key, str) and _ACCOUNT_ID_VALUE.search(key):
                 raise RoleEvidenceError(f"{context} contains a tracked account ID")
-            if isinstance(key, str) and any(token in key.lower() for token in ("externalid", "external_id", "external-id")):
+            if isinstance(key, str) and any(
+                token in key.lower() for token in ("externalid", "external_id", "external-id")
+            ):
                 values = child if isinstance(child, list) else [child]
                 if any(item != "<EXTERNAL_ID>" for item in values):
                     raise RoleEvidenceError(f"{context} contains an unredacted external ID")
@@ -115,7 +123,9 @@ def _validate_redacted_values(value: Any, *, context: str) -> None:
 
 
 def _validate_trust_policy(stack: str, phase: str, document: Any, *, role_arn: str) -> None:
-    statements = _validate_policy_document(document, context=f"{stack} trust-policy evidence", require_resource=False)
+    statements = _validate_policy_document(
+        document, context=f"{stack} trust-policy evidence", require_resource=False
+    )
     expected_subjects = {f"repo:{_GITHUB_REPOSITORY}:environment:phase3-{stack}-{phase}"}
     partition = role_arn.split(":")[1]
     expected_provider = f"arn:{partition}:iam::<TARGET_ACCOUNT>:oidc-provider/{_GITHUB_OIDC}"
@@ -143,7 +153,9 @@ def _validate_trust_policy(stack: str, phase: str, document: Any, *, role_arn: s
             for key, value in values.items():
                 if isinstance(key, str) and key.startswith(f"{_GITHUB_OIDC}:"):
                     if key in claims:
-                        raise RoleEvidenceError(f"{stack} trust-policy evidence repeats a GitHub OIDC condition")
+                        raise RoleEvidenceError(
+                            f"{stack} trust-policy evidence repeats a GitHub OIDC condition"
+                        )
                     claims[key] = (operator, _string_values(value))
         aud_operator, audiences = claims.get(f"{_GITHUB_OIDC}:aud", ("", set()))
         workflow_operator, workflows = claims.get(f"{_GITHUB_OIDC}:workflow", ("", set()))
@@ -158,11 +170,15 @@ def _validate_trust_policy(stack: str, phase: str, document: Any, *, role_arn: s
             or any("*" in subject or "?" in subject for subject in subjects)
             or not subjects.issubset(expected_subjects)
         ):
-            raise RoleEvidenceError(f"{stack} trust-policy evidence is not restricted to the protected workflow")
+            raise RoleEvidenceError(
+                f"{stack} trust-policy evidence is not restricted to the protected workflow"
+            )
         allowed_subjects.update(subjects)
 
     if allowed_subjects != expected_subjects:
-        raise RoleEvidenceError(f"{stack} {phase} trust-policy evidence must cover only its protected environment")
+        raise RoleEvidenceError(
+            f"{stack} {phase} trust-policy evidence must cover only its protected environment"
+        )
 
 
 def _validate_managed_policies(stack: str, value: Any) -> None:
@@ -181,7 +197,9 @@ def _validate_managed_policies(stack: str, value: Any) -> None:
         ):
             raise RoleEvidenceError(f"{stack} attached policy evidence has an invalid shape")
         seen_arns.add(item["PolicyArn"])
-        _validate_policy_document(item["PolicyDocument"], context=f"{stack} attached policy document", require_resource=True)
+        _validate_policy_document(
+            item["PolicyDocument"], context=f"{stack} attached policy document", require_resource=True
+        )
 
 
 def _validate_inline_policies(stack: str, value: Any) -> None:
@@ -198,7 +216,9 @@ def _validate_inline_policies(stack: str, value: Any) -> None:
         ):
             raise RoleEvidenceError(f"{stack} inline policy evidence has an invalid shape")
         seen_names.add(item["PolicyName"])
-        _validate_policy_document(item["PolicyDocument"], context=f"{stack} inline policy document", require_resource=True)
+        _validate_policy_document(
+            item["PolicyDocument"], context=f"{stack} inline policy document", require_resource=True
+        )
 
 
 def _validate_boundary(stack: str, value: Any) -> None:
@@ -213,7 +233,9 @@ def _validate_boundary(stack: str, value: Any) -> None:
         or not _POLICY_VERSION.fullmatch(value["DefaultVersionId"])
     ):
         raise RoleEvidenceError(f"{stack} permissions-boundary evidence has an invalid shape")
-    _validate_policy_document(value["PolicyDocument"], context=f"{stack} permissions-boundary document", require_resource=True)
+    _validate_policy_document(
+        value["PolicyDocument"], context=f"{stack} permissions-boundary document", require_resource=True
+    )
 
 
 def _validate_evidence_files(
@@ -299,7 +321,14 @@ def validate_role_scope_evidence(
     repository_root = Path(root).resolve()
     manifest = _read_manifest(repository_root / "docs/evidence/phase3-role-scope.json")
     roles = manifest["roles"]
-    required_record_fields = {"status", "role_arn_sha256", "reviewed_by", "reviewed_at", "evidence", "evidence_sha256"}
+    required_record_fields = {
+        "status",
+        "role_arn_sha256",
+        "reviewed_by",
+        "reviewed_at",
+        "evidence",
+        "evidence_sha256",
+    }
     required_record_fields.add("source_evidence_sha256")
     record = roles[stack][phase]
     if not isinstance(record, dict) or set(record) != required_record_fields:
@@ -312,7 +341,9 @@ def validate_role_scope_evidence(
             or record["source_evidence_sha256"] != {}
         ):
             raise RoleEvidenceError(f"pending {stack} {phase} role scope cannot claim review evidence")
-        raise RoleEvidenceError(f"{stack} {phase} stack requires reviewed role-scope evidence before AWS credentials")
+        raise RoleEvidenceError(
+            f"{stack} {phase} stack requires reviewed role-scope evidence before AWS credentials"
+        )
     if record["status"] != "reviewed":
         raise RoleEvidenceError(f"{stack} {phase} role-scope status is invalid")
 

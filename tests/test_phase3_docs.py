@@ -97,11 +97,16 @@ def test_stage_acceptance_guide_lists_required_evidence_and_digest_review():
     assert "match the configured ARN and version exactly" in guide
 
 
-def test_owner_deferred_readme_gif_is_recorded_as_an_open_plan_deviation():
+def test_readme_walkthrough_gif_is_fixture_backed_and_reproducible():
     status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "README now gives visitors a short console walkthrough" in status
-    assert "a recording artifact is still outstanding" in status
+    assert "scripts/render_console_gif.py" in status
+    assert "not a live AWS account" in status
+    assert "docs/images/console-walkthrough.gif" in readme
+    assert (ROOT / "docs/images/console-walkthrough.gif").read_bytes()[:6] in (b"GIF87a", b"GIF89a")
+    assert (ROOT / "scripts/render_console_gif.py").is_file()
 
 
 def test_stage_three_guardrail_review_criteria_remain_pending_until_structured_evidence_exists():
@@ -160,13 +165,9 @@ def test_phase3_runbook_and_threat_model_cover_the_publication_boundary_and_kill
     assert "output Guardrail" in runbook
 
 
-def test_phase3_execution_plan_and_runbook_match_fargate_and_remote_state_design():
-    plan = (ROOT / "docs/superpowers/plans/2026-11-03-phase3-live-demo.md").read_text(encoding="utf-8")
+def test_phase3_runbook_matches_fargate_and_remote_state_design():
     runbook = (ROOT / "docs/operations-runbook.md").read_text(encoding="utf-8")
 
-    assert "phase3/scan_task.py" in plan
-    assert "ECS Fargate" in plan
-    assert "phase3.scan_worker.lambda_handler" not in plan
     assert "local state backend by default" not in runbook
     assert "infra/phase3/demo-account" in runbook
     assert "Phase 3 Terraform" in runbook

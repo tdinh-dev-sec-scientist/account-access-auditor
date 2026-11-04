@@ -46,7 +46,25 @@ _QUOTED_RESOURCE_NAME = re.compile(
     r"(?i)(\b(?:iam\s+)?(?:user|role|group|bucket|policy|trail|access key|key)\s+)(['\"`])"
     r"([A-Za-z0-9][A-Za-z0-9_.:/+=,@-]{2,})\2"
 )
-_GENERIC_PRIVATE_VALUES = {"user", "role", "group", "bucket", "policy", "trail", "aws", "s3", "iam", "cloudtrail", "root", "public", "private", "none", "unknown", "true", "false"}
+_GENERIC_PRIVATE_VALUES = {
+    "user",
+    "role",
+    "group",
+    "bucket",
+    "policy",
+    "trail",
+    "aws",
+    "s3",
+    "iam",
+    "cloudtrail",
+    "root",
+    "public",
+    "private",
+    "none",
+    "unknown",
+    "true",
+    "false",
+}
 _MAX_EVIDENCE_VALUE = 100_000
 _EVIDENCE_BOOLEAN_FIELDS = {
     "console_access_enabled",
@@ -139,7 +157,8 @@ def _private_values(finding: dict[str, Any]) -> set[str]:
     if isinstance(resource, str):
         values.add(resource)
         values.update(
-            part for part in re.split(r"[/:=]", resource)
+            part
+            for part in re.split(r"[/:=]", resource)
             if len(part) >= 4 and part.lower() not in _GENERIC_PRIVATE_VALUES
         )
 
@@ -154,9 +173,13 @@ def _private_values(finding: dict[str, Any]) -> set[str]:
         elif isinstance(value, list):
             for child in value:
                 visit(child, key)
-        elif isinstance(value, str) and _PRIVATE_NAME_KEY.search(key):
-            if len(value) >= 4 and value.lower() not in _GENERIC_PRIVATE_VALUES:
-                values.add(value)
+        elif (
+            isinstance(value, str)
+            and _PRIVATE_NAME_KEY.search(key)
+            and len(value) >= 4
+            and value.lower() not in _GENERIC_PRIVATE_VALUES
+        ):
+            values.add(value)
 
     visit(finding.get("evidence", {}))
     return values
@@ -175,7 +198,7 @@ def _safe_datetime(value: Any, *, field: str) -> str:
 
 
 def _pseudonym(key: bytes, namespace: str, value: str) -> str:
-    digest = hmac.new(key, f"phase3:{namespace}:{value}".encode("utf-8"), hashlib.sha256).hexdigest()
+    digest = hmac.new(key, f"phase3:{namespace}:{value}".encode(), hashlib.sha256).hexdigest()
     return digest[:24]
 
 
@@ -209,8 +232,7 @@ def _public_evidence_summary(evidence: Any) -> dict[str, bool | int]:
     trails = evidence.get("trails")
     if isinstance(trails, list) and len(trails) <= _MAX_EVIDENCE_VALUE:
         multi_region_count = sum(
-            1 for trail in trails
-            if isinstance(trail, dict) and trail.get("is_multi_region") is True
+            1 for trail in trails if isinstance(trail, dict) and trail.get("is_multi_region") is True
         )
         summary["multi_region_trail_count"] = multi_region_count
 
@@ -247,15 +269,24 @@ def _public_finding(finding: dict[str, Any], *, key: bytes) -> dict[str, Any]:
     for reference in raw_references[:10]:
         if not isinstance(reference, dict) or reference.get("type") != "compliance":
             continue
-        framework = _safe_text(reference.get("framework"), field="reference framework", max_length=120, private_values=private_values)
-        ref_id = _safe_text(reference.get("id"), field="reference ID", max_length=64, private_values=private_values)
+        framework = _safe_text(
+            reference.get("framework"),
+            field="reference framework",
+            max_length=120,
+            private_values=private_values,
+        )
+        ref_id = _safe_text(
+            reference.get("id"), field="reference ID", max_length=64, private_values=private_values
+        )
         title_value = reference.get("title")
         safe_reference = {
             "framework": framework,
             "id": ref_id,
         }
         if isinstance(title_value, str) and title_value.strip():
-            safe_reference["title"] = _safe_text(title_value, field="reference title", max_length=200, private_values=private_values)
+            safe_reference["title"] = _safe_text(
+                title_value, field="reference title", max_length=200, private_values=private_values
+            )
         references.append(safe_reference)
     detected = finding.get("detected_at")
     return {
@@ -263,8 +294,12 @@ def _public_finding(finding: dict[str, Any], *, key: bytes) -> dict[str, Any]:
         "control_id": control_id,
         "severity": severity,
         "title": _safe_text(finding.get("title"), field="finding title", private_values=private_values),
-        "description": _safe_text(finding.get("description"), field="finding description", private_values=private_values),
-        "remediation": _safe_text(finding.get("remediation"), field="finding remediation", private_values=private_values),
+        "description": _safe_text(
+            finding.get("description"), field="finding description", private_values=private_values
+        ),
+        "remediation": _safe_text(
+            finding.get("remediation"), field="finding remediation", private_values=private_values
+        ),
         "lifecycle_state": lifecycle,
         "service": service,
         "region": region,
@@ -292,8 +327,8 @@ def redact_snapshot(report: Any, hmac_key: bytes) -> dict[str, Any]:
     completed_at = _safe_datetime(run.get("completed_at"), field="scan completed-at")
     started_at = _safe_datetime(run.get("started_at", run.get("completed_at")), field="scan started-at")
     public_findings = [_public_finding(item, key=hmac_key) for item in findings]
-    severity_counts = {level: 0 for level in sorted(_SEVERITIES)}
-    drift_counts = {state: 0 for state in sorted(_DRIFT_STATES)}
+    severity_counts = dict.fromkeys(sorted(_SEVERITIES), 0)
+    drift_counts = dict.fromkeys(sorted(_DRIFT_STATES), 0)
     for finding in public_findings:
         severity_counts[finding["severity"]] += 1
 
@@ -318,17 +353,15 @@ def redact_snapshot(report: Any, hmac_key: bytes) -> dict[str, Any]:
         public_drift.append({"finding_id": public_finding["id"], "state": state, "finding": public_finding})
 
     regions = run.get("regions", [])
-    if not isinstance(regions, list) or any(not isinstance(region, str) or not _REGION.fullmatch(region) for region in regions):
+    if not isinstance(regions, list) or any(
+        not isinstance(region, str) or not _REGION.fullmatch(region) for region in regions
+    ):
         raise PublicSnapshotError("public scan regions are invalid")
     services = sorted({entry["service"] for entry in coverage})
     affected_status = "ERROR" if status == "ERROR" else "UNKNOWN"
-    affected_by_service = {
-        entry["service"]: affected_status
-        for entry in coverage
-        if not entry["complete"]
-    }
+    affected_by_service = {entry["service"]: affected_status for entry in coverage if not entry["complete"]}
     if status == "ERROR" and not affected_by_service:
-        affected_by_service.update({service: "ERROR" for service in services})
+        affected_by_service.update(dict.fromkeys(services, "ERROR"))
     snapshot = {
         "schema_version": PUBLIC_SCHEMA_VERSION,
         "snapshot_id": _pseudonym(hmac_key, "run", run["run_id"]),
@@ -371,12 +404,22 @@ def validate_public_snapshot(snapshot: Any) -> None:
         raise PublicSnapshotError("public snapshot does not match schema v2")
     if snapshot.get("schema_version") != PUBLIC_SCHEMA_VERSION:
         raise PublicSnapshotError("public snapshot does not match schema v2")
-    if not isinstance(snapshot.get("snapshot_id"), str) or not re.fullmatch(r"[a-f0-9]{24}", snapshot["snapshot_id"]):
+    if not isinstance(snapshot.get("snapshot_id"), str) or not re.fullmatch(
+        r"[a-f0-9]{24}", snapshot["snapshot_id"]
+    ):
         raise PublicSnapshotError("public snapshot does not match schema v2")
     _safe_datetime(snapshot.get("generated_at"), field="generated-at")
     scan_fields = {
-        "status", "gate_status", "started_at", "completed_at", "regions", "services",
-        "complete_scopes", "incomplete_scopes", "affected_services", "scanner_version",
+        "status",
+        "gate_status",
+        "started_at",
+        "completed_at",
+        "regions",
+        "services",
+        "complete_scopes",
+        "incomplete_scopes",
+        "affected_services",
+        "scanner_version",
     }
     scan = snapshot.get("scan")
     summary = snapshot.get("summary")
@@ -390,7 +433,9 @@ def validate_public_snapshot(snapshot: Any) -> None:
         not isinstance(region, str) or not _REGION.fullmatch(region) for region in scan["regions"]
     ):
         raise PublicSnapshotError("public snapshot does not match schema v2")
-    if not isinstance(scan.get("services"), list) or any(service not in _SERVICES for service in scan["services"]):
+    if not isinstance(scan.get("services"), list) or any(
+        service not in _SERVICES for service in scan["services"]
+    ):
         raise PublicSnapshotError("public snapshot does not match schema v2")
     for key in ("complete_scopes", "incomplete_scopes"):
         if not isinstance(scan.get(key), int) or isinstance(scan[key], bool) or scan[key] < 0:
@@ -427,13 +472,29 @@ def validate_public_snapshot(snapshot: Any) -> None:
         raise PublicSnapshotError("public snapshot does not match schema v2")
     if not isinstance(drift_counts, dict) or set(drift_counts) != _DRIFT_STATES:
         raise PublicSnapshotError("public snapshot does not match schema v2")
-    if any(not isinstance(count, int) or isinstance(count, bool) or count < 0 for count in severity_counts.values()):
+    if any(
+        not isinstance(count, int) or isinstance(count, bool) or count < 0
+        for count in severity_counts.values()
+    ):
         raise PublicSnapshotError("public snapshot does not match schema v2")
-    if any(not isinstance(count, int) or isinstance(count, bool) or count < 0 for count in drift_counts.values()):
+    if any(
+        not isinstance(count, int) or isinstance(count, bool) or count < 0 for count in drift_counts.values()
+    ):
         raise PublicSnapshotError("public snapshot does not match schema v2")
     finding_fields = {
-        "id", "control_id", "severity", "title", "description", "remediation", "lifecycle_state",
-        "service", "region", "resource_ref", "detected_at", "references", "evidence_summary",
+        "id",
+        "control_id",
+        "severity",
+        "title",
+        "description",
+        "remediation",
+        "lifecycle_state",
+        "service",
+        "region",
+        "resource_ref",
+        "detected_at",
+        "references",
+        "evidence_summary",
     }
 
     all_findings = list(findings)
@@ -468,7 +529,11 @@ def validate_public_snapshot(snapshot: Any) -> None:
         if not isinstance(finding.get("references"), list) or len(finding["references"]) > 10:
             raise PublicSnapshotError("public snapshot does not match schema v2")
         for reference in finding["references"]:
-            if not isinstance(reference, dict) or set(reference) - {"framework", "id", "title"} or not {"framework", "id"}.issubset(reference):
+            if (
+                not isinstance(reference, dict)
+                or set(reference) - {"framework", "id", "title"}
+                or not {"framework", "id"}.issubset(reference)
+            ):
                 raise PublicSnapshotError("public snapshot does not match schema v2")
             for field, value in reference.items():
                 _safe_text(value, field=f"reference {field}", max_length=200)
@@ -481,12 +546,12 @@ def validate_public_snapshot(snapshot: Any) -> None:
                     raise PublicSnapshotError("public snapshot does not match schema v2")
             elif type(value) is not int or not 0 <= value <= _MAX_EVIDENCE_VALUE:
                 raise PublicSnapshotError("public snapshot does not match schema v2")
-    expected_severity_counts = {severity: 0 for severity in _SEVERITIES}
+    expected_severity_counts = dict.fromkeys(_SEVERITIES, 0)
     for finding in findings:
         expected_severity_counts[finding["severity"]] += 1
     if severity_counts != expected_severity_counts:
         raise PublicSnapshotError("public snapshot does not match schema v2")
-    expected_drift_counts = {state: 0 for state in _DRIFT_STATES}
+    expected_drift_counts = dict.fromkeys(_DRIFT_STATES, 0)
     for transition in drift:
         expected_drift_counts[transition["state"]] += 1
     if drift_counts != expected_drift_counts:

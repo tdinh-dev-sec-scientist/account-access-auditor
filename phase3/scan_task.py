@@ -131,12 +131,20 @@ def run_scan_task(
 
 def _valid_receipt(value: Any, *, account_id: str, run_id: str) -> bool:
     if not isinstance(value, dict) or set(value) != {
-        "run_id", "status", "finding_count", "snapshot_key", "drift_counts"
+        "run_id",
+        "status",
+        "finding_count",
+        "snapshot_key",
+        "drift_counts",
     }:
         return False
     if value["run_id"] != run_id or value["status"] not in {"PASS", "FAIL", "UNKNOWN", "ERROR"}:
         return False
-    if not isinstance(value["finding_count"], int) or isinstance(value["finding_count"], bool) or value["finding_count"] < 0:
+    if (
+        not isinstance(value["finding_count"], int)
+        or isinstance(value["finding_count"], bool)
+        or value["finding_count"] < 0
+    ):
         return False
     key = value["snapshot_key"]
     if not isinstance(key, str) or not key.startswith(f"snapshots/{account_id}/") or ".." in key.split("/"):
@@ -145,7 +153,9 @@ def _valid_receipt(value: Any, *, account_id: str, run_id: str) -> bool:
     return (
         isinstance(drift, dict)
         and set(drift) == _DRIFT_STATES
-        and all(isinstance(count, int) and not isinstance(count, bool) and count >= 0 for count in drift.values())
+        and all(
+            isinstance(count, int) and not isinstance(count, bool) and count >= 0 for count in drift.values()
+        )
     )
 
 
