@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 from moto import mock_aws
 
 from phase3.quotas import QuotaError, consume_quota, lambda_handler
@@ -94,3 +95,54 @@ def _table():
         ],
         BillingMode="PAY_PER_REQUEST",
     )
+
+
+class _FailingTable:
+    def __init__(self, error):
+        self.error = error
+
+    def update_item(self, **_kwargs):
+        raise self.error
+
+
+SESSION = "session-token-with-high-entropy-123456"
+
+
+def test_quota_requires_a_timezone_aware_clock():
+    with pytest.raises(QuotaError, match="must include a timezone"):
+        consume_quota(_FailingTable(RuntimeError()), SESSION, 5, now=datetime(2026, 11, 3, 12, 0))
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ClientError(
+            {"Error": {"Code": "ProvisionedThroughputExceededException", "Message": "x"}}, "UpdateItem"
+        ),
+        ValueError("bad value"),
+        RuntimeError("unexpected"),
+    ],
+)
+def test_quota_fails_closed_when_the_counter_table_is_unavailable(error):
+    with pytest.raises(QuotaError, match="quota service is unavailable"):
+        consume_quota(_FailingTable(error), SESSION, 5, now=datetime(2026, 11, 3, 12, 0, tzinfo=UTC))
+
+
+def test_quota_lambda_rejects_unexpected_events():
+    with pytest.raises(QuotaError, match="event is invalid"):
+        lambda_handler({"session_token": SESSION, "question": "leak"}, None)
+
+
+def test_quota_lambda_hides_session_construction_failures(monkeypatch):
+    monkeypatch.setenv("PHASE3_RIN_QUOTA_TABLE", "phase3-rin-quota")
+    monkeypatch.setenv("PHASE3_RIN_DAILY_CAP", "5")
+    monkeypatch.setenv("AWS_REGION", "us-east-1")
+
+    def broken_session(**_kwargs):
+        raise RuntimeError("credential detail")
+
+    monkeypatch.setattr("phase3.quotas.boto3.session.Session", broken_session)
+
+    with pytest.raises(QuotaError, match="quota service is unavailable") as raised:
+        lambda_handler({"session_token": SESSION}, None)
+    assert "credential detail" not in str(raised.value)
