@@ -9,7 +9,6 @@ from moto import mock_aws
 
 from phase3.private_snapshot_store import PrivateSnapshotError, PrivateSnapshotStore
 
-
 ACCOUNT_ID = "123456789012"
 
 

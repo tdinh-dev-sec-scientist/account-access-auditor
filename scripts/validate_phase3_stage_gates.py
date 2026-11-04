@@ -8,7 +8,7 @@ import hashlib
 import os
 import re
 import sys
-from decimal import Decimal, InvalidOperation, ROUND_FLOOR
+from decimal import ROUND_FLOOR, Decimal, InvalidOperation
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -41,7 +41,8 @@ def _number(name: str, *, default: str | None = None) -> Decimal | None:
 
 
 def _runtime_bindings() -> tuple[str | None, int | None, float | None]:
-    account_id = os.environ.get("TF_VAR_demo_account_id", "").strip()
+    # Terraform variable names are case-sensitive and the input is declared lowercase.
+    account_id = os.environ.get("TF_VAR_demo_account_id", "").strip()  # noqa: SIM112
     if account_id and not re.fullmatch(r"[0-9]{12}", account_id):
         raise StageGateError("TF_VAR_demo_account_id must be a 12-digit AWS account ID")
     account_hash = hashlib.sha256(account_id.encode()).hexdigest() if account_id else None

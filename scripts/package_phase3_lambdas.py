@@ -12,7 +12,6 @@ import tempfile
 import zipfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "build" / "phase3" / "lambda.zip"
 PACKAGES = ("auditor", "phase3")

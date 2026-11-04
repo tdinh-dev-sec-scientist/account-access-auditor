@@ -9,7 +9,6 @@ import phase3.rin_service as rin_module
 from phase3.redaction import redact_snapshot
 from phase3.rin_service import rin_response
 
-
 KEY = b"p3-test-key-material-with-at-least-32-bytes"
 SECRET_KEY_ASSIGNMENT = "AWS_SECRET_" + "ACCESS_KEY"
 FRESH_TEST_NOW = datetime(2026, 11, 3, 12, 0, tzinfo=UTC)

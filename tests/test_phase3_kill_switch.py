@@ -6,7 +6,6 @@ import pytest
 
 from phase3.kill_switch import KillSwitchError, disable_live_features
 
-
 TOPIC = "arn:aws:sns:us-east-1:123456789012:phase3-budget-kill"
 
 

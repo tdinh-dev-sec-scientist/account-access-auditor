@@ -8,14 +8,13 @@ from pathlib import Path
 import pytest
 
 from phase3.redaction import (
+    _EVIDENCE_PUBLIC_FIELDS,
     PUBLIC_SCHEMA_VERSION,
     PublicSnapshotError,
-    _EVIDENCE_PUBLIC_FIELDS,
     _pseudonym,
     redact_snapshot,
     validate_public_snapshot,
 )
-
 
 HMAC_KEY = b"p3-test-key-material-with-at-least-32-bytes"
 SECRET_KEY_ASSIGNMENT = "AWS_SECRET_" + "ACCESS_KEY"

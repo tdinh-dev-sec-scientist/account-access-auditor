@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from io import BytesIO
+
 import pytest
 
 from phase3.scan_task import ScanTaskError, configured_fleet, run_scan_task

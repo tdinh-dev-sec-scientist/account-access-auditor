@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import pytest
-from phase3.snapshot_writer import SnapshotWriterError, lambda_handler as snapshot_writer_handler, persist_report
 
+from phase3.snapshot_writer import SnapshotWriterError, persist_report
+from phase3.snapshot_writer import lambda_handler as snapshot_writer_handler
 
 ENV = {
     "PHASE3_TARGET_ACCOUNT_ID": "123456789012",

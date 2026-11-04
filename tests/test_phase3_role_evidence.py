@@ -10,7 +10,6 @@ from pathlib import Path
 
 from phase3.role_evidence import ROLE_SOURCE_FILES
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/validate_phase3_role_evidence.py"
 ROLE_ARN = "arn:aws:iam::123456789012:role/Phase3Terraform"
@@ -96,7 +95,7 @@ def _write_manifest(
                 "evidence": evidence,
                 "evidence_sha256": evidence_hashes if accepted else {},
                 "source_evidence_sha256": {
-                    path: hashlib.sha256(f"private-source:{path}".encode("utf-8")).hexdigest()
+                    path: hashlib.sha256(f"private-source:{path}".encode()).hexdigest()
                     for path in ROLE_SOURCE_FILES[role_stack][role_phase]
                 } if accepted else {},
             }

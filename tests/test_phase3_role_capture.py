@@ -10,7 +10,6 @@ from phase3 import role_capture
 from phase3.role_capture import RoleCaptureError, capture_role_evidence, verify_role_capture
 from scripts import capture_phase3_role_evidence as capture_cli
 
-
 ROLE_ARN = "arn:aws:iam::123456789012:role/phase3/OrgTerraformPlan"
 BOUNDARY_ARN = "arn:aws:iam::123456789012:policy/Phase3TerraformBoundary"
 ATTACHED_ARN = "arn:aws:iam::123456789012:policy/Phase3TerraformRead"
@@ -106,7 +105,7 @@ def test_role_capture_writes_actual_policy_artifacts_and_hash_receipt(tmp_path):
     )
 
     evidence_dir = tmp_path / "docs/evidence/terraform-roles/org/plan"
-    assert set(path.name for path in evidence_dir.iterdir()) == {
+    assert {path.name for path in evidence_dir.iterdir()} == {
         "trust-policy.json",
         "attached-policies.json",
         "inline-policies.json",

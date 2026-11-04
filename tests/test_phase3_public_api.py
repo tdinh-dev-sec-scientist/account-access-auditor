@@ -8,10 +8,14 @@ import boto3
 import pytest
 from moto import mock_aws
 
-from phase3.public_api import AwsPublicReadStore, PublicApiError, _static_mode, lambda_handler, public_response
+from phase3.public_api import (
+    AwsPublicReadStore,
+    PublicApiError,
+    _static_mode,
+    public_response,
+)
 from phase3.publisher import S3DynamoPublicStore
 from phase3.redaction import redact_snapshot
-
 
 KEY = b"p3-test-key-material-with-at-least-32-bytes"
 

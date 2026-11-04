@@ -16,7 +16,6 @@ if str(ROOT) not in sys.path:
 
 from phase3.web_bundle import safe_fixture_profile  # noqa: E402
 
-
 DEFAULT_OUTPUT = ROOT / "build" / "phase3" / "web"
 PROFILE_SOURCES = (
     ("misconfigured", "Misconfigured Moto fixture", "aws_audit_results.json"),

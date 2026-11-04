@@ -11,12 +11,13 @@ from moto import mock_aws
 from phase3.publisher import (
     PublicationError,
     S3DynamoPublicStore,
-    lambda_handler as publisher_handler,
     publish_private_snapshot,
     publish_snapshot,
 )
+from phase3.publisher import (
+    lambda_handler as publisher_handler,
+)
 from phase3.redaction import redact_snapshot
-
 
 KEY = b"p3-test-key-material-with-at-least-32-bytes"
 
