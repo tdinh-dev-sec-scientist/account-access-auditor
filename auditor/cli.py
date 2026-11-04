@@ -60,6 +60,7 @@ DEFAULT_HISTORY_DIR = os.path.join("~", ".local", "state", "account-access-audit
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build the top-level parser; each subcommand is registered by its own helper."""
     parser = argparse.ArgumentParser(
         prog="auditor",
         description=(
@@ -72,7 +73,30 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("-q", "--quiet", action="store_true", help="Log errors only.")
 
     sub = parser.add_subparsers(dest="command")
+    for register in (
+        _add_audit_parser,
+        _add_list_rules_parser,
+        _add_list_permissions_parser,
+        _add_validate_policy_parser,
+        _add_validate_access_analyzer_parser,
+        _add_scan_iac_parser,
+        _add_annotate_iac_parser,
+        _add_gate_iac_parser,
+        _add_fleet_scan_parser,
+        _add_history_parser,
+        _add_supply_chain_release_parser,
+        _add_remediation_preview_parser,
+        _add_remediation_sandbox_parser,
+        _add_ai_analyze_parser,
+        _add_generate_policy_parser,
+    ):
+        register(sub)
 
+    return parser
+
+
+def _add_audit_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``audit`` subcommand."""
     audit = sub.add_parser("audit", help="Scan an AWS account and report findings (read-only).")
     audit.add_argument(
         "--services",
@@ -122,15 +146,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Also mask the 12-digit account ID. Implies --redact.",
     )
 
+
+def _add_list_rules_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``list-rules`` subcommand."""
     rules = sub.add_parser("list-rules", help="List the security rules and their CIS mappings.")
     rules.add_argument("--service", help="Filter by service: iam, s3, or cloudtrail.")
     rules.add_argument("--json", action="store_true", dest="as_json", help="Emit JSON instead of a table.")
 
+
+def _add_list_permissions_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``list-permissions`` subcommand."""
     perms = sub.add_parser(
         "list-permissions", help="Show the code -> IAM action -> policy statement inventory."
     )
     perms.add_argument("--json", action="store_true", dest="as_json", help="Emit JSON instead of a table.")
 
+
+def _add_validate_policy_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``validate-policy`` subcommand."""
     validate = sub.add_parser(
         "validate-policy",
         help="Run the auditor's own IAM policy rules against a policy document (self-audit).",
@@ -143,6 +176,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validate.add_argument("--json", action="store_true", dest="as_json", help="Emit JSON instead of text.")
 
+
+def _add_validate_access_analyzer_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``validate-access-analyzer`` subcommand."""
     validate_aa = sub.add_parser(
         "validate-access-analyzer",
         help="Optionally validate one local IAM policy through AWS IAM Access Analyzer.",
@@ -176,6 +212,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fail on findings at or above this severity (default: HIGH).",
     )
 
+
+def _add_scan_iac_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``scan-iac`` subcommand."""
     iac = sub.add_parser(
         "scan-iac",
         help="Scan local Terraform, IAM policy, Kubernetes, and rendered Helm files without AWS access.",
@@ -222,12 +261,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="Write the JSON report to this path (default: stdout).",
     )
 
+
+def _add_annotate_iac_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``annotate-iac`` subcommand."""
     annotate = sub.add_parser("annotate-iac", help="Emit GitHub Actions annotations from an IaC JSON report.")
     annotate.add_argument("report", help="Path to an IaC JSON report.")
 
+
+def _add_gate_iac_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``gate-iac`` subcommand."""
     gate = sub.add_parser("gate-iac", help="Return the gate exit code recorded in an IaC JSON report.")
     gate.add_argument("report", help="Path to an IaC JSON report.")
 
+
+def _add_fleet_scan_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``fleet-scan`` subcommand."""
     fleet = sub.add_parser(
         "fleet-scan", help="Read-only scan configured accounts and regions; save a local drift snapshot."
     )
@@ -245,6 +293,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Set a fleet finding gate threshold.",
     )
 
+
+def _add_history_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``history`` subcommand."""
     history = sub.add_parser(
         "history", help="List saved fleet scans and drift, or export a static HTML dashboard."
     )
@@ -258,6 +309,9 @@ def build_parser() -> argparse.ArgumentParser:
     history.add_argument("--limit", type=int, default=20, help="Recent scans to include (default: 20).")
     history.add_argument("--output", help="Write the export to a file instead of stdout.")
 
+
+def _add_supply_chain_release_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``supply-chain-release`` subcommand."""
     supply = sub.add_parser(
         "supply-chain-release",
         help="Generate and scan local SBOMs, then sign and verify a container archive (no AWS access).",
@@ -289,6 +343,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fail release if a vulnerability meets or exceeds this tier (default: HIGH).",
     )
 
+
+def _add_remediation_preview_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``remediation-preview`` subcommand."""
     remediation_preview = sub.add_parser(
         "remediation-preview",
         help="Render a reviewable IaC patch preview without changing source files.",
@@ -296,6 +353,9 @@ def build_parser() -> argparse.ArgumentParser:
     remediation_preview.add_argument("--source", required=True, help="Source directory containing IaC files.")
     remediation_preview.add_argument("--plan", required=True, help="Strict JSON remediation plan.")
 
+
+def _add_remediation_sandbox_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``remediation-sandbox`` subcommand."""
     remediation_sandbox = sub.add_parser(
         "remediation-sandbox",
         help="Apply an approved remediation to a temporary local copy and require a passing IaC rescan.",
@@ -321,6 +381,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Explicitly confirm that changes are applied only to a temporary local copy.",
     )
 
+
+def _add_ai_analyze_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``ai-analyze`` subcommand."""
     ai_analyze = sub.add_parser(
         "ai-analyze",
         help="Optionally explain a saved scan report; advisory output never changes the scan gate or accesses AWS.",
@@ -348,6 +411,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="Gate threshold for temporary-copy proposal rescans (default: HIGH).",
     )
 
+
+def _add_generate_policy_parser(sub: argparse._SubParsersAction) -> None:
+    """Register the ``generate-policy`` subcommand."""
     generate = sub.add_parser(
         "generate-policy", help="Generate the least-privilege IAM policy from the code."
     )
@@ -358,8 +424,6 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Include access-analyzer:ValidatePolicy for the separate opt-in validation path.",
     )
-
-    return parser
 
 
 def parse_services(value: str) -> list[str]:
