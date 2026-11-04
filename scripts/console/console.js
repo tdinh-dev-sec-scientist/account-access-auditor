@@ -8,7 +8,7 @@
   const dialogTitle = document.getElementById("dialog-title");
   const statusUi = window.Phase3ConsoleStatus;
   const platformKnowledge = window.Phase3PlatformKnowledge;
-  const REPOSITORY_SOURCE_BASE = "https://github.com/tdinh-dev-sec-scientist/Vorrin/blob/dan/phase3-live-demo/";
+  const REPOSITORY_SOURCE_BASE = "https://github.com/tdinh-dev-sec-scientist/Vorrin/blob/main/";
   const fixtureProfiles = JSON.parse(dataNode.textContent).profiles;
   let profiles = { ...fixtureProfiles };
   let profileKeys = Object.keys(profiles);

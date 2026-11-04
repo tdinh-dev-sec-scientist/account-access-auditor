@@ -100,8 +100,8 @@ def test_stage_acceptance_guide_lists_required_evidence_and_digest_review():
 def test_owner_deferred_readme_gif_is_recorded_as_an_open_plan_deviation():
     status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
 
-    assert "README demo GIF is omitted for now at the owner's direction" in status
-    assert "presentation criterion remains open" in status
+    assert "README now gives visitors a short console walkthrough" in status
+    assert "a recording artifact is still outstanding" in status
 
 
 def test_stage_three_guardrail_review_criteria_remain_pending_until_structured_evidence_exists():

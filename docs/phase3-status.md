@@ -11,8 +11,9 @@ and `control-plane` roots. Each root was initialized with `-backend=false` and
 `-lockfile=readonly`; no AWS credentials were used. These local checks do not
 count as live acceptance.
 
-The plan's README demo GIF is omitted for now at the owner's direction. The
-README/site presentation criterion remains open until a recording is supplied.
+The README now gives visitors a short console walkthrough and links each view
+to its source report and JSON evidence. The embedded demo GIF remains omitted
+at the owner's request; a recording artifact is still outstanding.
 
 ## Stage status
 
