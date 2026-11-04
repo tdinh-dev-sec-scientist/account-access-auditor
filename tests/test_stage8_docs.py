@@ -43,7 +43,7 @@ def test_status_documents_record_phase2_release_completion_under_approved_scope(
 
 
 def test_phase2_plan_amendment_explicitly_supersedes_direct_aws_apply_criterion():
-    with ZipFile(ROOT / "AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx") as plan:
+    with ZipFile(ROOT / "docs/plans/AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx") as plan:
         document = ET.fromstring(plan.read("word/document.xml"))
     plan_text = " ".join(
         node.text or ""
