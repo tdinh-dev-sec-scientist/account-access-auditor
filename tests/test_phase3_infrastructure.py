@@ -40,7 +40,9 @@ def test_phase3_scan_infrastructure_has_no_target_account_write_actions():
 
 def test_target_role_s3_metadata_reads_are_limited_to_the_selected_account():
     policy = json.loads((ROOT / "infra/phase3/policies/target-readonly.json").read_text(encoding="utf-8"))
-    bucket_statement = next(statement for statement in policy["Statement"] if statement.get("Sid") == "AuditorReadBuckets")
+    bucket_statement = next(
+        statement for statement in policy["Statement"] if statement.get("Sid") == "AuditorReadBuckets"
+    )
 
     assert bucket_statement["Condition"]["StringEquals"]["aws:ResourceAccount"] == "${demo_account_id}"
 
@@ -87,7 +89,9 @@ def test_public_api_and_rin_cannot_mutate_aws_or_read_private_snapshots():
         policy = json.loads((ROOT / "infra/phase3/policies" / name).read_text(encoding="utf-8"))
         actions = _actions(policy)
         assert not any(
-            action.startswith(("s3:Put", "s3:Delete", "dynamodb:Put", "dynamodb:Update", "dynamodb:Delete", "iam:"))
+            action.startswith(
+                ("s3:Put", "s3:Delete", "dynamodb:Put", "dynamodb:Update", "dynamodb:Delete", "iam:")
+            )
             for action in actions
         )
         assert "${private_bucket_arn}" not in json.dumps(policy)
@@ -105,34 +109,40 @@ def test_rin_bedrock_guardrail_permission_is_exact_and_requires_live_configurati
 
     assert _actions(policy) == {"bedrock:ApplyGuardrail"}
     assert statement["Resource"] == "${guardrail_arn}"
-    assert re.search(r'count\s*=\s*var\.enable_stage3\s*&&\s*var\.rin_enabled\s*\?\s*1\s*:\s*0', stage3)
+    assert re.search(r"count\s*=\s*var\.enable_stage3\s*&&\s*var\.rin_enabled\s*\?\s*1\s*:\s*0", stage3)
     assert re.search(r'name\s*=\s*"ApplyOnlyTheApprovedRinGuardrail"', stage3)
     assert 'var.rin_guardrail_arn != ""' in variables
-    assert 'var.rin_guardrail_version' in variables
-    assert 'data.aws_caller_identity.current.account_id' in stage3
-    assert 'var.aws_region' in stage3
-    assert 'PHASE3_RIN_GUARDRAIL_ARN' in stage3
-    assert 'PHASE3_RIN_GUARDRAIL_VERSION' in stage3
-    assert 'TF_VAR_rin_guardrail_arn' in workflow
-    assert 'TF_VAR_rin_guardrail_version' in workflow
+    assert "var.rin_guardrail_version" in variables
+    assert "data.aws_caller_identity.current.account_id" in stage3
+    assert "var.aws_region" in stage3
+    assert "PHASE3_RIN_GUARDRAIL_ARN" in stage3
+    assert "PHASE3_RIN_GUARDRAIL_VERSION" in stage3
+    assert "TF_VAR_rin_guardrail_arn" in workflow
+    assert "TF_VAR_rin_guardrail_version" in workflow
 
 
 def test_quota_and_kill_switch_write_roles_cannot_touch_other_tables():
     quota = json.loads((ROOT / "infra/phase3/policies/rin-quota-writer.json").read_text(encoding="utf-8"))
-    kill_switch = json.loads((ROOT / "infra/phase3/policies/rin-kill-switch.json").read_text(encoding="utf-8"))
+    kill_switch = json.loads(
+        (ROOT / "infra/phase3/policies/rin-kill-switch.json").read_text(encoding="utf-8")
+    )
 
     assert _actions(quota) == {"dynamodb:UpdateItem"}
     assert quota["Statement"][0]["Resource"] == "${quota_table_arn}"
     assert _actions(kill_switch) == {"dynamodb:UpdateItem"}
     assert kill_switch["Statement"][0]["Resource"] == "${feature_table_arn}"
-    assert kill_switch["Statement"][0]["Condition"]["ForAllValues:StringEquals"]["dynamodb:LeadingKeys"] == ["PLATFORM"]
-    assert set(kill_switch["Statement"][0]["Condition"]["ForAllValues:StringLike"]["dynamodb:Attributes"]) == {
-        "pk", "sk", "rin_enabled", "static_mode"
-    }
+    assert kill_switch["Statement"][0]["Condition"]["ForAllValues:StringEquals"]["dynamodb:LeadingKeys"] == [
+        "PLATFORM"
+    ]
+    assert set(
+        kill_switch["Statement"][0]["Condition"]["ForAllValues:StringLike"]["dynamodb:Attributes"]
+    ) == {"pk", "sk", "rin_enabled", "static_mode"}
 
 
 def test_public_publisher_reads_private_only_and_writes_only_isolated_public_results():
-    policy = json.loads((ROOT / "infra/phase3/policies/public-publisher-runtime.json").read_text(encoding="utf-8"))
+    policy = json.loads(
+        (ROOT / "infra/phase3/policies/public-publisher-runtime.json").read_text(encoding="utf-8")
+    )
     encoded = json.dumps(policy)
     assert "${private_bucket_arn}/snapshots/${demo_account_id}/*" in encoded
     assert "${public_bucket_arn}/snapshots/*" in encoded
@@ -150,8 +160,8 @@ def test_daily_quota_limit_has_a_separate_aggregate_alert_path():
     assert 'resource "aws_sns_topic_subscription" "rin_daily_alert_email"' in stage3
     assert 'resource "aws_cloudwatch_metric_alarm" "rin_daily_limit"' in stage3
     assert re.search(r'metric_name\s*=\s*"DailyLimitReached"', stage3)
-    assert re.search(r'alarm_actions\s*=\s*\[aws_sns_topic\.rin_daily_alert\[0\]\.arn\]', stage3)
-    assert 'alarm_actions       = [aws_sns_topic.budget_kill[0].arn]' not in stage4
+    assert re.search(r"alarm_actions\s*=\s*\[aws_sns_topic\.rin_daily_alert\[0\]\.arn\]", stage3)
+    assert "alarm_actions       = [aws_sns_topic.budget_kill[0].arn]" not in stage4
 
 
 def test_owner_terraform_state_and_values_are_ignored_by_git():
@@ -191,8 +201,8 @@ def test_demo_terraform_role_can_read_only_the_provider_required_bucket_and_atta
         "s3:GetBucketObjectLockConfiguration",
     ):
         assert f'"{action}"' in bootstrap
-    assert 's3:::${var.bucket_prefix}-p3-demo-a-${var.demo_account_id}' in bootstrap
-    assert 's3:::${var.bucket_prefix}-p3-demo-b-${var.demo_account_id}' in bootstrap
+    assert "s3:::${var.bucket_prefix}-p3-demo-a-${var.demo_account_id}" in bootstrap
+    assert "s3:::${var.bucket_prefix}-p3-demo-b-${var.demo_account_id}" in bootstrap
 
 
 def test_target_role_apply_permissions_cannot_escalate_its_read_only_boundary():
@@ -214,8 +224,11 @@ def test_target_readonly_boundary_explicitly_denies_every_action_outside_its_rea
         if statement.get("Sid") == "DenyEveryActionOutsideTheExplicitReadOnlyAllowlist"
     )
     allow_actions = set().union(
-        *(set(statement["Action"] if isinstance(statement["Action"], list) else [statement["Action"]])
-          for statement in policy["Statement"] if statement.get("Effect") == "Allow")
+        *(
+            set(statement["Action"] if isinstance(statement["Action"], list) else [statement["Action"]])
+            for statement in policy["Statement"]
+            if statement.get("Effect") == "Allow"
+        )
     )
 
     assert deny_statement["NotAction"] == sorted(allow_actions)
@@ -224,21 +237,23 @@ def test_target_readonly_boundary_explicitly_denies_every_action_outside_its_rea
 
 def test_foreign_s3_resource_policy_grant_is_overridden_by_explicit_resource_account_deny():
     policy = json.loads((ROOT / "infra/phase3/policies/target-readonly.json").read_text(encoding="utf-8"))
-    bucket_allow = next(statement for statement in policy["Statement"] if statement.get("Sid") == "AuditorReadBuckets")
+    bucket_allow = next(
+        statement for statement in policy["Statement"] if statement.get("Sid") == "AuditorReadBuckets"
+    )
     foreign_resource_policy_grant = {
         "Effect": "Allow",
         "Principal": "*",
         "Action": "s3:GetBucketPolicy",
         "Resource": "arn:aws:s3:::foreign-account-bucket",
         "Condition": {
-            "ArnEquals": {
-                "aws:PrincipalArn": "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
-            }
+            "ArnEquals": {"aws:PrincipalArn": "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"}
         },
     }
     foreign_account_id = "210987654321"
     demo_account_condition = bucket_allow["Condition"]["StringEquals"]["aws:ResourceAccount"]
-    demo_account_id = foreign_resource_policy_grant["Condition"]["ArnEquals"]["aws:PrincipalArn"].split(":")[4]
+    demo_account_id = foreign_resource_policy_grant["Condition"]["ArnEquals"]["aws:PrincipalArn"].split(":")[
+        4
+    ]
     foreign_account_deny = next(
         statement
         for statement in policy["Statement"]
@@ -251,9 +266,7 @@ def test_foreign_s3_resource_policy_grant_is_overridden_by_explicit_resource_acc
         "Action": "s3:GetBucketPolicy",
         "Resource": "arn:aws:s3:::foreign-account-bucket",
         "Condition": {
-            "ArnEquals": {
-                "aws:PrincipalArn": "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"
-            }
+            "ArnEquals": {"aws:PrincipalArn": "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly"}
         },
     }
     assert foreign_resource_policy_grant["Action"] in bucket_allow["Action"]
@@ -287,7 +300,9 @@ def test_phase3_terraform_workflow_only_sets_declared_terraform_variables():
         )
 
     undeclared_variables = workflow_variables - declared_variables
-    assert not undeclared_variables, f"Workflow sets undeclared Terraform variables: {sorted(undeclared_variables)}"
+    assert not undeclared_variables, (
+        f"Workflow sets undeclared Terraform variables: {sorted(undeclared_variables)}"
+    )
 
 
 def test_stage_two_provider_input_budget_covers_all_billable_input_tokens():
@@ -306,7 +321,7 @@ def test_control_plane_stage_enables_require_checked_in_predecessor_acceptance_e
     )
 
     assert "validate_phase3_stage_gates.py" in workflow
-    assert "terraform_data\" \"phase3_stage_acceptance_gate" in control_plane
+    assert 'terraform_data" "phase3_stage_acceptance_gate' in control_plane
     assert "docs/evidence/phase3-stage-acceptance.json" in control_plane
     assert "phase3_stage_acceptance.schema_version == 3" in control_plane
     assert "phase3_stage1.evidence_sha256[evidence_path]" in control_plane
@@ -316,24 +331,37 @@ def test_control_plane_stage_enables_require_checked_in_predecessor_acceptance_e
     assert "phase3_stage2_evidence_valid" in control_plane
     assert "phase3_stage3_runtime_evidence_valid" in control_plane
     assert "phase3_stage3_quota_fallbacks.daily_invocation_limit == local.rin_daily_cap" in control_plane
-    assert "phase3_stage3_quota_fallbacks.monthly_budget_usd == var.provider_monthly_budget_usd" in control_plane
-    assert 'phase3_stage1_scans.target_account_id_sha256 == sha256(var.demo_account_id)' in control_plane
-    assert 'phase3_stage1_scans.schedule_execution_log_sha256 == filesha256' in control_plane
+    assert (
+        "phase3_stage3_quota_fallbacks.monthly_budget_usd == var.provider_monthly_budget_usd" in control_plane
+    )
+    assert "phase3_stage1_scans.target_account_id_sha256 == sha256(var.demo_account_id)" in control_plane
+    assert "phase3_stage1_scans.schedule_execution_log_sha256 == filesha256" in control_plane
     assert '"stage1/schedule-execution-log.json"' in control_plane
-    assert "execution.snapshot_sha256 == local.phase3_stage1_scans.scans[index].snapshot_sha256" in control_plane
+    assert (
+        "execution.snapshot_sha256 == local.phase3_stage1_scans.scans[index].snapshot_sha256" in control_plane
+    )
     assert "execution.workflow_started_at" in control_plane
-    assert "length(distinct([for case in local.phase3_stage3_rin_evaluation.cases : case.case_id]))" in control_plane
+    assert (
+        "length(distinct([for case in local.phase3_stage3_rin_evaluation.cases : case.case_id]))"
+        in control_plane
+    )
     assert "contains(local.phase3_stage3_required_rin_categories, case.category)" in control_plane
     assert 'regex("^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$", run.scan_run_id)' in control_plane
     assert 'timeadd(execution.scheduled_at, "1h")' in control_plane
-    assert 'timeadd(local.phase3_stage1_schedule_log.scheduled_executions[0].scheduled_at, "6h")' in control_plane
+    assert (
+        'timeadd(local.phase3_stage1_schedule_log.scheduled_executions[0].scheduled_at, "6h")'
+        in control_plane
+    )
     assert "length(distinct(local.phase3_stage1_drift.new_finding_ids))" in control_plane
     assert '"kill_switch_static_mode"' in control_plane
     assert "can(tolist(local.phase3_stage1_role.effective_write_actions))" in control_plane
     assert "can(tolist(local.phase3_stage2_redaction.failed_case_ids))" in control_plane
     assert "length(distinct(local.phase3_stage2_redaction.passed_case_categories))" in control_plane
     assert 'can(regex("^\\".*\\"$", jsonencode(category)))' in control_plane
-    assert "can(tolist(local.phase3_stage3_privacy_accessibility.unapproved_third_party_requests))" in control_plane
+    assert (
+        "can(tolist(local.phase3_stage3_privacy_accessibility.unapproved_third_party_requests))"
+        in control_plane
+    )
     assert "timecmp(local.phase3_stage1_scans.scans[0].completed_at" in control_plane
     assert "published_guardrail_policy_review == true" in control_plane
     assert "bedrock_invocation_logging_review == true" in control_plane
@@ -356,14 +384,18 @@ def test_control_plane_stage_enables_require_checked_in_predecessor_acceptance_e
     assert "maximum_prompt_retention_days <= 30" in control_plane
     assert "includes_prompt_content" in control_plane
     assert "phase3_stage3_guardrail_configuration.input_controls ==" in control_plane
-    assert "case.observed_action == \"BLOCK\"" in control_plane
+    assert 'case.observed_action == "BLOCK"' in control_plane
     assert "phase3_stage3_bedrock_logging.includes_prompt_content ==" in control_plane
     assert "phase3_stage3_external_logging.retention_days ==" in control_plane
     assert "phase3_stage3_guardrail_review.guardrail_arn == var.rin_guardrail_arn" in control_plane
     assert "phase3_stage3_guardrail_review.published_version == var.rin_guardrail_version" in control_plane
-    assert "exact Guardrail ARN and published version covered by the reviewed Stage 3 evidence" in control_plane
+    assert (
+        "exact Guardrail ARN and published version covered by the reviewed Stage 3 evidence" in control_plane
+    )
     assert "floor(local.phase3_stage3_guardrail_review.evaluation.case_count)" in control_plane
-    assert "logging.includes_prompt_content == true || logging.includes_prompt_content == false" in control_plane
+    assert (
+        "logging.includes_prompt_content == true || logging.includes_prompt_content == false" in control_plane
+    )
     assert "floor(logging.retention_days) == logging.retention_days" in control_plane
 
 
@@ -373,7 +405,9 @@ def test_owner_provisioned_role_evidence_is_checked_before_oidc_in_plan_and_appl
 
     for job in (plan_job, apply_job):
         assert "validate_phase3_role_evidence.py" in job
-        assert job.index("validate_phase3_role_evidence.py") < job.index("aws-actions/configure-aws-credentials@")
+        assert job.index("validate_phase3_role_evidence.py") < job.index(
+            "aws-actions/configure-aws-credentials@"
+        )
     assert "--phase plan" in plan_job
     assert "--phase apply" in apply_job
 
@@ -383,10 +417,10 @@ def test_stage1_scan_uses_step_functions_and_an_ecs_fargate_task():
 
     assert 'resource "aws_ecs_cluster" "scan"' in stage1
     assert 'resource "aws_ecs_task_definition" "scan"' in stage1
-    assert 'states:::ecs:runTask.sync' in stage1
+    assert "states:::ecs:runTask.sync" in stage1
     assert re.search(r'LaunchType\s*=\s*"FARGATE"', stage1)
     assert 'resource "aws_lambda_function" "scan_worker"' not in stage1
-    assert 'GetScanReceipt = {' in stage1
+    assert "GetScanReceipt = {" in stage1
     assert re.search(r'kind\s*=\s*"get_receipt"', stage1)
     assert '"receipt.$" = "$.scan_receipt.receipt"' in stage1
     assert 'Name = "PHASE3_PRIVATE_SNAPSHOT_BUCKET"' not in stage1
@@ -412,7 +446,10 @@ def test_demo_account_changes_use_protected_github_oidc_terraform_workflow():
     assert "terraform apply" in workflow
     assert 'data "aws_iam_openid_connect_provider" "github"' in bootstrap
     assert "sts:AssumeRoleWithWebIdentity" in bootstrap
-    assert re.search(r'github_apply_subject\s*=\s*"repo:\$\{var\.github_repository\}:environment:\$\{var\.github_apply_environment\}"', bootstrap)
+    assert re.search(
+        r'github_apply_subject\s*=\s*"repo:\$\{var\.github_repository\}:environment:\$\{var\.github_apply_environment\}"',
+        bootstrap,
+    )
     assert "token.actions.githubusercontent.com:ref" in bootstrap
     assert 'token.actions.githubusercontent.com:workflow" = "Phase 3 Terraform"' in bootstrap
     assert 'Action   = ["s3:GetObject"]' in bootstrap
@@ -434,7 +471,9 @@ def test_control_plane_workflow_builds_lambda_and_web_assets_before_terraform_pl
     assert "actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0" in workflow
     assert "path: build/phase3" in workflow
     assert "sha256sum --check lambda.zip.sha256 web.sha256" in workflow
-    assert workflow.index("Verify the exact control-plane assets") < workflow.index("Apply only the reviewed plan")
+    assert workflow.index("Verify the exact control-plane assets") < workflow.index(
+        "Apply only the reviewed plan"
+    )
 
 
 def test_demo_account_is_cost_guarded_and_cloudtrail_is_protected():
@@ -473,7 +512,7 @@ def test_scan_image_publisher_can_only_write_the_scan_image_repository():
     assert '"ecr:GetDownloadUrlForLayer"' in publisher_policy
     assert '"ecr:PutImage"' in publisher_policy
     assert '"ecr:BatchGetImage"' in stage1
-    assert 'Resource = aws_ecr_repository.scan.arn' in stage1
+    assert "Resource = aws_ecr_repository.scan.arn" in stage1
     assert "sts:AssumeRoleWithWebIdentity" in stage1
     assert 'data "aws_iam_openid_connect_provider" "github"' in stage1
     assert 'resource "aws_iam_openid_connect_provider" "github"' not in stage1
@@ -485,8 +524,12 @@ def test_scan_image_publisher_can_only_write_the_scan_image_repository():
 
 def test_bootstrap_stack_uses_a_named_limited_role_instead_of_account_admin():
     bootstrap = (ROOT / "infra/phase3/demo-bootstrap/main.tf").read_text(encoding="utf-8")
-    plan_policy = json.loads((ROOT / "infra/phase3/policies/demo-bootstrap-plan.json").read_text(encoding="utf-8"))
-    apply_policy = json.loads((ROOT / "infra/phase3/policies/demo-bootstrap-apply.json").read_text(encoding="utf-8"))
+    plan_policy = json.loads(
+        (ROOT / "infra/phase3/policies/demo-bootstrap-plan.json").read_text(encoding="utf-8")
+    )
+    apply_policy = json.loads(
+        (ROOT / "infra/phase3/policies/demo-bootstrap-apply.json").read_text(encoding="utf-8")
+    )
     org_policy = (ROOT / "infra/phase3/org/main.tf").read_text(encoding="utf-8")
 
     assert 'data "aws_iam_openid_connect_provider" "github"' in bootstrap
@@ -513,7 +556,15 @@ def test_bootstrap_stack_uses_a_named_limited_role_instead_of_account_admin():
         "dynamodb:PutItem",
         "dynamodb:DeleteItem",
     }
-    assert _actions(apply_policy) - _actions(plan_policy) <= {"iam:CreateRole", "iam:UpdateAssumeRolePolicy", "iam:TagRole", "iam:UntagRole", "iam:PutRolePolicy", "iam:DeleteRolePolicy", "s3:PutObject"}
+    assert _actions(apply_policy) - _actions(plan_policy) <= {
+        "iam:CreateRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "s3:PutObject",
+    }
     assert not (_actions(plan_policy) & {"iam:CreateRole", "iam:PutRolePolicy", "s3:PutObject"})
     plan_resources = [item["Resource"] for item in plan_policy["Statement"]]
     apply_resources = [item["Resource"] for item in apply_policy["Statement"]]
@@ -530,11 +581,21 @@ def test_read_only_scan_target_requires_exact_named_role_and_no_private_store_pe
     scan_task = (ROOT / "phase3/scan_task.py").read_text(encoding="utf-8")
 
     assert "if not role_match:" in scan_task
-    assert '"AssumeOnlyTheDemoReadOnlyRole"' in (ROOT / "infra/phase3/policies/scan-worker-runtime.json").read_text(
-        encoding="utf-8"
+    assert '"AssumeOnlyTheDemoReadOnlyRole"' in (
+        ROOT / "infra/phase3/policies/scan-worker-runtime.json"
+    ).read_text(encoding="utf-8")
+    assert (
+        '"dynamodb:PutItem"'
+        not in stage1.split('resource "aws_iam_role_policy" "scan_task_assume_target"')[1].split("resource")[
+            0
+        ]
     )
-    assert '"dynamodb:PutItem"' not in stage1.split('resource "aws_iam_role_policy" "scan_task_assume_target"')[1].split("resource")[0]
-    assert '"s3:PutObject"' not in stage1.split('resource "aws_iam_role_policy" "scan_task_assume_target"')[1].split("resource")[0]
+    assert (
+        '"s3:PutObject"'
+        not in stage1.split('resource "aws_iam_role_policy" "scan_task_assume_target"')[1].split("resource")[
+            0
+        ]
+    )
 
 
 def test_demo_account_terraform_uses_encrypted_remote_state_and_is_in_ci_validation():
@@ -543,9 +604,9 @@ def test_demo_account_terraform_uses_encrypted_remote_state_and_is_in_ci_validat
     deploy = (ROOT / ".github/workflows/phase3-terraform.yml").read_text(encoding="utf-8")
 
     assert 'backend "s3" {}' in versions
-    assert 'infra/phase3/demo-account' in workflow
+    assert "infra/phase3/demo-account" in workflow
     assert 'backend-config="encrypt=true"' in deploy
-    assert 'TF_VAR_scan_task_role_arn' in deploy
+    assert "TF_VAR_scan_task_role_arn" in deploy
 
 
 def test_scan_image_has_a_human_verifiable_signed_digest_pinned_release_path():

@@ -33,26 +33,34 @@ class _FakeIam:
         self.calls = []
         self.trust = {
             "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Principal": {
-                    "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
-                },
-                "Action": "sts:AssumeRoleWithWebIdentity",
-            "Condition": {"StringEquals": {
-                "sts:ExternalId": "fixture-external-id-value",
-                "aws:PrincipalTag/private-tenant-key": "private-tenant-condition-value",
-            }},
-            }],
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "sts:ExternalId": "fixture-external-id-value",
+                            "aws:PrincipalTag/private-tenant-key": "private-tenant-condition-value",
+                        }
+                    },
+                }
+            ],
         }
         self.policy = {
             "Version": "2012-10-17",
-            "Statement": [{
-                "Effect": "Allow",
-                "Action": ["s3:GetObject"],
-                "Resource": "arn:aws:s3:::private-state-bucket/*",
-                "Condition": {"StringEquals": {"aws:PrincipalTag/private-workspace-key": "private-tenant-label"}},
-            }],
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": ["s3:GetObject"],
+                    "Resource": "arn:aws:s3:::private-state-bucket/*",
+                    "Condition": {
+                        "StringEquals": {"aws:PrincipalTag/private-workspace-key": "private-tenant-label"}
+                    },
+                }
+            ],
         }
 
     def get_role(self, *, RoleName):
@@ -116,15 +124,20 @@ def test_role_capture_writes_actual_policy_artifacts_and_hash_receipt(tmp_path):
         "arn:aws:iam::<TARGET_ACCOUNT>:oidc-provider/token.actions.githubusercontent.com"
     )
     assert sanitized_trust["Statement"][0]["Condition"]["StringEquals"]["sts:ExternalId"] == "<EXTERNAL_ID>"
-    assert sanitized_trust["Statement"][0]["Condition"]["StringEquals"]["aws:PrincipalTag/<CONDITION_KEY_1>"] == "<CONDITION_VALUE>"
+    assert (
+        sanitized_trust["Statement"][0]["Condition"]["StringEquals"]["aws:PrincipalTag/<CONDITION_KEY_1>"]
+        == "<CONDITION_VALUE>"
+    )
     projected_policy = {
         "Version": "2012-10-17",
-        "Statement": [{
-            "Effect": "Allow",
-            "Action": ["s3:GetObject"],
-            "Resource": "arn:aws:s3:::<RESOURCE_PATTERN>",
-            "Condition": {"StringEquals": {"aws:PrincipalTag/<CONDITION_KEY_1>": "<CONDITION_VALUE>"}},
-        }],
+        "Statement": [
+            {
+                "Effect": "Allow",
+                "Action": ["s3:GetObject"],
+                "Resource": "arn:aws:s3:::<RESOURCE_PATTERN>",
+                "Condition": {"StringEquals": {"aws:PrincipalTag/<CONDITION_KEY_1>": "<CONDITION_VALUE>"}},
+            }
+        ],
     }
     assert json.loads((evidence_dir / "attached-policies.json").read_text()) == [
         {
@@ -148,9 +161,7 @@ def test_role_capture_writes_actual_policy_artifacts_and_hash_receipt(tmp_path):
     )
     assert all(
         digests["source_evidence_sha256"][path]
-        == hashlib.sha256(
-            (tmp_path / "docs/evidence" / path).read_bytes()
-        ).hexdigest()
+        == hashlib.sha256((tmp_path / "docs/evidence" / path).read_bytes()).hexdigest()
         for path in digests["source_evidence_sha256"]
     )
     assert set(digests["source_evidence_sha256"]) == {
@@ -423,7 +434,9 @@ def test_role_capture_rejects_managed_policy_arn_mismatch(tmp_path):
     (tmp_path / "docs/evidence").mkdir(parents=True)
     iam = _FakeIam()
     original_get_policy = iam.get_policy
-    iam.get_policy = lambda *, PolicyArn: original_get_policy(PolicyArn="arn:aws:iam::123456789012:policy/Other")
+    iam.get_policy = lambda *, PolicyArn: original_get_policy(
+        PolicyArn="arn:aws:iam::123456789012:policy/Other"
+    )
 
     with pytest.raises(RoleCaptureError, match="does not match the requested ARN"):
         capture_role_evidence(
@@ -589,14 +602,23 @@ def test_capture_cli_rejects_root_identity_before_iam_calls(tmp_path, monkeypatc
     iam = _FakeIam()
     session = _FakeSession(arn="arn:aws:iam::123456789012:root", account="123456789012", iam=iam)
     monkeypatch.setattr(capture_cli.boto3, "Session", lambda profile_name: session)
-    monkeypatch.setattr(sys, "argv", [
-        "capture_phase3_role_evidence.py",
-        "--root", str(tmp_path),
-        "--profile", "default",
-        "--stack", "org",
-        "--phase", "plan",
-        "--role-arn", ROLE_ARN,
-    ])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "capture_phase3_role_evidence.py",
+            "--root",
+            str(tmp_path),
+            "--profile",
+            "default",
+            "--stack",
+            "org",
+            "--phase",
+            "plan",
+            "--role-arn",
+            ROLE_ARN,
+        ],
+    )
 
     assert capture_cli.main() == 1
     assert "Root credentials are not accepted" in capsys.readouterr().err
@@ -612,14 +634,23 @@ def test_capture_cli_does_not_change_manifest_review_state(tmp_path, monkeypatch
         iam=iam,
     )
     monkeypatch.setattr(capture_cli.boto3, "Session", lambda profile_name: session)
-    monkeypatch.setattr(sys, "argv", [
-        "capture_phase3_role_evidence.py",
-        "--root", str(tmp_path),
-        "--profile", "audit-readonly",
-        "--stack", "org",
-        "--phase", "plan",
-        "--role-arn", ROLE_ARN,
-    ])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "capture_phase3_role_evidence.py",
+            "--root",
+            str(tmp_path),
+            "--profile",
+            "audit-readonly",
+            "--stack",
+            "org",
+            "--phase",
+            "plan",
+            "--role-arn",
+            ROLE_ARN,
+        ],
+    )
     evidence = tmp_path / "docs/evidence"
     evidence.mkdir(parents=True)
     manifest = evidence / "phase3-role-scope.json"
@@ -640,14 +671,23 @@ def test_capture_cli_rejects_cross_account_profile_before_iam_calls(tmp_path, mo
         iam=iam,
     )
     monkeypatch.setattr(capture_cli.boto3, "Session", lambda profile_name: session)
-    monkeypatch.setattr(sys, "argv", [
-        "capture_phase3_role_evidence.py",
-        "--root", str(tmp_path),
-        "--profile", "audit-readonly",
-        "--stack", "org",
-        "--phase", "plan",
-        "--role-arn", ROLE_ARN,
-    ])
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "capture_phase3_role_evidence.py",
+            "--root",
+            str(tmp_path),
+            "--profile",
+            "audit-readonly",
+            "--stack",
+            "org",
+            "--phase",
+            "plan",
+            "--role-arn",
+            ROLE_ARN,
+        ],
+    )
 
     assert capture_cli.main() == 1
     assert "must belong to the same AWS account" in capsys.readouterr().err

@@ -34,7 +34,12 @@ def _finding(**updates):
         "evidence": {"principal_arn": "arn:aws:iam::123456789012:user/alice"},
         "remediation": "Enable all four bucket public access block settings.",
         "references": [
-            {"type": "compliance", "framework": "CIS AWS Foundations", "id": "2.1.5", "title": "Protect S3 buckets"}
+            {
+                "type": "compliance",
+                "framework": "CIS AWS Foundations",
+                "id": "2.1.5",
+                "title": "Protect S3 buckets",
+            }
         ],
         "lifecycle_state": "open",
         "detected_at": "2026-11-02T10:00:00+00:00",
@@ -149,7 +154,9 @@ def test_redaction_removes_resource_and_principal_names_embedded_in_allowed_pros
         "policy_name": "lab-full-admin",
     }
     finding["title"] = "Bucket lab-public-assets has a public policy"
-    finding["description"] = "The IAM user 'alice-admin' has a policy 'lab-full-admin' on bucket 'lab-public-assets'."
+    finding["description"] = (
+        "The IAM user 'alice-admin' has a policy 'lab-full-admin' on bucket 'lab-public-assets'."
+    )
     finding["remediation"] = "Update lab-public-assets after reviewing the lab-full-admin policy."
 
     public = redact_snapshot(report, HMAC_KEY)
@@ -191,7 +198,14 @@ def test_public_evidence_summary_keeps_only_bounded_safe_facts():
         "disabled_setting_count": 2,
     }
     encoded = repr(public)
-    for secret in ("alice-admin", "arn:aws", "username", "principal_arn", "private_future_field", "must not be reflected"):
+    for secret in (
+        "alice-admin",
+        "arn:aws",
+        "username",
+        "principal_arn",
+        "private_future_field",
+        "must not be reflected",
+    ):
         assert secret not in encoded
 
 
@@ -204,7 +218,9 @@ def test_public_evidence_summary_rejects_unknown_keys_and_invalid_values():
 
 
 def test_public_json_schema_declares_the_same_closed_evidence_summary_allowlist():
-    schema = json.loads((Path(__file__).resolve().parents[1] / "schemas/public-snapshot-v2.schema.json").read_text())
+    schema = json.loads(
+        (Path(__file__).resolve().parents[1] / "schemas/public-snapshot-v2.schema.json").read_text()
+    )
     finding_schema = schema["$defs"]["finding"]
     evidence_schema = schema["$defs"]["evidenceSummary"]
 

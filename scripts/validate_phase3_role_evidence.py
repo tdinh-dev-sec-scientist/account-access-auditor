@@ -16,7 +16,9 @@ from phase3.role_evidence import RoleEvidenceError, validate_role_scope_evidence
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--stack", choices=("org", "demo-bootstrap", "demo-account", "control-plane"), required=True)
+    parser.add_argument(
+        "--stack", choices=("org", "demo-bootstrap", "demo-account", "control-plane"), required=True
+    )
     parser.add_argument("--phase", choices=("plan", "apply"), required=True)
     args = parser.parse_args()
     try:

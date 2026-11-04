@@ -14,7 +14,9 @@ def test_quota_allows_ten_questions_per_session_and_blocks_the_eleventh():
     table = _table()
     now = datetime(2026, 11, 3, 12, 0, tzinfo=UTC)
 
-    decisions = [consume_quota(table, "session-token-with-high-entropy-123456", 100, now=now) for _ in range(11)]
+    decisions = [
+        consume_quota(table, "session-token-with-high-entropy-123456", 100, now=now) for _ in range(11)
+    ]
 
     assert [item["allowed"] for item in decisions] == [True] * 10 + [False]
     assert decisions[-1]["reason"] == "SESSION_LIMIT"

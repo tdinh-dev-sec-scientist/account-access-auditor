@@ -42,42 +42,49 @@ def _write_manifest(
             evidence_hashes = {}
             if accepted and include_evidence:
                 evidence = list(_evidence_files(role_stack, role_phase))
-                provider_arn = "arn:aws:iam::<TARGET_ACCOUNT>:oidc-provider/token.actions.githubusercontent.com"
+                provider_arn = (
+                    "arn:aws:iam::<TARGET_ACCOUNT>:oidc-provider/token.actions.githubusercontent.com"
+                )
                 trust_policy = {
                     "Version": "2012-10-17",
-                    "Statement": [{
-                        "Effect": "Allow",
-                        "Principal": {"Federated": provider_arn},
-                        "Action": "sts:AssumeRoleWithWebIdentity",
-                        "Condition": {
-                            "StringEquals": {
-                                "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-                                "token.actions.githubusercontent.com:workflow": "Phase 3 Terraform",
-                                "token.actions.githubusercontent.com:ref": "refs/heads/main",
-                                "token.actions.githubusercontent.com:sub": f"repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-{role_stack}-{role_phase}",
-                            }
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {"Federated": provider_arn},
+                            "Action": "sts:AssumeRoleWithWebIdentity",
+                            "Condition": {
+                                "StringEquals": {
+                                    "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                                    "token.actions.githubusercontent.com:workflow": "Phase 3 Terraform",
+                                    "token.actions.githubusercontent.com:ref": "refs/heads/main",
+                                    "token.actions.githubusercontent.com:sub": f"repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-{role_stack}-{role_phase}",
+                                }
+                            },
                         },
-                    },
                     ],
                 }
                 identity_policy = {
                     "Version": "2012-10-17",
-                    "Statement": [{
-                        "Effect": "Allow",
-                        "Action": ["s3:ListBucket"],
-                        "Resource": "arn:aws:s3:::phase3-terraform-state",
-                    }],
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": ["s3:ListBucket"],
+                            "Resource": "arn:aws:s3:::phase3-terraform-state",
+                        }
+                    ],
                 }
                 artifacts = {
                     evidence[0]: trust_policy,
-                    evidence[1]: [{
-                        "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/Phase3Terraform",
-                        "DefaultVersionId": "v1",
-                        "PolicyDocument": identity_policy,
-                    }],
+                    evidence[1]: [
+                        {
+                            "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/Phase3Terraform",
+                            "DefaultVersionId": "v1",
+                            "PolicyDocument": identity_policy,
+                        }
+                    ],
                     evidence[2]: [],
                     evidence[3]: {
-                    "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/Phase3TerraformBoundary",
+                        "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/Phase3TerraformBoundary",
                         "DefaultVersionId": "v1",
                         "PolicyDocument": identity_policy,
                     },
@@ -97,7 +104,9 @@ def _write_manifest(
                 "source_evidence_sha256": {
                     path: hashlib.sha256(f"private-source:{path}".encode()).hexdigest()
                     for path in ROLE_SOURCE_FILES[role_stack][role_phase]
-                } if accepted else {},
+                }
+                if accepted
+                else {},
             }
     manifest = {"schema_version": 3, "roles": roles}
     path = evidence_root / "phase3-role-scope.json"
@@ -157,7 +166,9 @@ def test_plan_role_trust_policy_cannot_also_trust_the_apply_environment(tmp_path
     evidence.write_text(json.dumps(trust, sort_keys=True) + "\n", encoding="utf-8")
     manifest_path = tmp_path / "docs/evidence/phase3-role-scope.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["roles"]["org"]["plan"]["evidence_sha256"][relative] = hashlib.sha256(evidence.read_bytes()).hexdigest()
+    manifest["roles"]["org"]["plan"]["evidence_sha256"][relative] = hashlib.sha256(
+        evidence.read_bytes()
+    ).hexdigest()
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
     result = _run(tmp_path, stack="org", phase="plan")
@@ -222,7 +233,9 @@ def test_role_evidence_gate_rejects_empty_or_irrelevant_policy_artifacts(tmp_pat
     evidence.write_text('{"Version":"2012-10-17","Statement":[]}\n', encoding="utf-8")
     manifest_path = tmp_path / "docs/evidence/phase3-role-scope.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["roles"]["org"]["plan"]["evidence_sha256"][_evidence_files("org")[1]] = hashlib.sha256(evidence.read_bytes()).hexdigest()
+    manifest["roles"]["org"]["plan"]["evidence_sha256"][_evidence_files("org")[1]] = hashlib.sha256(
+        evidence.read_bytes()
+    ).hexdigest()
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
     result = _run(tmp_path, stack="org")
@@ -241,7 +254,9 @@ def test_role_evidence_gate_rejects_wildcards_in_github_trust_subjects(tmp_path)
     evidence.write_text(json.dumps(trust, sort_keys=True) + "\n", encoding="utf-8")
     manifest_path = tmp_path / "docs/evidence/phase3-role-scope.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["roles"]["org"]["plan"]["evidence_sha256"][_evidence_files("org")[0]] = hashlib.sha256(evidence.read_bytes()).hexdigest()
+    manifest["roles"]["org"]["plan"]["evidence_sha256"][_evidence_files("org")[0]] = hashlib.sha256(
+        evidence.read_bytes()
+    ).hexdigest()
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
     result = _run(tmp_path, stack="org")

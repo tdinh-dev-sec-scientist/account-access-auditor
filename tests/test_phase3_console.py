@@ -13,12 +13,14 @@ def test_live_console_accepts_only_validated_public_snapshot_fields():
 
     assert 'snapshot.schema_version !== "2.0.0"' in script
     assert 'new Set(["PASS", "FAIL", "UNKNOWN", "ERROR"])' in script
-    assert 'snapshot.findings.length > 2000' in script
+    assert "snapshot.findings.length > 2000" in script
     assert "function mapPublicFinding" in script
-    assert 'resource: finding.resource_ref' in script
+    assert "resource: finding.resource_ref" in script
     assert "function mapPublicEvidenceSummary" in script
     assert "evidence: mapPublicEvidenceSummary(finding.evidence_summary)" in script
-    assert 'fetch("/api/latest"' not in script  # latest uses a same-origin URL object with origin verification
+    assert (
+        'fetch("/api/latest"' not in script
+    )  # latest uses a same-origin URL object with origin verification
     assert 'new URL("/api/latest", window.location.href)' in script
     assert "apiUrl.origin !== window.location.origin" in script
 
@@ -84,9 +86,9 @@ def test_console_has_a_clear_security_and_limitations_view():
     assert "Rin stays disabled" in script
     assert "private snapshot writer" in script
     assert "Actual AWS role-policy captures are still pending review" in script
-    assert 'infra/phase3/policies/target-readonly.json' in script
-    assert 'tests/test_phase3_redaction.py' in script
-    assert 'docs/phase3-status.md' in script
+    assert "infra/phase3/policies/target-readonly.json" in script
+    assert "tests/test_phase3_redaction.py" in script
+    assert "docs/phase3-status.md" in script
     assert 'link.rel = "noopener noreferrer"' in script
     assert "module-evidence-links" in script
     assert re.search(r"\.module-evidence-link\s*\{[^}]*min-height:\s*44px", styles)
@@ -97,10 +99,10 @@ def test_live_rin_sends_one_public_finding_and_never_uses_cross_origin_requests(
 
     assert 'fetch("/api/rin"' in script
     assert 'method: "POST"' in script
-    assert 'finding_id: finding.publicId' in script
+    assert "finding_id: finding.publicId" in script
     assert "function getRinSessionToken" in script
     assert "window.crypto.getRandomValues" in script
-    assert 'sessionStorage.setItem(key, rinSessionToken)' in script
+    assert "sessionStorage.setItem(key, rinSessionToken)" in script
     assert "safe evidence summary" in script
 
 
@@ -131,7 +133,13 @@ def test_phase3_deploy_bundle_contains_only_allowlisted_console_assets(tmp_path)
         text=True,
     )
     assert result.returncode == 0, result.stderr
-    assert {path.name for path in output.iterdir()} == {"index.html", "console.css", "console.js", "status.js", "knowledge.js"}
+    assert {path.name for path in output.iterdir()} == {
+        "index.html",
+        "console.css",
+        "console.js",
+        "status.js",
+        "knowledge.js",
+    }
     built_html = (output / "index.html").read_text(encoding="utf-8")
     built_script = (output / "console.js").read_text(encoding="utf-8")
     built_styles = (output / "console.css").read_text(encoding="utf-8")
@@ -143,7 +151,14 @@ def test_phase3_deploy_bundle_contains_only_allowlisted_console_assets(tmp_path)
     assert "workspace.inert = open" in built_script
     assert re.search(r"\.module-evidence-link\s*\{[^}]*min-height:\s*44px", built_styles)
     combined = "\n".join(path.read_text(encoding="utf-8") for path in output.iterdir())
-    for value in ("123456789012", "arn:aws:iam", "principal_arn", "lab-admin-console-nomfa", "lab-public-assets", "lab-full-admin"):
+    for value in (
+        "123456789012",
+        "arn:aws:iam",
+        "principal_arn",
+        "lab-admin-console-nomfa",
+        "lab-public-assets",
+        "lab-full-admin",
+    ):
         assert value not in combined
     assert '"evidence":{"policy_is_aws_managed":false,"statement_count":1}' in combined.replace(" ", "")
     assert '"principal_arn"' not in combined

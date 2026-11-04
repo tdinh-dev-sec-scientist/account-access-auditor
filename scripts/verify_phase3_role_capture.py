@@ -17,7 +17,9 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--stack", choices=("org", "control-plane"), required=True)
     parser.add_argument("--phase", choices=("plan", "apply"), required=True)
-    parser.add_argument("--role-arn", required=True, help="Exact role ARN from the protected workflow environment")
+    parser.add_argument(
+        "--role-arn", required=True, help="Exact role ARN from the protected workflow environment"
+    )
     args = parser.parse_args()
 
     try:

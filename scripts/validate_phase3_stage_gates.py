@@ -58,7 +58,13 @@ def _runtime_bindings() -> tuple[str | None, int | None, float | None]:
     if monthly is None or request_cost <= 0:
         daily_cap = 0
     else:
-        daily_cap = min(1000, max(0, int(((monthly * Decimal("0.8") / 30) / request_cost).to_integral_value(rounding=ROUND_FLOOR))))
+        daily_cap = min(
+            1000,
+            max(
+                0,
+                int(((monthly * Decimal("0.8") / 30) / request_cost).to_integral_value(rounding=ROUND_FLOOR)),
+            ),
+        )
     return account_hash, daily_cap, float(monthly) if monthly is not None else None
 
 

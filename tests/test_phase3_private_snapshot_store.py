@@ -93,33 +93,36 @@ def _store():
         ],
         BillingMode="PAY_PER_REQUEST",
     )
-    return PrivateSnapshotStore(
-        bucket_name="phase3-private-snapshots",
-        account_id=ACCOUNT_ID,
-        s3_client=s3,
-        run_index_table=table,
-        temporary_directory=None,
-    ), s3, table
+    return (
+        PrivateSnapshotStore(
+            bucket_name="phase3-private-snapshots",
+            account_id=ACCOUNT_ID,
+            s3_client=s3,
+            run_index_table=table,
+            temporary_directory=None,
+        ),
+        s3,
+        table,
+    )
 
 
 @mock_aws
 def test_private_store_persists_immutable_snapshots_and_replays_drift():
     store, s3, table = _store()
-    first = store.persist(
-        _report("run-1", "2026-11-01T00:00:00+00:00", findings=[_finding()])
-    )
-    second = store.persist(
-        _report("run-2", "2026-11-02T00:00:00+00:00", findings=[])
-    )
+    first = store.persist(_report("run-1", "2026-11-01T00:00:00+00:00", findings=[_finding()]))
+    second = store.persist(_report("run-2", "2026-11-02T00:00:00+00:00", findings=[]))
 
     assert first["drift_counts"]["new"] == 1
     assert second["drift_counts"]["resolved"] == 1
     assert first["snapshot_key"] != second["snapshot_key"]
     stored = json.loads(s3.get_object(Bucket=store.bucket_name, Key=second["snapshot_key"])["Body"].read())
     assert stored["drift"][0]["state"] == "resolved"
-    assert table.query(KeyConditionExpression=boto3.dynamodb.conditions.Key("account_id").eq(ACCOUNT_ID))[
-        "Count"
-    ] == 2
+    assert (
+        table.query(KeyConditionExpression=boto3.dynamodb.conditions.Key("account_id").eq(ACCOUNT_ID))[
+            "Count"
+        ]
+        == 2
+    )
     assert store.get_receipt("run-2")["snapshot_key"] == second["snapshot_key"]
 
 
@@ -145,9 +148,7 @@ def test_incomplete_scan_keeps_absence_as_unknown_not_resolved():
     store, _s3, _table = _store()
     store.persist(_report("run-1", "2026-11-01T00:00:00+00:00", findings=[_finding()]))
 
-    partial = store.persist(
-        _report("run-2", "2026-11-02T00:00:00+00:00", findings=[], complete=False)
-    )
+    partial = store.persist(_report("run-2", "2026-11-02T00:00:00+00:00", findings=[], complete=False))
 
     assert partial["drift_counts"]["unknown"] == 1
     assert partial["drift_counts"]["resolved"] == 0

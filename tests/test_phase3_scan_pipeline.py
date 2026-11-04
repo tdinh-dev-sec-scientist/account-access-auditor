@@ -62,7 +62,12 @@ def test_snapshot_writer_can_record_failure_without_persisting_untrusted_error_t
 def test_snapshot_writer_rejects_raw_failure_details():
     with pytest.raises(SnapshotWriterError, match="failure event is invalid"):
         snapshot_writer_handler(
-            {"kind": "scan_failure", "run_id": "run-2", "completed_at": "2026-11-03T12:00:00+00:00", "error": "raw"},
+            {
+                "kind": "scan_failure",
+                "run_id": "run-2",
+                "completed_at": "2026-11-03T12:00:00+00:00",
+                "error": "raw",
+            },
             object(),
         )
 
@@ -75,4 +80,7 @@ def test_snapshot_writer_reads_one_completed_receipt_by_run_id():
             assert run_id == "run-2"
             return expected
 
-    assert snapshot_writer_handler({"kind": "get_receipt", "run_id": "run-2"}, object(), store=Store()) == expected
+    assert (
+        snapshot_writer_handler({"kind": "get_receipt", "run_id": "run-2"}, object(), store=Store())
+        == expected
+    )

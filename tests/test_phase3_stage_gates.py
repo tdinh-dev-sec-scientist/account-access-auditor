@@ -81,14 +81,34 @@ SOURCE_REPORTS = {
         "export_window_start": "2026-11-02T00:00:00+00:00",
         "export_window_end": "2026-11-02T06:21:00+00:00",
         "scheduled_executions": [
-            {"scan_run_id": "scan-1", "scheduled_at": "2026-11-02T00:00:00+00:00", "workflow_started_at": "2026-11-02T00:01:00+00:00", "scan_started_at": "2026-11-02T00:05:00+00:00", "status": "complete", "snapshot_sha256": "a" * 64},
-            {"scan_run_id": "scan-2", "scheduled_at": "2026-11-02T06:00:00+00:00", "workflow_started_at": "2026-11-02T06:02:00+00:00", "scan_started_at": "2026-11-02T06:06:00+00:00", "status": "complete", "snapshot_sha256": "b" * 64},
+            {
+                "scan_run_id": "scan-1",
+                "scheduled_at": "2026-11-02T00:00:00+00:00",
+                "workflow_started_at": "2026-11-02T00:01:00+00:00",
+                "scan_started_at": "2026-11-02T00:05:00+00:00",
+                "status": "complete",
+                "snapshot_sha256": "a" * 64,
+            },
+            {
+                "scan_run_id": "scan-2",
+                "scheduled_at": "2026-11-02T06:00:00+00:00",
+                "workflow_started_at": "2026-11-02T06:02:00+00:00",
+                "scan_started_at": "2026-11-02T06:06:00+00:00",
+                "status": "complete",
+                "snapshot_sha256": "b" * 64,
+            },
         ],
     },
     "stage3/source-reports/external-tls.json": {"scanner": "test-scanner", "tls": "pass", "headers": "pass"},
     "stage3/source-reports/browser-network.json": {"requests": [], "unapproved_third_party_requests": 0},
-    "stage3/source-reports/lighthouse.json": {"pages": ["dashboard", "finding", "rin"], "minimum_performance": 90},
-    "stage3/source-reports/accessibility.json": {"pages": ["dashboard", "finding", "rin"], "critical_violations": 0},
+    "stage3/source-reports/lighthouse.json": {
+        "pages": ["dashboard", "finding", "rin"],
+        "minimum_performance": 90,
+    },
+    "stage3/source-reports/accessibility.json": {
+        "pages": ["dashboard", "finding", "rin"],
+        "critical_violations": 0,
+    },
     "stage4/source-reports/load-test.json": {"traffic_multipliers": [1, 2, 4], "waf_limits_engaged": True},
     "stage4/source-reports/aws-cost-explorer.json": {"currency": "USD", "actual_usd": 8.5},
     "stage4/source-reports/provider-cost.json": {"currency": "USD", "actual_usd": 3.0},
@@ -106,8 +126,22 @@ def _stage_artifact(relative: str, reviewer: str, reviewed_at: str) -> dict:
         return {
             **common,
             "scans": [
-                {"scan_run_id": "scan-1", "trigger": "scheduled", "status": "complete", "started_at": "2026-11-02T00:05:00+00:00", "completed_at": "2026-11-02T00:20:00+00:00", "snapshot_sha256": "a" * 64},
-                {"scan_run_id": "scan-2", "trigger": "scheduled", "status": "complete", "started_at": "2026-11-02T06:06:00+00:00", "completed_at": "2026-11-02T06:21:00+00:00", "snapshot_sha256": "b" * 64},
+                {
+                    "scan_run_id": "scan-1",
+                    "trigger": "scheduled",
+                    "status": "complete",
+                    "started_at": "2026-11-02T00:05:00+00:00",
+                    "completed_at": "2026-11-02T00:20:00+00:00",
+                    "snapshot_sha256": "a" * 64,
+                },
+                {
+                    "scan_run_id": "scan-2",
+                    "trigger": "scheduled",
+                    "status": "complete",
+                    "started_at": "2026-11-02T06:06:00+00:00",
+                    "completed_at": "2026-11-02T06:21:00+00:00",
+                    "snapshot_sha256": "b" * 64,
+                },
             ],
             "target_account_label": "demo-account",
             "target_account_id_sha256": "7" * 64,
@@ -116,45 +150,201 @@ def _stage_artifact(relative: str, reviewer: str, reviewed_at: str) -> dict:
             "consecutive_schedule_runs": True,
         }
     if relative == "stage1/drift-review.json":
-        return {**common, "terraform_change_sha256": "c" * 64, "previous_scan_run_id": "scan-1", "current_scan_run_id": "scan-2", "new_finding_ids": ["finding-new"], "resolved_finding_ids": ["finding-resolved"]}
+        return {
+            **common,
+            "terraform_change_sha256": "c" * 64,
+            "previous_scan_run_id": "scan-1",
+            "current_scan_run_id": "scan-2",
+            "new_finding_ids": ["finding-new"],
+            "resolved_finding_ids": ["finding-resolved"],
+        }
     if relative == "stage1/read-only-role-review.json":
-        return {**common, "role_arn_sha256": "d" * 64, "policy_evidence_sha256": "e" * 64, "effective_write_actions": []}
+        return {
+            **common,
+            "role_arn_sha256": "d" * 64,
+            "policy_evidence_sha256": "e" * 64,
+            "effective_write_actions": [],
+        }
     if relative == "stage2/redaction-test-results.json":
-        return {**common, "test_suite_sha256": "f" * 64, "passed_case_categories": ["account_id", "arn", "ip_address", "email", "access_key", "unknown_field", "stable_pseudonym"], "failed_case_ids": [], "leaked_identifier_count": 0, "published_unapproved_fields": 0}
+        return {
+            **common,
+            "test_suite_sha256": "f" * 64,
+            "passed_case_categories": [
+                "account_id",
+                "arn",
+                "ip_address",
+                "email",
+                "access_key",
+                "unknown_field",
+                "stable_pseudonym",
+            ],
+            "failed_case_ids": [],
+            "leaked_identifier_count": 0,
+            "published_unapproved_fields": 0,
+        }
     if relative == "stage2/publisher-failure.json":
-        return {**common, "injected_failure": "schema_validation", "previous_snapshot_sha256": "1" * 64, "published_snapshot_sha256": "1" * 64, "last_good_preserved": True}
+        return {
+            **common,
+            "injected_failure": "schema_validation",
+            "previous_snapshot_sha256": "1" * 64,
+            "published_snapshot_sha256": "1" * 64,
+            "last_good_preserved": True,
+        }
     if relative == "stage2/public-api-methods.json":
-        return {**common, "method_results": {"GET": "served", "HEAD": "served", **dict.fromkeys(("OPTIONS", "PATCH", "POST", "PUT", "DELETE", "TRACE", "CONNECT"), "rejected")}}
+        return {
+            **common,
+            "method_results": {
+                "GET": "served",
+                "HEAD": "served",
+                **dict.fromkeys(
+                    ("OPTIONS", "PATCH", "POST", "PUT", "DELETE", "TRACE", "CONNECT"), "rejected"
+                ),
+            },
+        }
     if relative == "stage3/transport-security.json":
         external = _stage_artifact("stage3/external-tls-scan.json", reviewer, reviewed_at)
         digest = hashlib.sha256((json.dumps(external, sort_keys=True) + "\n").encode()).hexdigest()
-        return {**common, "http_redirect_status": 301, "https_status": 200, "headers": {"strict_transport_security": True, "content_security_policy": True, "x_content_type_options": True, "referrer_policy": True, "frame_ancestors": True}, "external_scan_evidence_path": "stage3/external-tls-scan.json", "external_scan_sha256": digest}
+        return {
+            **common,
+            "http_redirect_status": 301,
+            "https_status": 200,
+            "headers": {
+                "strict_transport_security": True,
+                "content_security_policy": True,
+                "x_content_type_options": True,
+                "referrer_policy": True,
+                "frame_ancestors": True,
+            },
+            "external_scan_evidence_path": "stage3/external-tls-scan.json",
+            "external_scan_sha256": digest,
+        }
     if relative == "stage3/external-tls-scan.json":
         report = "stage3/source-reports/external-tls.json"
-        return {**common, "provider": "external-scanner", "scanned_at": "2026-11-03T00:00:00+00:00", "tls_result": "pass", "security_headers_result": "pass", "source_report_evidence_path": report, "source_report_sha256": hashlib.sha256(_source_report_bytes(report)).hexdigest()}
+        return {
+            **common,
+            "provider": "external-scanner",
+            "scanned_at": "2026-11-03T00:00:00+00:00",
+            "tls_result": "pass",
+            "security_headers_result": "pass",
+            "source_report_evidence_path": report,
+            "source_report_sha256": hashlib.sha256(_source_report_bytes(report)).hexdigest(),
+        }
     if relative == "stage3/privacy-accessibility.json":
-        browser, lighthouse, accessibility = ("stage3/source-reports/browser-network.json", "stage3/source-reports/lighthouse.json", "stage3/source-reports/accessibility.json")
-        return {**common, "browser_network_report_evidence_path": browser, "browser_network_log_sha256": hashlib.sha256(_source_report_bytes(browser)).hexdigest(), "unapproved_third_party_requests": [], "lighthouse_report_evidence_path": lighthouse, "lighthouse_report_sha256": hashlib.sha256(_source_report_bytes(lighthouse)).hexdigest(), "accessibility_report_evidence_path": accessibility, "accessibility_report_sha256": hashlib.sha256(_source_report_bytes(accessibility)).hexdigest(), "pages_checked": ["dashboard", "finding", "rin"]}
+        browser, lighthouse, accessibility = (
+            "stage3/source-reports/browser-network.json",
+            "stage3/source-reports/lighthouse.json",
+            "stage3/source-reports/accessibility.json",
+        )
+        return {
+            **common,
+            "browser_network_report_evidence_path": browser,
+            "browser_network_log_sha256": hashlib.sha256(_source_report_bytes(browser)).hexdigest(),
+            "unapproved_third_party_requests": [],
+            "lighthouse_report_evidence_path": lighthouse,
+            "lighthouse_report_sha256": hashlib.sha256(_source_report_bytes(lighthouse)).hexdigest(),
+            "accessibility_report_evidence_path": accessibility,
+            "accessibility_report_sha256": hashlib.sha256(_source_report_bytes(accessibility)).hexdigest(),
+            "pages_checked": ["dashboard", "finding", "rin"],
+        }
     if relative == "stage3/rin-evaluation.json":
-        categories = ("prompt_injection", "hostile_evidence", "secret_leakage", "citation_grounding", "unsupported_question", "response_schema", "provider_error_fallback")
-        return {**common, "test_suite_sha256": "3" * 64, "cases": [{"case_id": category, "category": category, "passed": True} for category in categories]}
+        categories = (
+            "prompt_injection",
+            "hostile_evidence",
+            "secret_leakage",
+            "citation_grounding",
+            "unsupported_question",
+            "response_schema",
+            "provider_error_fallback",
+        )
+        return {
+            **common,
+            "test_suite_sha256": "3" * 64,
+            "cases": [{"case_id": category, "category": category, "passed": True} for category in categories],
+        }
     if relative == "stage3/quota-fallbacks.json":
-        return {**common, "per_session_limit": 10, "daily_invocation_limit": 100, "monthly_budget_usd": 25.0, "cases": {name: {"limit_reached": True, "response_mode": "fixture"} for name in ("session", "daily", "monthly_budget")}}
+        return {
+            **common,
+            "per_session_limit": 10,
+            "daily_invocation_limit": 100,
+            "monthly_budget_usd": 25.0,
+            "cases": {
+                name: {"limit_reached": True, "response_mode": "fixture"}
+                for name in ("session", "daily", "monthly_budget")
+            },
+        }
     if relative == "stage3/failure-banners.json":
-        states = ("partial_scan", "failed_scan", "stale_data", "publication_blocked", "api_unavailable", "rin_unavailable", "rin_over_budget", "kill_switch_static_mode")
+        states = (
+            "partial_scan",
+            "failed_scan",
+            "stale_data",
+            "publication_blocked",
+            "api_unavailable",
+            "rin_unavailable",
+            "rin_over_budget",
+            "kill_switch_static_mode",
+        )
         return {**common, "test_suite_sha256": "4" * 64, "rendered_states": dict.fromkeys(states, True)}
     if relative == "stage4/budget-cutoff.json":
-        return {**common, "monthly_budget_usd": 25.0, "alert_thresholds": [50, 80, 100], "alerts_triggered": [50, 80, 100], "rin_disabled_at_100_percent": True, "cached_results_served": True}
+        return {
+            **common,
+            "monthly_budget_usd": 25.0,
+            "alert_thresholds": [50, 80, 100],
+            "alerts_triggered": [50, 80, 100],
+            "rin_disabled_at_100_percent": True,
+            "cached_results_served": True,
+        }
     if relative == "stage4/kill-switch-recovery.json":
-        return {**common, "runbook_followed": True, "reviewer_not_builder": True, "static_mode_verified": True, "recovery_verified": True, "recovery_seconds": 45, "parity_sha256": "5" * 64}
+        return {
+            **common,
+            "runbook_followed": True,
+            "reviewer_not_builder": True,
+            "static_mode_verified": True,
+            "recovery_verified": True,
+            "recovery_seconds": 45,
+            "parity_sha256": "5" * 64,
+        }
     if relative == "stage4/load-resilience.json":
         report = "stage4/source-reports/load-test.json"
-        return {**common, "load_report_evidence_path": report, "load_report_sha256": hashlib.sha256(_source_report_bytes(report)).hexdigest(), "traffic_multipliers": [1, 2, 4], "waf_rate_limits_engaged": True, "cost_within_budget": True}
+        return {
+            **common,
+            "load_report_evidence_path": report,
+            "load_report_sha256": hashlib.sha256(_source_report_bytes(report)).hexdigest(),
+            "traffic_multipliers": [1, 2, 4],
+            "waf_rate_limits_engaged": True,
+            "cost_within_budget": True,
+        }
     if relative == "stage4/actual-monthly-cost.json":
-        aws_report, provider_report = "stage4/source-reports/aws-cost-explorer.json", "stage4/source-reports/provider-cost.json"
-        return {**common, "period_start": "2026-10-01T00:00:00+00:00", "period_end": "2026-10-31T23:59:59+00:00", "currency": "USD", "aws_actual_usd": 8.5, "aws_budget_usd": 25.0, "cost_explorer_evidence_path": aws_report, "cost_explorer_sha256": hashlib.sha256(_source_report_bytes(aws_report)).hexdigest(), "provider_actual_usd": 3.0, "provider_budget_usd": 10.0, "provider_cost_report_evidence_path": provider_report, "provider_cost_report_sha256": hashlib.sha256(_source_report_bytes(provider_report)).hexdigest()}
+        aws_report, provider_report = (
+            "stage4/source-reports/aws-cost-explorer.json",
+            "stage4/source-reports/provider-cost.json",
+        )
+        return {
+            **common,
+            "period_start": "2026-10-01T00:00:00+00:00",
+            "period_end": "2026-10-31T23:59:59+00:00",
+            "currency": "USD",
+            "aws_actual_usd": 8.5,
+            "aws_budget_usd": 25.0,
+            "cost_explorer_evidence_path": aws_report,
+            "cost_explorer_sha256": hashlib.sha256(_source_report_bytes(aws_report)).hexdigest(),
+            "provider_actual_usd": 3.0,
+            "provider_budget_usd": 10.0,
+            "provider_cost_report_evidence_path": provider_report,
+            "provider_cost_report_sha256": hashlib.sha256(_source_report_bytes(provider_report)).hexdigest(),
+        }
     if relative == "stage4/launch-evidence.json":
-        criteria = ("phase1_phase2_read_only_regressions", "live_demo_account_results_only", "redaction_and_public_boundary", "public_roles_have_no_aws_scan_or_github_writes", "https_headers_and_waf", "rin_grounding_quotas_and_fallbacks", "failure_states_visible", "budget_alerts_cutoff_and_actual_cost", "kill_switch_static_recovery", "readme_threat_model_and_site_are_accurate")
+        criteria = (
+            "phase1_phase2_read_only_regressions",
+            "live_demo_account_results_only",
+            "redaction_and_public_boundary",
+            "public_roles_have_no_aws_scan_or_github_writes",
+            "https_headers_and_waf",
+            "rin_grounding_quotas_and_fallbacks",
+            "failure_states_visible",
+            "budget_alerts_cutoff_and_actual_cost",
+            "kill_switch_static_recovery",
+            "readme_threat_model_and_site_are_accurate",
+        )
         return {**common, "release_criteria": dict.fromkeys(criteria, True)}
     return {"checked": True}
 
@@ -176,7 +366,9 @@ def _write_manifest(root: Path, *, accepted: set[str] = frozenset(), missing_evi
                 if relative in SOURCE_REPORTS:
                     evidence_path.write_bytes(_source_report_bytes(relative))
                     continue
-                artifact = _stage_artifact(relative, "security-reviewer", datetime(2026, 11, 3, tzinfo=UTC).isoformat())
+                artifact = _stage_artifact(
+                    relative, "security-reviewer", datetime(2026, 11, 3, tzinfo=UTC).isoformat()
+                )
                 evidence_path.write_text(json.dumps(artifact, sort_keys=True) + "\n", encoding="utf-8")
         evidence_hashes = {}
         if is_accepted:
@@ -231,7 +423,13 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
             "passed": True,
             "case_count": 7,
             "cases": [
-                {"case_id": category, "category": category, "expected_action": "BLOCK", "observed_action": "BLOCK", "passed": True}
+                {
+                    "case_id": category,
+                    "category": category,
+                    "expected_action": "BLOCK",
+                    "observed_action": "BLOCK",
+                    "passed": True,
+                }
                 for category in (
                     "input_prompt_attack",
                     "input_sensitive_data",
@@ -240,7 +438,8 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
                     "output_sensitive_data",
                     "output_off_scope",
                 )
-            ] + [
+            ]
+            + [
                 {
                     "case_id": "safe_in_scope",
                     "category": "safe_in_scope",
@@ -321,8 +520,7 @@ def _add_guardrail_review_artifacts(manifest: Path) -> None:
         if path not in record["evidence"]:
             record["evidence"].append(path)
     record["evidence_sha256"] = {
-        path: hashlib.sha256((manifest.parent / path).read_bytes()).hexdigest()
-        for path in record["evidence"]
+        path: hashlib.sha256((manifest.parent / path).read_bytes()).hexdigest() for path in record["evidence"]
     }
     manifest.write_text(json.dumps(value), encoding="utf-8")
 
@@ -449,8 +647,7 @@ def test_stage_three_rejects_placeholder_guardrail_review_documents(tmp_path):
         if path not in evidence:
             evidence.append(path)
     value["stages"]["stage3"]["evidence_sha256"] = {
-        path: hashlib.sha256((manifest.parent / path).read_bytes()).hexdigest()
-        for path in evidence
+        path: hashlib.sha256((manifest.parent / path).read_bytes()).hexdigest() for path in evidence
     }
     manifest.write_text(json.dumps(value), encoding="utf-8")
 
@@ -811,15 +1008,27 @@ def test_stage_reports_must_match_their_bound_source_files(tmp_path, report_path
 
 def test_workflow_gate_cli_allows_disabled_stages_but_blocks_stage_two(tmp_path):
     script = Path(__file__).resolve().parents[1] / "scripts/validate_phase3_stage_gates.py"
-    environment = {**os.environ, "PHASE3_ENABLE_STAGE2": "false", "PHASE3_ENABLE_STAGE3": "false", "PHASE3_ENABLE_STAGE4": "false"}
+    environment = {
+        **os.environ,
+        "PHASE3_ENABLE_STAGE2": "false",
+        "PHASE3_ENABLE_STAGE3": "false",
+        "PHASE3_ENABLE_STAGE4": "false",
+    }
     disabled = subprocess.run(
-        [sys.executable, str(script)], cwd=script.parents[1], env=environment,
-        capture_output=True, text=True, check=False,
+        [sys.executable, str(script)],
+        cwd=script.parents[1],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
     )
     enabled = subprocess.run(
-        [sys.executable, str(script)], cwd=script.parents[1],
+        [sys.executable, str(script)],
+        cwd=script.parents[1],
         env={**environment, "PHASE3_ENABLE_STAGE2": "true"},
-        capture_output=True, text=True, check=False,
+        capture_output=True,
+        text=True,
+        check=False,
     )
 
     assert disabled.returncode == 0, disabled.stderr

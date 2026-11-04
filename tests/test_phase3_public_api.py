@@ -135,12 +135,14 @@ def test_incomplete_service_status_survives_dynamodb_storage_and_public_api_read
         Body=json.dumps(snapshot).encode("utf-8"),
         ContentType="application/json",
     )
-    table.put_item(Item={
-        "pk": "demo",
-        "sk": "LATEST",
-        "snapshot_id": snapshot["snapshot_id"],
-        "snapshot_key": snapshot_key,
-    })
+    table.put_item(
+        Item={
+            "pk": "demo",
+            "sk": "LATEST",
+            "snapshot_id": snapshot["snapshot_id"],
+            "snapshot_key": snapshot_key,
+        }
+    )
     publisher_store = S3DynamoPublicStore(bucket_name="phase3-status-results", table=table, s3_client=s3)
     publisher_store.record_attempt(
         "UNKNOWN",
@@ -217,7 +219,12 @@ def test_public_store_rejects_a_pointer_to_a_different_snapshot():
     class Table:
         def get_item(self, *, Key, **_kwargs):
             if Key["sk"] == "LATEST":
-                return {"Item": {"snapshot_id": "f" * 24, "snapshot_key": f"snapshots/{snapshot['snapshot_id']}.json"}}
+                return {
+                    "Item": {
+                        "snapshot_id": "f" * 24,
+                        "snapshot_key": f"snapshots/{snapshot['snapshot_id']}.json",
+                    }
+                }
             return {}
 
     class S3:

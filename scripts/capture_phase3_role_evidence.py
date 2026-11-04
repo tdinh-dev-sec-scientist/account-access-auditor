@@ -18,10 +18,14 @@ from phase3.role_capture import RoleCaptureError, capture_role_evidence
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--profile", required=True, help="Named non-root AWS profile with read-only IAM policy access")
+    parser.add_argument(
+        "--profile", required=True, help="Named non-root AWS profile with read-only IAM policy access"
+    )
     parser.add_argument("--stack", choices=("org", "control-plane"), required=True)
     parser.add_argument("--phase", choices=("plan", "apply"), required=True)
-    parser.add_argument("--role-arn", required=True, help="Exact role ARN from the protected workflow environment")
+    parser.add_argument(
+        "--role-arn", required=True, help="Exact role ARN from the protected workflow environment"
+    )
     args = parser.parse_args()
 
     try:
@@ -31,9 +35,13 @@ def main() -> int:
         identity_account = identity.get("Account", "")
         role_account = args.role_arn.split(":")[4] if args.role_arn.count(":") >= 5 else ""
         if identity_arn.endswith(":root"):
-            raise RoleCaptureError("Root credentials are not accepted; use a named non-root read-only profile")
+            raise RoleCaptureError(
+                "Root credentials are not accepted; use a named non-root read-only profile"
+            )
         if not identity_account or identity_account != role_account:
-            raise RoleCaptureError("The read-only profile and requested role must belong to the same AWS account")
+            raise RoleCaptureError(
+                "The read-only profile and requested role must belong to the same AWS account"
+            )
         digests = capture_role_evidence(
             root=args.root,
             stack=args.stack,

@@ -430,19 +430,34 @@ def test_rin_rejects_oversized_or_sensitive_input_without_echo_or_provider_call(
 def test_rin_blocks_missing_finding_quota_denial_stale_data_and_invalid_citations():
     snapshot = _snapshot()
     missing = _rin_response(
-        _event("Explain", "f" * 24), store=Store(snapshot), enabled=True, model="model-v1", api_key="key",
-        max_output_tokens=500, quota_consumer=lambda *_: {"allowed": True}, provider=lambda *_: pytest.fail(),
+        _event("Explain", "f" * 24),
+        store=Store(snapshot),
+        enabled=True,
+        model="model-v1",
+        api_key="key",
+        max_output_tokens=500,
+        quota_consumer=lambda *_: {"allowed": True},
+        provider=lambda *_: pytest.fail(),
     )
     denied = _rin_response(
-        _event("Explain", snapshot["findings"][0]["id"]), store=Store(snapshot), enabled=True,
-        model="model-v1", api_key="key", max_output_tokens=500,
+        _event("Explain", snapshot["findings"][0]["id"]),
+        store=Store(snapshot),
+        enabled=True,
+        model="model-v1",
+        api_key="key",
+        max_output_tokens=500,
         quota_consumer=lambda *_: {"allowed": False, "reason": "DAILY_LIMIT"},
         provider=lambda *_: pytest.fail("quota must be checked before provider"),
     )
     stale = _rin_response(
-        _event("Explain", snapshot["findings"][0]["id"]), store=Store(snapshot), enabled=True,
-        model="model-v1", api_key="key", max_output_tokens=500,
-        quota_consumer=lambda *_: {"allowed": True}, provider=lambda *_: pytest.fail("stale data blocks Rin"),
+        _event("Explain", snapshot["findings"][0]["id"]),
+        store=Store(snapshot),
+        enabled=True,
+        model="model-v1",
+        api_key="key",
+        max_output_tokens=500,
+        quota_consumer=lambda *_: {"allowed": True},
+        provider=lambda *_: pytest.fail("stale data blocks Rin"),
         now=datetime(2026, 11, 4, 0, 0, tzinfo=UTC),
     )
 
@@ -454,9 +469,14 @@ def test_rin_blocks_missing_finding_quota_denial_stale_data_and_invalid_citation
         return result
 
     invalid = _rin_response(
-        _event("Explain", snapshot["findings"][0]["id"]), store=Store(snapshot), enabled=True,
-        model="model-v1", api_key="key", max_output_tokens=500,
-        quota_consumer=lambda *_: {"allowed": True}, provider=bad_provider,
+        _event("Explain", snapshot["findings"][0]["id"]),
+        store=Store(snapshot),
+        enabled=True,
+        model="model-v1",
+        api_key="key",
+        max_output_tokens=500,
+        quota_consumer=lambda *_: {"allowed": True},
+        provider=bad_provider,
     )
 
     assert missing["statusCode"] == 404
@@ -470,8 +490,12 @@ def test_rin_returns_fallback_when_latest_scan_is_partial_or_provider_is_unavail
     snapshot = _snapshot()
     attempt = {"status": "UNKNOWN", "completed_at": "2026-11-03T12:00:00+00:00"}
     response = _rin_response(
-        _event("Explain", snapshot["findings"][0]["id"]), store=Store(snapshot, attempt), enabled=True,
-        model="model-v1", api_key="key", max_output_tokens=500,
+        _event("Explain", snapshot["findings"][0]["id"]),
+        store=Store(snapshot, attempt),
+        enabled=True,
+        model="model-v1",
+        api_key="key",
+        max_output_tokens=500,
         quota_consumer=lambda *_: pytest.fail("partial scan must be checked before quota"),
         provider=lambda *_: pytest.fail("partial scan must not call provider"),
         now=datetime(2026, 11, 3, 12, 1, tzinfo=UTC),
@@ -529,7 +553,9 @@ def test_rin_input_limit_includes_billable_instructions_before_consuming_quota(m
 
 def test_rin_request_build_failure_does_not_consume_quota(monkeypatch):
     snapshot = _snapshot()
-    monkeypatch.setattr(rin_module, "_build_request", lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError()))
+    monkeypatch.setattr(
+        rin_module, "_build_request", lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError())
+    )
     response = _rin_response(
         _event("Explain this", snapshot["findings"][0]["id"]),
         store=Store(snapshot),

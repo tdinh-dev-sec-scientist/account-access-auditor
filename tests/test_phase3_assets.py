@@ -180,6 +180,9 @@ def test_phase3_workflows_use_the_renamed_github_repository():
     scan_workflow = (ROOT / ".github/workflows/phase3-scan-image.yml").read_text()
     terraform_workflow = (ROOT / ".github/workflows/phase3-terraform.yml").read_text()
 
-    assert "https://github.com/tdinh-dev-sec-scientist/Vorrin/.github/workflows/phase3-scan-image.yml@refs/heads/main" in scan_workflow
+    assert (
+        "https://github.com/tdinh-dev-sec-scientist/Vorrin/.github/workflows/phase3-scan-image.yml@refs/heads/main"
+        in scan_workflow
+    )
     assert "tdinh-dev-sec-scientist/Vorrin" in terraform_workflow
     assert "tdinh-dev-sec-scientist/account-access-auditor" not in scan_workflow + terraform_workflow

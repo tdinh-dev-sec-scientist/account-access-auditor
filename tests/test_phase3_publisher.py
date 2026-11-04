@@ -87,7 +87,10 @@ def test_publisher_publishes_complete_failures_but_retains_last_good_for_partial
         _report("run-2", "2026-11-02T00:00:00+00:00", status="UNKNOWN", complete=False), KEY
     )
 
-    assert publish_snapshot(completed, store) == {"status": "PUBLISHED", "snapshot_id": completed["snapshot_id"]}
+    assert publish_snapshot(completed, store) == {
+        "status": "PUBLISHED",
+        "snapshot_id": completed["snapshot_id"],
+    }
     result = publish_snapshot(partial, store)
 
     assert result["status"] == "RETAINED_LAST_GOOD"

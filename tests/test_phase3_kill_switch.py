@@ -51,7 +51,14 @@ def test_budget_kill_switch_atomically_disables_rin_and_selects_static_mode():
         _event(topic="arn:aws:sns:us-east-1:999999999999:other"),
         {"Records": [{"EventSource": "aws:sqs", "Sns": {}}]},
         _event(message="x" * 262_145),
-        {"Records": [{"EventSource": "aws:sns", "Sns": {"Type": "SubscriptionConfirmation", "TopicArn": TOPIC, "Message": "x"}}]},
+        {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {"Type": "SubscriptionConfirmation", "TopicArn": TOPIC, "Message": "x"},
+                }
+            ]
+        },
     ],
 )
 def test_kill_switch_rejects_untrusted_or_oversized_events_without_writes(event):
@@ -69,7 +76,11 @@ def test_kill_switch_error_does_not_echo_budget_message():
             raise RuntimeError("private-backend-error")
 
     with pytest.raises(KillSwitchError) as exc:
-        disable_live_features(_event(message=json.dumps({"secret": "do-not-echo"})), table=FailingTable(), expected_topic_arn=TOPIC)
+        disable_live_features(
+            _event(message=json.dumps({"secret": "do-not-echo"})),
+            table=FailingTable(),
+            expected_topic_arn=TOPIC,
+        )
 
     assert "do-not-echo" not in str(exc.value)
     assert "private-backend-error" not in str(exc.value)

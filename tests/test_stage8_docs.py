@@ -34,7 +34,10 @@ def test_readme_and_status_record_phase2_release_completion_under_approved_scope
 
     assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in readme
     assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in status
-    assert "Local implementation for all four Phase 3 stages is prepared; no live stage gate has passed." in normalized_status
+    assert (
+        "Local implementation for all four Phase 3 stages is prepared; no live stage gate has passed."
+        in normalized_status
+    )
     assert "AWS sandbox apply is not implemented or claimed" in readme
     assert "AWS sandbox apply is not implemented or claimed" in status
     assert "AWS sandbox apply is not implemented or claimed" in normalized_remediation
