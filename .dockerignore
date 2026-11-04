@@ -1,6 +1,4 @@
 .git
-AGENTS.md
-CLAUDE.md
 *.docx
 **/__pycache__
 *.pyc
@@ -10,7 +8,6 @@ CLAUDE.md
 htmlcov
 results/coverage.json
 reports
-docs/baseline-before-upgrade.txt
 *.egg-info
 .venv
 venv

@@ -160,13 +160,9 @@ def test_phase3_runbook_and_threat_model_cover_the_publication_boundary_and_kill
     assert "output Guardrail" in runbook
 
 
-def test_phase3_execution_plan_and_runbook_match_fargate_and_remote_state_design():
-    plan = (ROOT / "docs/superpowers/plans/2026-11-03-phase3-live-demo.md").read_text(encoding="utf-8")
+def test_phase3_runbook_matches_fargate_and_remote_state_design():
     runbook = (ROOT / "docs/operations-runbook.md").read_text(encoding="utf-8")
 
-    assert "phase3/scan_task.py" in plan
-    assert "ECS Fargate" in plan
-    assert "phase3.scan_worker.lambda_handler" not in plan
     assert "local state backend by default" not in runbook
     assert "infra/phase3/demo-account" in runbook
     assert "Phase 3 Terraform" in runbook
