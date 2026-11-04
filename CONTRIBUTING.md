@@ -15,8 +15,8 @@ Python 3.11 or 3.12 is required. No AWS account is needed for development.
 ```bash
 python -m pytest -q
 node --test tests/*.test.cjs
-ruff check auditor phase3 lab tests scripts examples conftest.py
-ruff format --check auditor phase3 lab tests scripts examples conftest.py
+ruff check auditor phase3 lab tests scripts conftest.py
+ruff format --check auditor phase3 lab tests scripts conftest.py
 python -m auditor.cli validate-policy
 ```
 

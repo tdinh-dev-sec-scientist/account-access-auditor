@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from xml.etree import ElementTree as ET
-from zipfile import ZipFile
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_LINK = re.compile(r"(?<!!)\[[^\]]*\]\(([^)]+)\)")
@@ -42,18 +40,9 @@ def test_status_documents_record_phase2_release_completion_under_approved_scope(
     assert "phase2-stage6-amendment.md" in status
 
 
-def test_phase2_plan_amendment_explicitly_supersedes_direct_aws_apply_criterion():
-    with ZipFile(ROOT / "docs/plans/AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx") as plan:
-        document = ET.fromstring(plan.read("word/document.xml"))
-    plan_text = " ".join(
-        node.text or ""
-        for node in document.findall(
-            ".//w:t", {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-        )
-    )
+def test_phase2_amendment_explicitly_supersedes_direct_aws_apply_criterion():
     amendment = (ROOT / "docs/phase2-stage6-amendment.md").read_text(encoding="utf-8")
 
-    assert "Remediation previews can be rescanned; direct apply is sandbox-only." in plan_text
     assert "User-approved Stage 6 read-only acceptance amendment (2026-11-02)" in amendment
     assert "does not implement or claim AWS sandbox apply" in amendment
     assert "remaining Section 13 criteria" in amendment
@@ -104,8 +93,6 @@ def test_readme_is_a_concise_product_guide_and_keeps_internal_plans_out():
     for internal_status in (
         "docs/implementation-status.md",
         "docs/phase3-status.md",
-        "AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx",
-        "AWS_Cloud_Security_Guardrails_Phase_3_Plan.docx",
     ):
         assert internal_status not in readme
     assert "does not connect to AWS" in readme

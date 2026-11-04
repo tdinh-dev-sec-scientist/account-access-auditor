@@ -209,8 +209,8 @@ See [SECURITY.md](SECURITY.md) to report a vulnerability and
 ```bash
 python -m pytest -q
 node --test tests/*.test.cjs
-ruff check auditor phase3 lab tests scripts examples conftest.py
-ruff format --check auditor phase3 lab tests scripts examples conftest.py
+ruff check auditor phase3 lab tests scripts conftest.py
+ruff format --check auditor phase3 lab tests scripts conftest.py
 ```
 
 CI also validates the Phase 3 Terraform roots and runs the pinned IaC security

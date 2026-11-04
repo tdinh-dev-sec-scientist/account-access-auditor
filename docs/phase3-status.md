@@ -1,8 +1,8 @@
 # Phase 3 status
 
 **Local implementation for all four stages is prepared. No live stage gate has passed.**
-The checked-in [Phase 3 plan](plans/AWS_Cloud_Security_Guardrails_Phase_3_Plan.docx)
-is the source of truth. Local tests and Terraform code do not count as live
+The stage gates in `docs/evidence/phase3-stage-acceptance.json` are the source
+of truth. Local tests and Terraform code do not count as live
 acceptance.
 
 Terraform 1.9.8 `fmt -check -recursive infra/phase3` passed, and

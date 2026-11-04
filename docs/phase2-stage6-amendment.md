@@ -1,7 +1,7 @@
 # User-approved Stage 6 read-only acceptance amendment (2026-11-02)
 
 This amendment supplements and controls the Stage 6 and Section 13 acceptance
-language in [`AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx`](plans/AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx)
+language in the original Phase 2 project plan (a private planning document)
 for this repository. The user approved keeping AWS read-only and revising the
 Stage 6 release acceptance accordingly.
 
