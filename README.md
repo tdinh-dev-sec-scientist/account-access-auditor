@@ -235,7 +235,8 @@ scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup and
 
 ## Roadmap
 
-- Raise `phase3/` test coverage and add it to the CI coverage gate.
+- Raise the combined `auditor/` + `phase3/` coverage floor above 86%,
+  starting with `phase3/role_capture.py` and `phase3/redaction.py`.
 - Evaluate effective permissions (SCPs, permission boundaries) rather than
   policy shape alone.
 - Add checks for more services, such as EC2 security groups and KMS key

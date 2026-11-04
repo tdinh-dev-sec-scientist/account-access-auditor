@@ -86,20 +86,13 @@ jobs:
       # No AWS credentials are configured anywhere in this workflow. The unit
       # suite is offline by construction and the lab account is emulated
       # in-process, so a green build never depended on account access.
-      # .coveragerc enables branch-inclusive coverage. The 86% floor reflects
-      # the current expanded package coverage; no auditor modules are excluded.
-      # Raise the floor back to 90% after tests cover the remaining branches.
+      # .coveragerc enables branch-inclusive coverage. The 86% floor applies to
+      # auditor/ and phase3/ together; no modules are excluded.
       - name: Unit tests and coverage
         run: |
-          pytest --cov=auditor --cov-report=term-missing \
+          pytest --cov=auditor --cov=phase3 --cov-report=term-missing \
                  --cov-report=json:results/coverage.json \
                  --cov-fail-under=86
-
-      # Informational: phase3/ is reported separately so its lower coverage is
-      # visible without changing the auditor/ gate or results/coverage.json.
-      - name: Phase 3 coverage report (non-blocking)
-        if: matrix.python-version == '3.12'
-        run: pytest -q --cov=phase3 --cov-report=term --cov-fail-under=0
 
       - name: Build sanitized Phase 3 web bundle
         if: matrix.python-version == '3.12'

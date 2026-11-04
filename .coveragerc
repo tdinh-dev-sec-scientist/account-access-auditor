@@ -1,5 +1,7 @@
 [run]
-source = auditor
+source =
+    auditor
+    phase3
 branch = True
 omit =
     auditor/__main__.py
