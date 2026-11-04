@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AtomicallyUpdateOnlyRinQuotaCounters",
+      "Effect": "Allow",
+      "Action": "dynamodb:UpdateItem",
+      "Resource": "${quota_table_arn}"
+    }
+  ]
+}

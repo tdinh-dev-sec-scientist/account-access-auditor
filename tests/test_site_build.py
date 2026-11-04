@@ -172,15 +172,17 @@ def test_console_exposes_all_modules_and_truthful_empty_states(console, site):
         "exceptions",
         "ai-analyst",
         "settings",
+        "security-limits",
     ):
         assert f'data-view="{view}"' in console
     application = console + (site / "console" / "console.js").read_text(encoding="utf-8")
-    assert "Moto demo data" in application
+    assert "Moto emulated account" in application
     assert "Historical snapshots unavailable" in application
     assert "No CI run data" in application
     assert "No artifact assessment data" in application
     assert "AI-generated recommendations are advisory" in application
     assert "Exception workflows are not enabled" in application
+    assert "No live Phase 3 stage gate has passed" in application
 
 
 def test_console_preserves_execution_and_security_gate_as_separate_states(console_data, console):
@@ -198,12 +200,15 @@ def test_console_json_blob_cannot_close_its_script_element(console, console_data
     assert console_data["profiles"], "the data remains parseable after escaping"
 
 
-def test_console_is_offline_only_and_has_responsive_accessible_styles(site, console):
+def test_console_uses_only_its_same_origin_api_and_has_responsive_accessible_styles(site, console):
     script = (site / "console" / "console.js").read_text(encoding="utf-8")
     styles = (site / "console" / "console.css").read_text(encoding="utf-8")
-    assert "connect-src 'none'" in console
+    assert "connect-src 'self'" in console
     assert "form-action 'none'" in console
-    assert "fetch(" not in script
+    assert 'new URL("/api/latest", window.location.href)' in script
+    assert 'fetch("/api/rin"' in script
+    assert 'credentials: "omit"' in script
+    assert 'redirect: "error"' in script
     assert "XMLHttpRequest" not in script
     assert "@media" in styles
     assert "prefers-reduced-motion" in styles
@@ -256,7 +261,7 @@ def test_collapsed_sidebar_navigation_items_keep_accessible_names_and_tooltips(c
     assert all(re.search(r'title="[^"]+"', item) for item in nav_items)
 
 
-def test_console_assistant_is_a_local_fixture_helper_not_a_fake_ai_service(console, site):
+def test_console_assistant_keeps_local_fallback_and_gates_live_rin(console, site):
     script = (site / "console" / "console.js").read_text(encoding="utf-8")
     assert 'id="assistant-dialog"' in console
     assert 'id="assistant-launcher"' in console
@@ -272,13 +277,13 @@ def test_console_assistant_is_a_local_fixture_helper_not_a_fake_ai_service(conso
         re.S,
     )
     assert 'id="assistant-form"' in console
-    assert "Local fixture assistant" in console
-    assert "No AI model is connected" in console
+    assert "Fixture answers stay in this browser" in console
+    assert "provider optional" in script
     assert "answerFromFixture" in script
     assert "severityCounts" in script
-    assert "fetch(" not in script
+    assert 'fetch("/api/rin"' in script
     assert "XMLHttpRequest" not in script
-    assert "connect-src 'none'" in console
+    assert "connect-src 'self'" in console
 
 
 def test_console_uses_the_vorrin_brand_in_the_title_and_navigation(console):
@@ -292,8 +297,8 @@ def test_console_names_rin_and_keeps_the_assistant_grounded(console, site):
     assert '<h2 id="assistant-title">Rin</h2>' in console
     assert "I follow the evidence. I don't guess." in console
     assert "I keep the evidence close and the guesses out." in script
-    assert "No AI model is connected" in console
-    assert "no live AWS or model calls" in console
+    assert "I only receive one redacted finding at a time" in console
+    assert "Fixture mode · no model calls" in console
     assert 'class="assistant-avatar-stage" aria-hidden="true"' in console
 
 

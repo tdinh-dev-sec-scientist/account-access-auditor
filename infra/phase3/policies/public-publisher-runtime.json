@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOnlyTheDemoPrivateSnapshots",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "${private_bucket_arn}/snapshots/${demo_account_id}/*"
+    },
+    {
+      "Sid": "WriteOnlySanitizedPublicSnapshotObjects",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "${public_bucket_arn}/snapshots/*"
+    },
+    {
+      "Sid": "PublishOnlyPublicIndexAndLastGoodPointer",
+      "Effect": "Allow",
+      "Action": ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"],
+      "Resource": "${public_table_arn}"
+    },
+    {
+      "Sid": "ReadOnlyPseudonymKey",
+      "Effect": "Allow",
+      "Action": "secretsmanager:GetSecretValue",
+      "Resource": "${pseudonym_secret_arn}"
+    }
+  ]
+}

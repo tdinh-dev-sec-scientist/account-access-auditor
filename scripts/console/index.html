@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'none'; base-uri 'none'">
   <meta name="color-scheme" content="light dark">
-  <meta name="description" content="Vorrin is a read-only cloud security console for inspecting saved AWS guardrail evidence.">
+  <meta name="description" content="Vorrin is a read-only cloud security console for inspecting sanitized AWS guardrail evidence and local fixtures.">
   <title>Security Overview · Vorrin</title>
   <link rel="stylesheet" href="console.css">
 </head>
@@ -72,6 +72,7 @@
       <div class="workspace-label nav-section-label">ADMINISTRATION</div>
       <nav class="nav-group" aria-label="Administration">
         <button class="nav-item" data-view="settings" aria-label="Settings" title="Settings"><svg class="icon"><use href="#icon-settings"></use></svg><span>Settings</span></button>
+        <button class="nav-item" data-view="security-limits" aria-label="Security &amp; limitations" title="Security &amp; limitations"><svg class="icon"><use href="#icon-lock"></use></svg><span>Security &amp; limits</span></button>
       </nav>
 
       <div class="sidebar-status">
@@ -110,16 +111,16 @@
       </header>
 
       <main id="main-content" class="main-content" tabindex="-1">
-        <div class="source-banner" role="note">
+        <div class="source-banner" id="source-banner" role="note">
           <span class="source-dot"></span>
-          <span><strong>Moto demo data</strong><span class="source-divider">·</span>Local emulated account <span class="source-divider">·</span>Snapshot <time id="snapshot-generated-at">Not recorded</time><span class="source-divider">·</span>No live AWS calls</span>
+          <span><strong id="source-label">Saved fixture data</strong><span class="source-divider">·</span><span id="source-detail">Moto emulated account · no live AWS calls</span><span class="source-divider">·</span>Snapshot <time id="snapshot-generated-at">Not recorded</time></span>
           <a href="../report.html">Source report <svg class="icon"><use href="#icon-external"></use></svg></a>
         </div>
-        <div class="state-explainer" role="note">Execution status does not mean the findings are absent. The scan gate is <strong>NOT CONFIGURED</strong>.</div>
+        <div class="state-explainer" id="state-explainer" role="note">Execution status does not mean the findings are absent. The scan gate is <strong>NOT CONFIGURED</strong>.</div>
         <div id="view-root" aria-live="polite" aria-busy="true">
           <div class="loading-state"><span class="loading-bar"></span><span>Preparing local evidence…</span></div>
         </div>
-        <noscript><p class="noscript-note">Enable JavaScript to filter findings and inspect evidence. This page does not connect to AWS or any backend; the raw report is available <a href="../aws_audit_results.json">here</a>.</p></noscript>
+        <noscript><p class="noscript-note">Enable JavaScript to filter findings and inspect evidence. The live console uses only its same-origin sanitized API; otherwise the checked-in report remains available <a href="../aws_audit_results.json">here</a>.</p></noscript>
       </main>
       <footer class="app-footer">
         <span>Built from checked-in benchmark artifacts</span>
@@ -135,7 +136,7 @@
     <span class="assistant-launcher-orb" aria-hidden="true"><span></span></span>
   </button>
 
-  <dialog class="assistant-dialog" id="assistant-dialog" aria-label="Local fixture assistant" aria-labelledby="assistant-title" aria-describedby="assistant-description">
+  <dialog class="assistant-dialog" id="assistant-dialog" aria-label="Rin evidence assistant" aria-labelledby="assistant-title" aria-describedby="assistant-description">
     <section class="assistant-panel">
       <header class="assistant-header">
         <div class="assistant-avatar-stage" aria-hidden="true">
@@ -146,23 +147,24 @@
         <div class="assistant-header-copy">
           <span class="eyebrow">THE EVIDENCE GUIDE</span>
           <h2 id="assistant-title">Rin</h2>
-          <p id="assistant-description">I follow the evidence. I don't guess. No AI model is connected; answers use this saved Moto report.</p>
+          <p id="assistant-description">I follow the evidence. I don't guess. I only receive one redacted finding at a time.</p>
         </div>
         <button class="icon-button assistant-close" id="assistant-close" type="button" aria-label="Close assistant"><svg class="icon"><use href="#icon-close"></use></svg></button>
       </header>
-      <div class="assistant-mode"><span class="assistant-mode-dot"></span>Offline · no live AWS or model calls</div>
+      <div class="assistant-mode" id="assistant-mode"><span class="assistant-mode-dot"></span>Fixture mode · no model calls</div>
       <div class="assistant-messages" id="assistant-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Local assistant conversation"></div>
       <div class="assistant-suggestions" role="group" aria-label="Suggested local questions">
         <button type="button" data-assistant-question="How many critical findings?">Critical count</button>
         <button type="button" data-assistant-question="Explain the top finding">Explain a finding</button>
+        <button type="button" data-assistant-question="What does this platform do?">About Vorrin</button>
         <button type="button" data-assistant-question="Is AWS connected?">AWS connection</button>
       </div>
       <form class="assistant-form" id="assistant-form">
-        <label class="sr-only" for="assistant-input">Ask about the selected local fixture</label>
-        <input id="assistant-input" name="question" type="text" maxlength="500" placeholder="Ask about this saved scan…" autocomplete="off" required>
+        <label class="sr-only" for="assistant-input">Ask about a finding or the platform</label>
+        <input id="assistant-input" name="question" type="text" maxlength="500" placeholder="Ask about a finding or the platform…" autocomplete="off" required>
         <button class="assistant-send" type="submit" aria-label="Send question"><svg class="icon"><use href="#icon-arrow"></use></svg></button>
       </form>
-      <p class="assistant-disclosure">Local answers only. Nothing leaves this browser.</p>
+      <p class="assistant-disclosure" id="assistant-disclosure">Fixture answers stay in this browser. No question leaves the page.</p>
     </section>
   </dialog>
 
@@ -175,6 +177,8 @@
   </dialog>
 
   <script type="application/json" id="console-data">{{CONSOLE_DATA}}</script>
+  <script src="status.js" defer></script>
+  <script src="knowledge.js" defer></script>
   <script src="console.js" defer></script>
 </body>
 </html>

@@ -47,7 +47,7 @@ from auditor.severity import Severity, ordered_names  # noqa: E402
 RESULTS = os.path.join(REPO_ROOT, "results")
 SITE = os.path.join(REPO_ROOT, "site")
 
-REPO_URL = "https://github.com/tdinh-dev-sec-scientist/account-access-auditor"
+REPO_URL = "https://github.com/tdinh-dev-sec-scientist/Vorrin"
 CONSOLE_SOURCE = os.path.join(REPO_ROOT, "scripts", "console")
 
 # The two lab profiles, in the order the selector shows them.

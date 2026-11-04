@@ -19,7 +19,7 @@ auditor = "auditor.cli:main"
 
 [tool.setuptools]
 packages = ["auditor", "auditor.collectors", "auditor.normalize", "auditor.models",
-            "auditor.reporters", "auditor.rules", "auditor.utils", "auditor.iac"]
+            "auditor.reporters", "auditor.rules", "auditor.utils", "auditor.iac", "phase3"]
 
 [tool.setuptools.package-data]
 "auditor.iac" = ["policies/*.rego"]

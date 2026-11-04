@@ -65,4 +65,7 @@ where verified. A live read-only AWS audit, local signed release, and live PR
 All remaining Section 13 criteria are verified under the approved amendment.
 Managed AWS services, protected SARIF upload behavior, and a public signing
 identity remain explicit limitations; AWS sandbox apply is not implemented or
-claimed. Phase 3 has not started.
+claimed. Local implementation for all four Phase 3 stages is prepared; no live
+stage gate has passed. See the [Phase 3 status](phase3-status.md) for the plan assumptions and scoped
+AWS boundary, and the [Phase 3 cost record](costs.md) for unfilled estimate and
+actual-spend evidence.

@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Guardrails Phase 3 Public Snapshot v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "snapshot_id", "generated_at", "scan", "summary", "findings", "drift"],
+  "properties": {
+    "schema_version": { "const": "2.0.0" },
+    "snapshot_id": { "type": "string", "pattern": "^[a-f0-9]{24}$" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "scan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "gate_status", "started_at", "completed_at", "regions", "services", "complete_scopes", "incomplete_scopes", "affected_services", "scanner_version"],
+      "properties": {
+        "status": { "enum": ["PASS", "FAIL", "UNKNOWN", "ERROR"] },
+        "gate_status": { "enum": ["NOT_CONFIGURED", "PASS", "FAIL"] },
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": { "type": "string", "format": "date-time" },
+        "regions": { "type": "array", "items": { "type": "string", "pattern": "^(aws-global|[a-z]{2,}(-[a-z0-9]+)+-[0-9]+)$" } },
+        "services": { "type": "array", "items": { "enum": ["iam", "s3", "cloudtrail"] } },
+        "complete_scopes": { "type": "integer", "minimum": 0 },
+        "incomplete_scopes": { "type": "integer", "minimum": 0 },
+        "affected_services": {
+          "type": "array",
+          "maxItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["service", "status"],
+            "properties": {
+              "service": { "enum": ["iam", "s3", "cloudtrail"] },
+              "status": { "enum": ["UNKNOWN", "ERROR"] }
+            }
+          }
+        },
+        "scanner_version": { "type": "string", "minLength": 1, "maxLength": 64 }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_findings", "severity_counts", "drift_counts"],
+      "properties": {
+        "total_findings": { "type": "integer", "minimum": 0 },
+        "severity_counts": { "$ref": "#/$defs/severityCounts" },
+        "drift_counts": { "$ref": "#/$defs/driftCounts" }
+      }
+    },
+    "findings": { "type": "array", "maxItems": 2000, "items": { "$ref": "#/$defs/finding" } },
+    "drift": {
+      "type": "array",
+      "maxItems": 4000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_id", "state", "finding"],
+        "properties": {
+          "finding_id": { "type": "string", "pattern": "^[a-f0-9]{24}$" },
+          "state": { "enum": ["new", "persistent", "changed", "resolved", "unknown"] },
+          "finding": { "$ref": "#/$defs/finding" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "severityCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"],
+      "properties": {
+        "CRITICAL": { "type": "integer", "minimum": 0 },
+        "HIGH": { "type": "integer", "minimum": 0 },
+        "MEDIUM": { "type": "integer", "minimum": 0 },
+        "LOW": { "type": "integer", "minimum": 0 },
+        "INFO": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "driftCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["new", "persistent", "changed", "resolved", "unknown"],
+      "properties": {
+        "new": { "type": "integer", "minimum": 0 },
+        "persistent": { "type": "integer", "minimum": 0 },
+        "changed": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "control_id", "severity", "title", "description", "remediation", "lifecycle_state", "service", "region", "resource_ref", "detected_at", "references", "evidence_summary"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-f0-9]{24}$" },
+        "control_id": { "type": "string", "pattern": "^[A-Z0-9][A-Z0-9._:-]{0,63}$" },
+        "severity": { "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"] },
+        "title": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "description": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "remediation": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "lifecycle_state": { "enum": ["open", "resolved", "suppressed", "accepted", "unknown"] },
+        "service": { "enum": ["iam", "s3", "cloudtrail"] },
+        "region": { "type": "string", "pattern": "^(aws-global|[a-z]{2,}(-[a-z0-9]+)+-[0-9]+)$" },
+        "resource_ref": { "type": "string", "pattern": "^resource-[a-f0-9]{24}$" },
+        "detected_at": { "type": ["string", "null"], "format": "date-time" },
+        "references": {
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["framework", "id"],
+            "properties": {
+              "framework": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+              "title": { "type": "string", "minLength": 1, "maxLength": 200 }
+            }
+          }
+        },
+        "evidence_summary": { "$ref": "#/$defs/evidenceSummary" }
+      }
+    },
+    "evidenceSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "maxProperties": 25,
+      "properties": {
+        "age_days": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "block_public_policy": { "type": "boolean" },
+        "console_access_enabled": { "type": "boolean" },
+        "credential_active": { "type": "boolean" },
+        "disabled_setting_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "dormancy_threshold_days": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "encryption_configuration_present": { "type": "boolean" },
+        "escalation_threshold_days": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "ever_used": { "type": "boolean" },
+        "get_bucket_policy_status_is_public": { "type": "boolean" },
+        "grant_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "group_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "ignore_public_acls": { "type": "boolean" },
+        "is_logging": { "type": "boolean" },
+        "last_used_days_ago": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "log_file_validation_enabled": { "type": "boolean" },
+        "mfa_device_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "multi_region_trail_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "policy_is_aws_managed": { "type": "boolean" },
+        "public_access_block_configured": { "type": "boolean" },
+        "public_access_block_known": { "type": "boolean" },
+        "restrict_public_buckets": { "type": "boolean" },
+        "statement_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "threshold_days": { "type": "integer", "minimum": 0, "maximum": 100000 },
+        "trail_count": { "type": "integer", "minimum": 0, "maximum": 100000 }
+      }
+    }
+  }
+}

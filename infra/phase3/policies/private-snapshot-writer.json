@@ -1,0 +1,39 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadAndWriteOnlyPrivateDemoSnapshots",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "${private_bucket_arn}/snapshots/${demo_account_id}/*"
+    },
+    {
+      "Sid": "ReadPrivateRunIndex",
+      "Effect": "Allow",
+      "Action": "dynamodb:Query",
+      "Resource": [
+        "${private_table_arn}",
+        "${private_table_arn}/index/status-index",
+        "${private_table_arn}/index/scan-run-index"
+      ]
+    },
+    {
+      "Sid": "AppendPrivateRunIndex",
+      "Effect": "Allow",
+      "Action": "dynamodb:PutItem",
+      "Resource": "${private_table_arn}"
+    },
+    {
+      "Sid": "ManagePerAccountScanLock",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "${private_table_arn}"
+    }
+  ]
+}

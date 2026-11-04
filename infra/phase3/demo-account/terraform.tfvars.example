@@ -1,0 +1,3 @@
+aws_region = "us-east-1"
+bucket_prefix = "owner-unique-prefix"
+scan_task_role_arn = "arn:aws:iam::111122223333:role/owner-prefix-p3-scan-task"

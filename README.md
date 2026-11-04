@@ -3,15 +3,51 @@
 Read-only AWS account security for IAM, S3, and CloudTrail. Vorrin inspects
 configuration, records evidence, and produces findings you can review.
 
-[Open the console demo](https://tdinh-dev-sec-scientist.github.io/account-access-auditor/console/) ·
-[Open the scan replay](https://tdinh-dev-sec-scientist.github.io/account-access-auditor/) ·
-[Review Phase 2 status](docs/implementation-status.md)
+[Open the static console demo](https://tdinh-dev-sec-scientist.github.io/Vorrin/console/) ·
+[Open the scan replay](https://tdinh-dev-sec-scientist.github.io/Vorrin/) ·
+[Review Phase 2 status](docs/implementation-status.md) ·
+[Review Phase 3 status](docs/phase3-status.md)
+· [Review Phase 3 cost record](docs/costs.md)
 
 **Phase 2 is release-complete under the approved read-only Stage 6 amendment.**
 AWS assessment remains read-only. AWS sandbox apply is not implemented or claimed;
 the [Stage 6 amendment](docs/phase2-stage6-amendment.md) records the
 approved acceptance. See the [release status](docs/implementation-status.md)
 for stage evidence and limitations.
+
+**Local implementation for all four Phase 3 stages is prepared; no live stage
+gate has passed.** The published site remains the static fixture demo. See the
+[Phase 3 status](docs/phase3-status.md) for the scoped AWS boundary and release
+gates.
+
+The console currently shows saved fixture evidence; it does not read a live AWS
+account. Phase 3 infrastructure and live acceptance remain pending.
+
+## Phase 3 architecture
+
+This is the prepared design, not a deployed system:
+
+```mermaid
+flowchart LR
+  Demo[Dedicated demo account] -->|Scheduled read-only scan| Scan[Scan worker]
+  Scan --> Private[Private snapshots and drift index]
+  Private --> Publisher[Redact and validate]
+  Publisher --> Public[Isolated public-results store]
+  Public --> API[Read-only public API]
+  API --> Web[CloudFront and static console]
+  Web --> Rin[Rin: one redacted finding]
+  Rin --> Input[Bedrock Guardrail input check]
+  Input --> Provider[Owner-selected external model]
+  Provider --> Output[Bedrock Guardrail output check]
+  Output --> Rin
+  Budget[100% AWS budget action] --> Kill[Disable Rin and select static mode]
+  Kill --> Web
+```
+
+The scanner cannot change demo-account resources. The public site, API, and
+Rin cannot write to the target account or scan results. See the
+[threat model](docs/threat-model.md) and [Phase 3 status](docs/phase3-status.md)
+for the implemented boundaries and pending live checks.
 
 ## Quick start
 
@@ -130,6 +166,10 @@ including Gatekeeper admission, are documented in the [operations runbook](docs/
 ## Documentation
 
 - [Phase 2 acceptance and limitations](docs/implementation-status.md)
+- [Phase 3 plan assumptions and gate](docs/phase3-status.md)
+- [Phase 3 protected OIDC bootstrap](docs/phase3-bootstrap.md)
+- [Phase 3 cost record and pending owner inputs](docs/costs.md)
+- [Phase 3 deployment and kill-switch runbook](docs/operations-runbook.md#7-phase-3-live-operations)
 - [Threat model](docs/threat-model.md)
 - [Architecture decisions](docs/architecture/README.md)
 - [AWS permissions and read-only behavior](docs/least-privilege.md)
@@ -144,8 +184,10 @@ including Gatekeeper admission, are documented in the [operations runbook](docs/
 Vorrin reports observed configuration; it does not calculate effective
 permissions or prove exploitability. Root-account checks, password-policy
 checks, object-level S3 controls, and multi-region collection are outside the
-current AWS audit scope. Managed AWS scheduling and storage are not included.
-See [Phase 2 status](docs/implementation-status.md) for the complete list.
+Phase 2 audit scope. Phase 3 adds managed scheduling, private history, and a
+sanitized dashboard as local infrastructure code; those AWS resources have not
+been deployed or passed live acceptance. See [Phase 2 status](docs/implementation-status.md)
+and [Phase 3 status](docs/phase3-status.md) for separate evidence and limits.
 
 ## License
 
