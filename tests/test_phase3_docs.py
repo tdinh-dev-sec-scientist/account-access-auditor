@@ -97,16 +97,15 @@ def test_stage_acceptance_guide_lists_required_evidence_and_digest_review():
     assert "match the configured ARN and version exactly" in guide
 
 
-def test_readme_walkthrough_gif_is_fixture_backed_and_reproducible():
+def test_readme_demo_video_is_linked_and_labelled_as_non_live():
     status = " ".join((ROOT / "docs/phase3-status.md").read_text(encoding="utf-8").split())
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "README now gives visitors a short console walkthrough" in status
-    assert "scripts/render_console_gif.py" in status
     assert "not a live AWS account" in status
-    assert "docs/images/console-walkthrough.gif" in readme
-    assert (ROOT / "docs/images/console-walkthrough.gif").read_bytes()[:6] in (b"GIF87a", b"GIF89a")
-    assert (ROOT / "scripts/render_console_gif.py").is_file()
+    assert "](docs/media/vorrin-demo.mp4)" in readme
+    assert "docs/images/demo-poster.jpg" in readme
+    assert (ROOT / "docs/media/vorrin-demo.mp4").stat().st_size > 0
 
 
 def test_stage_three_guardrail_review_criteria_remain_pending_until_structured_evidence_exists():

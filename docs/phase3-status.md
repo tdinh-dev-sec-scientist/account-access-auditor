@@ -12,9 +12,8 @@ and `control-plane` roots. Each root was initialized with `-backend=false` and
 count as live acceptance.
 
 The README now gives visitors a short console walkthrough and links each view
-to its source report and JSON evidence. The embedded walkthrough GIF
-(`docs/images/console-walkthrough.gif`) is recorded from the locally built
-fixture site by `scripts/render_console_gif.py`; it shows saved fixtures, not
+to its source report and JSON evidence. The demo video
+(`docs/media/vorrin-demo.mp4`) shows simulated and Moto-emulated data, not
 a live AWS account.
 
 ## Stage status

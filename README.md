@@ -15,7 +15,9 @@ includes IaC, Kubernetes, CI, and supply-chain security checks.
 [Read a sample report](https://tdinh-dev-sec-scientist.github.io/Vorrin/report.html) ·
 [Inspect the JSON evidence](https://tdinh-dev-sec-scientist.github.io/Vorrin/aws_audit_results.json)
 
-![Console walkthrough: fixture switch, critical findings, evidence detail, scan records, Rin, and light mode](docs/images/console-walkthrough.gif)
+[![Watch the Vorrin demo video (4 minutes)](docs/images/demo-poster.jpg)](docs/media/vorrin-demo.mp4)
+
+<sub>▶ Click to watch the 4-minute console walkthrough. The demo uses simulated and Moto-emulated data, not a live AWS account.</sub>
 
 > **Demo boundary:** the public site uses saved results from an emulated Moto
 > account. It does not connect to AWS, accept credentials, or run scans against
