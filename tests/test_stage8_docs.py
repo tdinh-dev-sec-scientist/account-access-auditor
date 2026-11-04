@@ -25,20 +25,17 @@ def test_readme_and_docs_local_links_resolve():
     assert not missing, "broken local documentation links:\n" + "\n".join(missing)
 
 
-def test_readme_and_status_record_phase2_release_completion_under_approved_scope():
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+def test_status_documents_record_phase2_release_completion_under_approved_scope():
     status = (ROOT / "docs/implementation-status.md").read_text(encoding="utf-8")
     remediation = (ROOT / "docs/remediation.md").read_text(encoding="utf-8")
     normalized_status = " ".join(status.split())
     normalized_remediation = " ".join(remediation.split())
 
-    assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in readme
     assert "Phase 2 is release-complete under the approved read-only Stage 6 amendment" in status
     assert (
         "Local implementation for all four Phase 3 stages is prepared; no live stage gate has passed."
         in normalized_status
     )
-    assert "AWS sandbox apply is not implemented or claimed" in readme
     assert "AWS sandbox apply is not implemented or claimed" in status
     assert "AWS sandbox apply is not implemented or claimed" in normalized_remediation
     assert "satisfies the amended Phase 2 Stage 6 acceptance" in normalized_remediation
@@ -90,22 +87,29 @@ def test_phase2_status_and_readme_use_generated_coverage_metric():
 
     assert coverage >= 86
     assert "PASS (86% CI floor)" in readme
-    assert "exact test and coverage values are in `results/metrics.json`" in readme
+    assert "Exact percentage in results/metrics.json" in readme
     assert "exact percentage is recorded" in normalized_status
 
 
-def test_readme_is_a_concise_product_guide_with_a_clear_quick_start():
+def test_readme_is_a_concise_product_guide_and_keeps_internal_plans_out():
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     assert readme.startswith("# Vorrin")
-    assert "## Quick start" in readme
-    assert readme.index("## Quick start") < readme.index("## What Phase 2 includes")
+    assert "## Try the console" in readme
+    assert "## Run it locally" in readme
+    assert "## What is included" in readme
     assert "https://tdinh-dev-sec-scientist.github.io/Vorrin/console/" in readme
-    assert "## Security boundary" in readme
-    assert "## Project map" in readme
+    assert "## Security and scope" in readme
+    assert "## Repository map" in readme
     assert "## Documentation" in readme
-    assert "exact test and coverage values are in \x60results/metrics.json\x60" in readme
-    assert "static page cannot make AWS API calls" in readme
-    assert "shop window" not in readme
+    for internal_status in (
+        "docs/implementation-status.md",
+        "docs/phase3-status.md",
+        "AWS_Cloud_Security_Guardrails_Phase_2_Final_Plan.docx",
+        "AWS_Cloud_Security_Guardrails_Phase_3_Plan.docx",
+    ):
+        assert internal_status not in readme
+    assert "does not connect to AWS" in readme
+    assert "No account, sign-in, or setup is required" in readme
 
 
 def test_phase2_status_records_live_pull_request_acceptance_without_overclaiming():

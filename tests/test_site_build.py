@@ -125,8 +125,18 @@ def test_read_only_console_is_built_as_a_separate_workspace(site, index):
     console = site / "console"
     assert (console / "index.html").exists()
     assert (console / "console.css").exists()
+    assert (console / "status.js").exists()
+    assert (console / "knowledge.js").exists()
     assert (console / "console.js").exists()
     assert 'href="console/"' in index
+
+
+def test_every_local_console_script_reference_is_published(site):
+    console = site / "console"
+    html = (console / "index.html").read_text(encoding="utf-8")
+    scripts = re.findall(r'<script src="([^"]+)" defer></script>', html)
+    assert scripts
+    assert all((console / script).is_file() for script in scripts)
 
 
 @pytest.fixture(scope="module")

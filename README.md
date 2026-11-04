@@ -1,102 +1,79 @@
 # Vorrin
 
-Read-only AWS account security for IAM, S3, and CloudTrail. Vorrin inspects
-configuration, records evidence, and produces findings you can review.
+**Read-only AWS security auditing with evidence reviewers can inspect.** Vorrin
+checks IAM, S3, and CloudTrail configuration, then produces findings with
+severity, rationale, and remediation guidance. The repository also includes
+IaC, Kubernetes, CI, and supply-chain security checks.
 
-[Open the static console demo](https://tdinh-dev-sec-scientist.github.io/Vorrin/console/) ·
-[Open the scan replay](https://tdinh-dev-sec-scientist.github.io/Vorrin/) ·
-[Review Phase 2 status](docs/implementation-status.md) ·
-[Review Phase 3 status](docs/phase3-status.md)
-· [Review Phase 3 cost record](docs/costs.md)
+[Open the interactive console](https://tdinh-dev-sec-scientist.github.io/Vorrin/console/) ·
+[Watch the scan replay](https://tdinh-dev-sec-scientist.github.io/Vorrin/) ·
+[Read a sample report](https://tdinh-dev-sec-scientist.github.io/Vorrin/report.html) ·
+[Inspect the JSON evidence](https://tdinh-dev-sec-scientist.github.io/Vorrin/aws_audit_results.json)
 
-**Phase 2 is release-complete under the approved read-only Stage 6 amendment.**
-AWS assessment remains read-only. AWS sandbox apply is not implemented or claimed;
-the [Stage 6 amendment](docs/phase2-stage6-amendment.md) records the
-approved acceptance. See the [release status](docs/implementation-status.md)
-for stage evidence and limitations.
+> **Demo boundary:** the public site uses saved results from an emulated Moto
+> account. It does not connect to AWS, accept credentials, or run scans against
+> visitors' accounts. Live AWS deployment and acceptance are not available in
+> this demo.
 
-**Local implementation for all four Phase 3 stages is prepared; no live stage
-gate has passed.** The published site remains the static fixture demo. See the
-[Phase 3 status](docs/phase3-status.md) for the scoped AWS boundary and release
-gates.
+## Try the console
 
-The console currently shows saved fixture evidence; it does not read a live AWS
-account. Phase 3 infrastructure and live acceptance remain pending.
+No account, sign-in, or setup is required. Use this short path to explore it or
+record a walkthrough:
 
-## Phase 3 architecture
+1. Open the [interactive console](https://tdinh-dev-sec-scientist.github.io/Vorrin/console/).
+2. Switch between **Misconfigured fixture** and **No CloudTrail fixture** to
+   compare two saved audit scenarios.
+3. Choose **Findings**, filter by severity, then open a finding to see its
+   evidence, affected resource, and remediation guidance.
+4. Choose **Security Scans** to compare scan execution with the security gate.
+   A completed scan can still contain findings; `NOT CONFIGURED` is not a pass.
+5. Open **Rin** in the lower-right corner and ask about the selected fixture.
+   Answers are local and evidence-based; no model is connected.
+6. Toggle light/dark mode or collapse the sidebar for the recording layout you
+   prefer.
 
-This is the prepared design, not a deployed system:
+The report and JSON links in the console let you check the displayed results
+against their source artifacts.
 
-```mermaid
-flowchart LR
-  Demo[Dedicated demo account] -->|Scheduled read-only scan| Scan[Scan worker]
-  Scan --> Private[Private snapshots and drift index]
-  Private --> Publisher[Redact and validate]
-  Publisher --> Public[Isolated public-results store]
-  Public --> API[Read-only public API]
-  API --> Web[CloudFront and static console]
-  Web --> Rin[Rin: one redacted finding]
-  Rin --> Input[Bedrock Guardrail input check]
-  Input --> Provider[Owner-selected external model]
-  Provider --> Output[Bedrock Guardrail output check]
-  Output --> Rin
-  Budget[100% AWS budget action] --> Kill[Disable Rin and select static mode]
-  Kill --> Web
-```
+## What is included
 
-The scanner cannot change demo-account resources. The public site, API, and
-Rin cannot write to the target account or scan results. See the
-[threat model](docs/threat-model.md) and [Phase 3 status](docs/phase3-status.md)
-for the implemented boundaries and pending live checks.
+- **AWS audit:** read-only IAM, S3, and CloudTrail collection with 14
+  deterministic checks and structured reports.
+- **Infrastructure and policy:** Terraform, IAM policy, Kubernetes, and
+  rendered Helm scanning with normalized findings and policy gates.
+- **Delivery guardrails:** credential-free CI feedback, supply-chain
+  inventory, vulnerability checks, and signed local release artifacts.
+- **Review workflows:** drift history, expiring exceptions, and remediation
+  proposals that are rescanned in a temporary local copy.
+- **Evidence console:** a static, read-only interface for exploring saved
+  findings, report details, and fixture-backed answers.
 
-## Quick start
+Rin is a local fixture assistant in the public demo. Optional AI integrations
+are documented in the repository but are not connected to the published site.
 
-After dependencies are installed, the local Moto lab needs no AWS account,
-credentials, or network access.
+## Run it locally
+
+Requirements: Python 3.11 or 3.12. The fixture benchmark needs no AWS account,
+credentials, or live AWS access.
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements-dev.txt
-python -m lab.demo --output-dir reports
-```
-
-The scan writes JSON, CSV, terminal, and HTML reports to `reports/`.
-
-To build and preview the saved-data site locally:
-
-```bash
+python -m pip install -r requirements-dev.txt
 python -m lab.run_benchmark
 python scripts/build_site.py
 python -m http.server --directory site 8000
 ```
 
-Open `http://localhost:8000` for the scan replay or
-`http://localhost:8000/console/` for the security console. The replay is
-generated from saved Moto artifacts; a static page cannot make AWS API calls.
+Open `http://localhost:8000/console/` for the interactive console or
+`http://localhost:8000/` for the scan replay. The benchmark writes its reports
+under `results/`; the site is built from those generated files.
 
-## What Phase 2 includes
+## Benchmark results
 
-| Area | Included |
-| --- | --- |
-| AWS audit | Read-only IAM, S3, and CloudTrail checks with evidence, severity, and CIS mapping |
-| Infrastructure as code | Checkov and Conftest scans with normalized findings and policy gates |
-| CI and Kubernetes | GitHub workflow feedback, Kubernetes controls, and Gatekeeper admission policies |
-| Drift | Scheduled local scans and persistent local history |
-| Supply chain | SBOMs, vulnerability reports, policy gates, and signed local release artifacts |
-| Exceptions and remediation | Expiring exceptions, reviewed pull requests, and local-copy rescans |
-| AI analyst | Optional cited explanations and local patch proposals; no AWS access or gate authority |
-| Security console | Static, offline demo of checked-in findings with saved dark and light themes |
-
-The stage-by-stage evidence, acceptance results, and known gaps are in
-[implementation status](docs/implementation-status.md). Detailed controls live
-in the linked documentation below.
-
-## Measured results
-
-The figures are generated from repository artifacts. Run
-`python scripts/collect_metrics.py` to refresh the evidence and README table.
-The exact test and coverage values are in `results/metrics.json`.
+These numbers come from the checked-in, labeled fixture corpus. They describe
+that corpus only; they are not a real-world accuracy estimate. Refresh the
+generated evidence with `python scripts/collect_metrics.py`.
 
 <!-- BEGIN GENERATED METRICS -->
 
@@ -117,77 +94,49 @@ The exact test and coverage values are in `results/metrics.json`.
 
 <!-- END GENERATED METRICS -->
 
-The 100% figure describes this labeled Moto fixture corpus. It is not a
-real-world precision or recall estimate. The test account and its limits are
-described in [the lab guide](docs/test-environment.md).
+## Security and scope
 
-## Security boundary
+- The AWS collector uses read-only operations. It does not create, update, or
+  delete AWS resources.
+- The public console is static and contains no AWS credentials. Fixture mode
+  makes no requests to AWS or an AI provider.
+- Findings describe observed configuration; they do not calculate effective
+  permissions or prove exploitability.
+- The public demo is hosted on GitHub Pages with HTTPS. It has no application
+  server, inbound listener, or project-managed firewall.
 
-- **AWS access:** collectors use read-only operations. The console does not
-  connect to AWS; Stage 6 uses the approved read-only local-copy workflow.
-- **Credentials:** the static demo contains no AWS credentials and makes no
-  network requests. CI does not receive AWS credentials.
-- **Reports:** the standalone HTML report contains no JavaScript, loads no
-  external resources, and escapes account-controlled values.
-- **Rin:** the floating evidence guide answers from the checked-in report. No
-  AI model is connected.
-- **Hosting:** the demo is static GitHub Pages on the default `github.io`
-  domain, where HTTPS is enforced. There is no application server or inbound
-  port to configure with a project-level firewall.
-
-See the [threat model](docs/threat-model.md), [least-privilege policy
-notes](docs/least-privilege.md), and [operations runbook](docs/operations-runbook.md).
-
-## Project map
-
-| Path | Purpose |
-| --- | --- |
-| `auditor/` | AWS collection, rules, policy validation, and report generation |
-| `iac/`, `k8s/`, `supply_chain/` | Infrastructure, Kubernetes, and release scanning |
-| `schemas/`, `contract/` | Versioned findings and scan artifacts |
-| `scripts/console/` | Static Vorrin console and local assistant |
-| `lab/`, `tests/` | Moto environment, fixtures, and automated checks |
-| `docs/` | Stage status, controls, architecture, operations, and limitations |
-| `results/` | Generated evidence used by reports and demos |
-
-## Tests and tools
-
-Run the standard suite with:
+## Development checks
 
 ```bash
-pytest -q
+python -m pytest -q
+node --test tests/*.test.cjs
+ruff check auditor lab tests scripts
+ruff format --check auditor lab tests scripts
 ```
 
-The full Phase 2 checks also use the pinned Checkov and Conftest tools. Follow
-[the IaC setup guide](docs/iac-scanning.md) to install them. CI installs these
-versions before running tests and collecting metrics. Optional live checks,
-including Gatekeeper admission, are documented in the [operations runbook](docs/operations-runbook.md).
+CI also validates the Phase 3 Terraform roots and runs the pinned IaC security
+scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup.
+
+## Repository map
+
+| Path | Contents |
+| --- | --- |
+| `auditor/` | AWS collectors, security rules, policy checks, and reporters |
+| `iac/`, `k8s/`, `supply_chain/` | Infrastructure, cluster, and release scanning |
+| `scripts/console/` | Static console, navigation, and local evidence assistant |
+| `lab/`, `tests/` | Moto benchmark, test cases, and regression tests |
+| `schemas/`, `contract/` | Versioned findings and scan evidence contracts |
+| `docs/` | Security model, architecture, operations, and tool guides |
+| `results/` | Generated benchmark reports and evidence |
 
 ## Documentation
 
-- [Phase 2 acceptance and limitations](docs/implementation-status.md)
-- [Phase 3 plan assumptions and gate](docs/phase3-status.md)
-- [Phase 3 protected OIDC bootstrap](docs/phase3-bootstrap.md)
-- [Phase 3 cost record and pending owner inputs](docs/costs.md)
-- [Phase 3 deployment and kill-switch runbook](docs/operations-runbook.md#7-phase-3-live-operations)
-- [Threat model](docs/threat-model.md)
+- [Security model](docs/threat-model.md)
+- [AWS permissions](docs/least-privilege.md)
 - [Architecture decisions](docs/architecture/README.md)
-- [AWS permissions and read-only behavior](docs/least-privilege.md)
-- [IaC and policy scanning](docs/iac-scanning.md)
-- [CIS mapping](docs/cis-mapping.md)
-- [Kubernetes, fleet, and supply-chain scanning](docs/fleet-scanning.md), [supply-chain release](docs/supply-chain.md)
-- [Exceptions and remediation](docs/remediation.md), [AI analyst](docs/ai-analyst.md)
-- [Test lab](docs/test-environment.md), [operations runbook](docs/operations-runbook.md)
-
-## Known limits
-
-Vorrin reports observed configuration; it does not calculate effective
-permissions or prove exploitability. Root-account checks, password-policy
-checks, object-level S3 controls, and multi-region collection are outside the
-Phase 2 audit scope. Phase 3 adds managed scheduling, private history, and a
-sanitized dashboard as local infrastructure code; those AWS resources have not
-been deployed or passed live acceptance. See [Phase 2 status](docs/implementation-status.md)
-and [Phase 3 status](docs/phase3-status.md) for separate evidence and limits.
+- [IaC scanning setup](docs/iac-scanning.md)
+- [Operations and troubleshooting](docs/operations-runbook.md)
+- [Fixture environment](docs/test-environment.md)
 
 ## License
 
