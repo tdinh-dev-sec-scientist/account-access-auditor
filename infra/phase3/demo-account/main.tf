@@ -54,6 +54,7 @@ resource "aws_iam_role_policy_attachment" "target_readonly" {
 
 resource "aws_s3_bucket" "demo_a" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
+  #checkov:skip=CKV2_AWS_6:This resource intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
   bucket        = local.demo_a_bucket_name
   force_destroy = false
 
@@ -117,7 +118,6 @@ resource "aws_s3_bucket_ownership_controls" "demo_b" {
 # Intentional but non-exposing drift: account-level protection remains on,
 # bucket A has two disabled controls, and the SCP prevents public ACL/policy writes.
 resource "aws_s3_bucket_public_access_block" "demo_a" {
-  #checkov:skip=CKV_AWS_18:This resource intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
   bucket                  = aws_s3_bucket.demo_a.id
   block_public_acls       = true
   ignore_public_acls      = true
