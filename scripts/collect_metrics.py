@@ -50,7 +50,7 @@ def _load(name: str) -> dict[str, Any]:
     if not os.path.exists(path):
         raise MissingArtifact(
             f"{os.path.relpath(path, REPO_ROOT)} is missing. "
-            "Run the full workflow in README 'Reproducing the numbers' first."
+            "Run the tests with --cov-report=json:results/coverage.json and python -m lab.run_benchmark first."
         )
     with open(path, encoding="utf-8") as handle:
         return json.load(handle)
