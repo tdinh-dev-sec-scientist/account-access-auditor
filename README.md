@@ -15,7 +15,7 @@ includes IaC, Kubernetes, CI, and supply-chain security checks.
 [Read a sample report](https://tdinh-dev-sec-scientist.github.io/Vorrin/report.html) ·
 [Inspect the JSON evidence](https://tdinh-dev-sec-scientist.github.io/Vorrin/aws_audit_results.json)
 
-![HTML report summary for the emulated lab account](docs/images/report-light.png)
+![Console walkthrough: fixture switch, critical findings, evidence detail, scan records, Rin, and light mode](docs/images/console-walkthrough.gif)
 
 > **Demo boundary:** the public site uses saved results from an emulated Moto
 > account. It does not connect to AWS, accept credentials, or run scans against
@@ -49,6 +49,20 @@ record a walkthrough:
 
 The report and JSON links in the console let you check the displayed results
 against their source artifacts.
+
+### Sample report
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/report-dark.png">
+  <img alt="HTML report summary for the emulated lab account: 25 findings across 17 resources" src="docs/images/report-light.png">
+</picture>
+
+<details>
+<summary>More screenshots</summary>
+
+![A critical finding with evidence and remediation in the HTML report](docs/images/report-findings.png)
+
+</details>
 
 ## What is included
 
@@ -138,6 +152,8 @@ python -m auditor.cli audit --profile audit-readonly --output json,html --output
 
 Add `--fail-on high` to use it as a CI gate. Reports go to `reports/`, which is
 gitignored because it can contain real account data.
+
+![Terminal output of a scan of the emulated lab account](docs/images/terminal.svg)
 
 ### Docker
 
