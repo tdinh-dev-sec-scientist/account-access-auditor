@@ -6,6 +6,7 @@ import json
 import os
 import re
 from datetime import UTC, datetime
+from decimal import Decimal
 from typing import Any
 
 import boto3
@@ -82,15 +83,13 @@ class AwsPublicReadStore:
             snapshot_id = item.get("snapshot_id")
             completed_at = item.get("completed_at")
             status = item.get("scan_status")
-            count = item.get("finding_count")
+            count = _index_count(item.get("finding_count"))
             if (
                 not isinstance(snapshot_id, str)
                 or not re.fullmatch(r"[a-f0-9]{24}", snapshot_id)
                 or not isinstance(completed_at, str)
                 or status not in {"PASS", "FAIL"}
-                or not isinstance(count, int)
-                or isinstance(count, bool)
-                or count < 0
+                or count is None
             ):
                 continue
             runs.append(
@@ -150,6 +149,19 @@ class AwsPublicReadStore:
             "publication_status": publication_status,
             "affected_services": affected_services,
         }
+
+
+def _index_count(value: Any) -> int | None:
+    """Return a non-negative integer count, accepting DynamoDB's Decimal numbers."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        count = value
+    elif isinstance(value, Decimal) and value.is_finite() and value == value.to_integral_value():
+        count = int(value)
+    else:
+        return None
+    return count if count >= 0 else None
 
 
 def public_response(
