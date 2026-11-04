@@ -50,3 +50,8 @@ htmlcov/
 .vscode/
 .idea/
 .DS_Store
+~$*.docx
+
+# Raw AWS role captures contain account-specific policy data; only redacted
+# projections and reviewed digests belong in tracked evidence.
+docs/evidence/.private-role-captures/

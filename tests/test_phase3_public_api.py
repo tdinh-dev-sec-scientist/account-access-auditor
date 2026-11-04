@@ -4,9 +4,12 @@ import io
 import json
 from datetime import UTC, datetime
 
+import boto3
 import pytest
+from moto import mock_aws
 
 from phase3.public_api import AwsPublicReadStore, PublicApiError, _static_mode, lambda_handler, public_response
+from phase3.publisher import S3DynamoPublicStore
 from phase3.redaction import redact_snapshot
 
 
@@ -89,6 +92,7 @@ def test_incomplete_latest_attempt_keeps_last_good_snapshot_and_sets_banner():
     attempt = {
         "status": "UNKNOWN",
         "completed_at": "2026-11-03T11:00:00+00:00",
+        "affected_services": [{"service": "s3", "status": "UNKNOWN"}],
     }
     response = public_response(
         {"httpMethod": "GET", "path": "/api/latest"},
@@ -99,6 +103,59 @@ def test_incomplete_latest_attempt_keeps_last_good_snapshot_and_sets_banner():
     assert response["statusCode"] == 200
     assert '"last_good_preserved":true' in response["body"]
     assert '"latest_attempt_status":"UNKNOWN"' in response["body"]
+    assert '"affected_services":[{"service":"s3","status":"UNKNOWN"}]' in response["body"]
+
+
+@mock_aws
+def test_incomplete_service_status_survives_dynamodb_storage_and_public_api_read():
+    s3 = boto3.client("s3", region_name="us-east-1")
+    s3.create_bucket(Bucket="phase3-status-results")
+    dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
+    table = dynamodb.create_table(
+        TableName="phase3-status-index",
+        KeySchema=[
+            {"AttributeName": "pk", "KeyType": "HASH"},
+            {"AttributeName": "sk", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "pk", "AttributeType": "S"},
+            {"AttributeName": "sk", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+    snapshot = _snapshot("2026-11-03T10:00:00+00:00")
+    snapshot_key = f"snapshots/{snapshot['snapshot_id']}.json"
+    s3.put_object(
+        Bucket="phase3-status-results",
+        Key=snapshot_key,
+        Body=json.dumps(snapshot).encode("utf-8"),
+        ContentType="application/json",
+    )
+    table.put_item(Item={
+        "pk": "demo",
+        "sk": "LATEST",
+        "snapshot_id": snapshot["snapshot_id"],
+        "snapshot_key": snapshot_key,
+    })
+    publisher_store = S3DynamoPublicStore(bucket_name="phase3-status-results", table=table, s3_client=s3)
+    publisher_store.record_attempt(
+        "UNKNOWN",
+        "2026-11-03T11:00:00+00:00",
+        affected_services=[{"service": "s3", "status": "UNKNOWN"}],
+    )
+
+    read_store = AwsPublicReadStore(bucket_name="phase3-status-results", table=table, s3_client=s3)
+    response = public_response(
+        {"httpMethod": "GET", "path": "/api/latest"},
+        store=read_store,
+        now=datetime(2026, 11, 3, 11, 5, tzinfo=UTC),
+    )
+
+    assert response["statusCode"] == 200
+    payload = json.loads(response["body"])
+    assert payload["data"]["snapshot_id"] == snapshot["snapshot_id"]
+    assert payload["freshness"]["latest_attempt_status"] == "UNKNOWN"
+    assert payload["freshness"]["affected_services"] == [{"service": "s3", "status": "UNKNOWN"}]
 
 
 def test_publication_failure_is_distinct_from_failed_scan_and_preserves_last_good():

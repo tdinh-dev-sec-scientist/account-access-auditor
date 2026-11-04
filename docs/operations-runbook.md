@@ -182,15 +182,26 @@ acceptance.
 ### Provider key and Rin controls
 
 - Rin is disabled unless the platform flag, provider secret, approved model,
-  current input/output rates, monthly provider budget, and positive daily cap
-  are configured. A2 is false, so the code uses an external-provider path.
+  current input/output rates, monthly provider budget, positive daily cap, and
+  a numeric published Guardrail ARN/version are configured. A2 is false, so
+  model generation uses an external-provider path with Bedrock Guardrails.
 - Enter or rotate the provider key through the approved Secrets Manager
   interface. Do not put it in Terraform variables, source files, shell
   arguments, logs, or browser code. Confirm provider retention, billing, and
   key-rotation requirements before enabling Rin.
+- Publish and adversarially test the exact Bedrock Guardrail version before
+  enabling Rin. It must assess redacted input and validated output for prompt
+  attacks, off-scope topics, and sensitive data. The Rin role may call only
+  `bedrock:ApplyGuardrail` on that ARN; it cannot invoke a Bedrock model.
+- Review Bedrock invocation logging before launch. The Rin service does not
+  log prompts or answers; account-level logging must not retain message text
+  beyond the approved retention boundary. Include two Guardrail evaluations
+  per request in the AWS estimate.
 - The request path rechecks the kill-switch flag before reading the provider
-  secret. It sends one selected public finding and a bounded question; it has
-  no raw scan evidence or AWS tool access.
+  secret. It sends one selected public finding and a bounded question to the
+  input Guardrail, calls the external model only after a pass, and filters the
+  validated answer through the output Guardrail. It has no raw scan evidence
+  or target-account scanning tools.
 - A daily-limit alert reports aggregate usage only. At the monthly AWS 100%
   notification, the budget topic atomically disables Rin and marks the console
   static. Budget delivery can be delayed and is not a hard spend limit.

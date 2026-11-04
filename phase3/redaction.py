@@ -10,7 +10,7 @@ from typing import Any
 
 from auditor.history import HistoryError, _validate_report
 
-PUBLIC_SCHEMA_VERSION = "1.0.0"
+PUBLIC_SCHEMA_VERSION = "2.0.0"
 MAX_PUBLIC_FINDINGS = 2000
 _STATUSES = {"PASS", "FAIL", "UNKNOWN", "ERROR"}
 _GATES = {"NOT_CONFIGURED", "PASS", "FAIL"}
@@ -47,6 +47,43 @@ _QUOTED_RESOURCE_NAME = re.compile(
     r"([A-Za-z0-9][A-Za-z0-9_.:/+=,@-]{2,})\2"
 )
 _GENERIC_PRIVATE_VALUES = {"user", "role", "group", "bucket", "policy", "trail", "aws", "s3", "iam", "cloudtrail", "root", "public", "private", "none", "unknown", "true", "false"}
+_MAX_EVIDENCE_VALUE = 100_000
+_EVIDENCE_BOOLEAN_FIELDS = {
+    "console_access_enabled",
+    "ever_used",
+    "policy_is_aws_managed",
+    "public_access_block_configured",
+    "ignore_public_acls",
+    "public_access_block_known",
+    "get_bucket_policy_status_is_public",
+    "block_public_policy",
+    "restrict_public_buckets",
+    "encryption_configuration_present",
+    "log_file_validation_enabled",
+    "is_logging",
+}
+_EVIDENCE_NUMBER_FIELDS = {
+    "mfa_device_count",
+    "age_days",
+    "last_used_days_ago",
+    "trail_count",
+    "threshold_days",
+    "escalation_threshold_days",
+    "dormancy_threshold_days",
+}
+_EVIDENCE_LIST_COUNTS = {
+    "statements": "statement_count",
+    "grants": "grant_count",
+    "groups": "group_count",
+    "disabled_settings": "disabled_setting_count",
+    "trails": "trail_count",
+}
+_EVIDENCE_PUBLIC_FIELDS = (
+    _EVIDENCE_BOOLEAN_FIELDS
+    | _EVIDENCE_NUMBER_FIELDS
+    | set(_EVIDENCE_LIST_COUNTS.values())
+    | {"credential_active", "multi_region_trail_count"}
+)
 
 
 class PublicSnapshotError(ValueError):
@@ -142,6 +179,44 @@ def _pseudonym(key: bytes, namespace: str, value: str) -> str:
     return digest[:24]
 
 
+def _public_evidence_summary(evidence: Any) -> dict[str, bool | int]:
+    """Project evidence into a small set of bounded, non-identifying facts."""
+    if not isinstance(evidence, dict):
+        return {}
+
+    summary: dict[str, bool | int] = {}
+    for field in _EVIDENCE_BOOLEAN_FIELDS:
+        value = evidence.get(field)
+        if type(value) is bool:
+            summary[field] = value
+
+    for field in _EVIDENCE_NUMBER_FIELDS:
+        value = evidence.get(field)
+        if type(value) is int and 0 <= value <= _MAX_EVIDENCE_VALUE:
+            summary[field] = value
+
+    status = evidence.get("status")
+    if status == "Active":
+        summary["credential_active"] = True
+    elif status == "Inactive":
+        summary["credential_active"] = False
+
+    for source_field, public_field in _EVIDENCE_LIST_COUNTS.items():
+        value = evidence.get(source_field)
+        if isinstance(value, list) and len(value) <= _MAX_EVIDENCE_VALUE:
+            summary[public_field] = len(value)
+
+    trails = evidence.get("trails")
+    if isinstance(trails, list) and len(trails) <= _MAX_EVIDENCE_VALUE:
+        multi_region_count = sum(
+            1 for trail in trails
+            if isinstance(trail, dict) and trail.get("is_multi_region") is True
+        )
+        summary["multi_region_trail_count"] = multi_region_count
+
+    return {field: summary[field] for field in sorted(summary)}
+
+
 def _public_finding(finding: dict[str, Any], *, key: bytes) -> dict[str, Any]:
     fingerprint = finding.get("fingerprint")
     if not isinstance(fingerprint, str) or not _FINGERPRINT.fullmatch(fingerprint):
@@ -196,6 +271,7 @@ def _public_finding(finding: dict[str, Any], *, key: bytes) -> dict[str, Any]:
         "resource_ref": f"resource-{resource_token}",
         "detected_at": _safe_datetime(detected, field="finding detected-at") if detected else None,
         "references": references,
+        "evidence_summary": _public_evidence_summary(finding.get("evidence", {})),
     }
 
 
@@ -245,6 +321,14 @@ def redact_snapshot(report: Any, hmac_key: bytes) -> dict[str, Any]:
     if not isinstance(regions, list) or any(not isinstance(region, str) or not _REGION.fullmatch(region) for region in regions):
         raise PublicSnapshotError("public scan regions are invalid")
     services = sorted({entry["service"] for entry in coverage})
+    affected_status = "ERROR" if status == "ERROR" else "UNKNOWN"
+    affected_by_service = {
+        entry["service"]: affected_status
+        for entry in coverage
+        if not entry["complete"]
+    }
+    if status == "ERROR" and not affected_by_service:
+        affected_by_service.update({service: "ERROR" for service in services})
     snapshot = {
         "schema_version": PUBLIC_SCHEMA_VERSION,
         "snapshot_id": _pseudonym(hmac_key, "run", run["run_id"]),
@@ -258,6 +342,10 @@ def redact_snapshot(report: Any, hmac_key: bytes) -> dict[str, Any]:
             "services": services,
             "complete_scopes": sum(1 for item in coverage if item["complete"]),
             "incomplete_scopes": sum(1 for item in coverage if not item["complete"]),
+            "affected_services": [
+                {"service": service, "status": affected_by_service[service]}
+                for service in sorted(affected_by_service)
+            ],
             "scanner_version": _safe_text(
                 (run.get("scanner_versions") or {}).get("account-access-auditor", "unknown"),
                 field="scanner version",
@@ -280,103 +368,129 @@ def validate_public_snapshot(snapshot: Any) -> None:
     """Validate the independent public schema and re-scan every output string."""
     root_fields = {"schema_version", "snapshot_id", "generated_at", "scan", "summary", "findings", "drift"}
     if not isinstance(snapshot, dict) or set(snapshot) != root_fields:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if snapshot.get("schema_version") != PUBLIC_SCHEMA_VERSION:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if not isinstance(snapshot.get("snapshot_id"), str) or not re.fullmatch(r"[a-f0-9]{24}", snapshot["snapshot_id"]):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     _safe_datetime(snapshot.get("generated_at"), field="generated-at")
     scan_fields = {
         "status", "gate_status", "started_at", "completed_at", "regions", "services",
-        "complete_scopes", "incomplete_scopes", "scanner_version",
+        "complete_scopes", "incomplete_scopes", "affected_services", "scanner_version",
     }
     scan = snapshot.get("scan")
     summary = snapshot.get("summary")
     if not isinstance(scan, dict) or set(scan) != scan_fields:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if scan.get("status") not in _STATUSES or scan.get("gate_status") not in _GATES:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     _safe_datetime(scan.get("started_at"), field="scan started-at")
     _safe_datetime(scan.get("completed_at"), field="scan completed-at")
     if not isinstance(scan.get("regions"), list) or any(
         not isinstance(region, str) or not _REGION.fullmatch(region) for region in scan["regions"]
     ):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if not isinstance(scan.get("services"), list) or any(service not in _SERVICES for service in scan["services"]):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     for key in ("complete_scopes", "incomplete_scopes"):
         if not isinstance(scan.get(key), int) or isinstance(scan[key], bool) or scan[key] < 0:
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
+    affected_services = scan.get("affected_services")
+    if not isinstance(affected_services, list) or len(affected_services) > len(_SERVICES):
+        raise PublicSnapshotError("public snapshot does not match schema v2")
+    seen_affected_services: set[str] = set()
+    for affected in affected_services:
+        expected_affected_status = "ERROR" if scan.get("status") == "ERROR" else "UNKNOWN"
+        if (
+            not isinstance(affected, dict)
+            or set(affected) != {"service", "status"}
+            or affected.get("service") not in _SERVICES
+            or affected.get("service") not in scan["services"]
+            or affected.get("status") != expected_affected_status
+            or (scan["incomplete_scopes"] == 0 and scan["status"] not in {"UNKNOWN", "ERROR"})
+            or affected["service"] in seen_affected_services
+        ):
+            raise PublicSnapshotError("public snapshot does not match schema v2")
+        seen_affected_services.add(affected["service"])
     _safe_text(scan.get("scanner_version"), field="scanner version", max_length=64)
     if not isinstance(summary, dict) or set(summary) != {"total_findings", "severity_counts", "drift_counts"}:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     findings = snapshot.get("findings")
     drift = snapshot.get("drift")
     if not isinstance(findings, list) or len(findings) > MAX_PUBLIC_FINDINGS or not isinstance(drift, list):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if summary.get("total_findings") != len(findings):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     severity_counts = summary.get("severity_counts")
     drift_counts = summary.get("drift_counts")
     if not isinstance(severity_counts, dict) or set(severity_counts) != _SEVERITIES:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if not isinstance(drift_counts, dict) or set(drift_counts) != _DRIFT_STATES:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if any(not isinstance(count, int) or isinstance(count, bool) or count < 0 for count in severity_counts.values()):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     if any(not isinstance(count, int) or isinstance(count, bool) or count < 0 for count in drift_counts.values()):
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     finding_fields = {
         "id", "control_id", "severity", "title", "description", "remediation", "lifecycle_state",
-        "service", "region", "resource_ref", "detected_at", "references",
+        "service", "region", "resource_ref", "detected_at", "references", "evidence_summary",
     }
 
     all_findings = list(findings)
     for transition in drift:
         if not isinstance(transition, dict) or set(transition) != {"finding_id", "state", "finding"}:
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if transition.get("state") not in _DRIFT_STATES or not isinstance(transition.get("finding"), dict):
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if transition.get("finding_id") != transition["finding"].get("id"):
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         all_findings.append(transition["finding"])
 
     for finding in all_findings:
         if not isinstance(finding, dict) or set(finding) != finding_fields:
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if not re.fullmatch(r"[a-f0-9]{24}", str(finding.get("id", ""))):
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if finding.get("severity") not in _SEVERITIES or finding.get("service") not in _SERVICES:
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if not isinstance(finding.get("region"), str) or not _REGION.fullmatch(finding["region"]):
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if not isinstance(finding.get("control_id"), str) or not _CONTROL_ID.fullmatch(finding["control_id"]):
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         if not isinstance(finding.get("resource_ref"), str) or not re.fullmatch(
             r"resource-[a-f0-9]{24}", finding["resource_ref"]
         ):
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         for text_field in ("title", "description", "remediation"):
             _safe_text(finding.get(text_field), field=text_field)
         if finding["detected_at"] is not None:
             _safe_datetime(finding["detected_at"], field="finding detected-at")
         if not isinstance(finding.get("references"), list) or len(finding["references"]) > 10:
-            raise PublicSnapshotError("public snapshot does not match schema v1")
+            raise PublicSnapshotError("public snapshot does not match schema v2")
         for reference in finding["references"]:
             if not isinstance(reference, dict) or set(reference) - {"framework", "id", "title"} or not {"framework", "id"}.issubset(reference):
-                raise PublicSnapshotError("public snapshot does not match schema v1")
+                raise PublicSnapshotError("public snapshot does not match schema v2")
             for field, value in reference.items():
                 _safe_text(value, field=f"reference {field}", max_length=200)
+        evidence_summary = finding.get("evidence_summary")
+        if not isinstance(evidence_summary, dict) or set(evidence_summary) - _EVIDENCE_PUBLIC_FIELDS:
+            raise PublicSnapshotError("public snapshot does not match schema v2")
+        for field, value in evidence_summary.items():
+            if field in _EVIDENCE_BOOLEAN_FIELDS or field == "credential_active":
+                if type(value) is not bool:
+                    raise PublicSnapshotError("public snapshot does not match schema v2")
+            elif type(value) is not int or not 0 <= value <= _MAX_EVIDENCE_VALUE:
+                raise PublicSnapshotError("public snapshot does not match schema v2")
     expected_severity_counts = {severity: 0 for severity in _SEVERITIES}
     for finding in findings:
         expected_severity_counts[finding["severity"]] += 1
     if severity_counts != expected_severity_counts:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     expected_drift_counts = {state: 0 for state in _DRIFT_STATES}
     for transition in drift:
         expected_drift_counts[transition["state"]] += 1
     if drift_counts != expected_drift_counts:
-        raise PublicSnapshotError("public snapshot does not match schema v1")
+        raise PublicSnapshotError("public snapshot does not match schema v2")
     serialized_strings = _walk_strings(snapshot)
     if any(_contains_sensitive(value) for value in serialized_strings):
         raise PublicSnapshotError("public snapshot contains a sensitive pattern")

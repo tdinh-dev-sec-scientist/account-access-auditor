@@ -156,11 +156,12 @@
       <div class="assistant-suggestions" role="group" aria-label="Suggested local questions">
         <button type="button" data-assistant-question="How many critical findings?">Critical count</button>
         <button type="button" data-assistant-question="Explain the top finding">Explain a finding</button>
+        <button type="button" data-assistant-question="What does this platform do?">About Vorrin</button>
         <button type="button" data-assistant-question="Is AWS connected?">AWS connection</button>
       </div>
       <form class="assistant-form" id="assistant-form">
-        <label class="sr-only" for="assistant-input">Ask about the selected local fixture</label>
-        <input id="assistant-input" name="question" type="text" maxlength="500" placeholder="Ask about this saved scan…" autocomplete="off" required>
+        <label class="sr-only" for="assistant-input">Ask about a finding or the platform</label>
+        <input id="assistant-input" name="question" type="text" maxlength="500" placeholder="Ask about a finding or the platform…" autocomplete="off" required>
         <button class="assistant-send" type="submit" aria-label="Send question"><svg class="icon"><use href="#icon-arrow"></use></svg></button>
       </form>
       <p class="assistant-disclosure" id="assistant-disclosure">Fixture answers stay in this browser. No question leaves the page.</p>
@@ -176,6 +177,8 @@
   </dialog>
 
   <script type="application/json" id="console-data">{{CONSOLE_DATA}}</script>
+  <script src="status.js" defer></script>
+  <script src="knowledge.js" defer></script>
   <script src="console.js" defer></script>
 </body>
 </html>

@@ -33,13 +33,23 @@ def publish_snapshot(snapshot: Any, store: Any) -> dict[str, Any]:
     complete = snapshot["scan"]["complete_scopes"] > 0 and snapshot["scan"]["incomplete_scopes"] == 0
     if status not in {"PASS", "FAIL"} or not complete:
         try:
-            store.record_attempt(status, completed_at, publication_status="READY")
+            store.record_attempt(
+                status,
+                completed_at,
+                publication_status="READY",
+                affected_services=snapshot["scan"]["affected_services"],
+            )
         except Exception:
             raise PublicationError("scan attempt status could not be recorded") from None
         return {"status": "RETAINED_LAST_GOOD", "attempt_status": status}
     try:
         advanced = store.publish(snapshot)
-        store.record_attempt(status, completed_at, publication_status="READY")
+        store.record_attempt(
+            status,
+            completed_at,
+            publication_status="READY",
+            affected_services=snapshot["scan"]["affected_services"],
+        )
     except PublicationError:
         raise
     except Exception:
@@ -99,11 +109,35 @@ class S3DynamoPublicStore:
         except (BotoCoreError, KeyError, TypeError, ValueError):
             raise PublicationError("public latest pointer could not be updated") from None
 
-    def record_attempt(self, status: str, completed_at: str, *, publication_status: str = "READY") -> None:
+    def record_attempt(
+        self,
+        status: str,
+        completed_at: str,
+        *,
+        publication_status: str = "READY",
+        affected_services: Any = (),
+    ) -> None:
         if status not in {"PASS", "FAIL", "UNKNOWN", "ERROR"}:
             raise PublicationError("scan attempt status is invalid")
         if publication_status not in {"READY", "PAUSED"}:
             raise PublicationError("publication status is invalid")
+        if not isinstance(affected_services, (list, tuple)) or len(affected_services) > 3:
+            raise PublicationError("affected service status is invalid")
+        validated_affected_services = []
+        seen_services = set()
+        for item in affected_services:
+            if (
+                not isinstance(item, dict)
+                or set(item) != {"service", "status"}
+                or item.get("service") not in {"iam", "s3", "cloudtrail"}
+                or item.get("status") not in {"UNKNOWN", "ERROR"}
+                or item["service"] in seen_services
+                or item["status"] != status
+                or status not in {"UNKNOWN", "ERROR"}
+            ):
+                raise PublicationError("affected service status is invalid")
+            seen_services.add(item["service"])
+            validated_affected_services.append(dict(item))
         if publication_status == "PAUSED":
             message = "Publication is paused. The console is showing the last complete public snapshot."
         elif status in {"UNKNOWN", "ERROR"}:
@@ -115,7 +149,7 @@ class S3DynamoPublicStore:
                 Key={"pk": self.partition, "sk": "LATEST_STATUS"},
                 UpdateExpression=(
                     "SET scan_status = :status, publication_status = :publication, "
-                    "completed_at = :completed, message = :message"
+                    "completed_at = :completed, message = :message, affected_services = :affected"
                 ),
                 ConditionExpression="attribute_not_exists(completed_at) OR completed_at <= :completed",
                 ExpressionAttributeValues={
@@ -123,6 +157,7 @@ class S3DynamoPublicStore:
                     ":publication": publication_status,
                     ":completed": completed_at,
                     ":message": message,
+                    ":affected": validated_affected_services,
                 },
             )
         except ClientError as exc:

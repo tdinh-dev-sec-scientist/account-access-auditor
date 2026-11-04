@@ -113,7 +113,7 @@ class AwsPublicReadStore:
             raise PublicApiError("public result index is unavailable") from None
 
     @staticmethod
-    def _safe_attempt(attempt: dict[str, Any] | None) -> dict[str, str] | None:
+    def _safe_attempt(attempt: dict[str, Any] | None) -> dict[str, Any] | None:
         if not isinstance(attempt, dict):
             return None
         status = attempt.get("scan_status")
@@ -129,10 +129,26 @@ class AwsPublicReadStore:
         publication_status = attempt.get("publication_status", "READY")
         if publication_status not in {"READY", "PAUSED"}:
             publication_status = "READY"
+        raw_affected = attempt.get("affected_services", [])
+        affected_services = []
+        if isinstance(raw_affected, list) and len(raw_affected) <= 3:
+            seen_services = set()
+            for item in raw_affected:
+                if (
+                    isinstance(item, dict)
+                    and set(item) == {"service", "status"}
+                    and item.get("service") in {"iam", "s3", "cloudtrail"}
+                    and item.get("status") == status
+                    and status in {"UNKNOWN", "ERROR"}
+                    and item["service"] not in seen_services
+                ):
+                    seen_services.add(item["service"])
+                    affected_services.append(dict(item))
         return {
             "status": status,
             "completed_at": parsed.astimezone(UTC).isoformat(),
             "publication_status": publication_status,
+            "affected_services": affected_services,
         }
 
 
@@ -234,6 +250,9 @@ def _latest_response(
             "latest_attempt_status": attempt_status,
             "last_good_preserved": attempt_status in {"UNKNOWN", "ERROR"},
             "publication_paused": publication_paused,
+            "affected_services": (
+                attempt.get("affected_services", []) if newer_attempt and attempt else []
+            ),
         },
     }
     return _response(200, data, method=method)

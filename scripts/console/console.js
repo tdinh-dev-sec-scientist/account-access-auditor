@@ -6,6 +6,9 @@
   const dialog = document.getElementById("evidence-dialog");
   const dialogBody = document.getElementById("dialog-body");
   const dialogTitle = document.getElementById("dialog-title");
+  const statusUi = window.Phase3ConsoleStatus;
+  const platformKnowledge = window.Phase3PlatformKnowledge;
+  const REPOSITORY_SOURCE_BASE = "https://github.com/tdinh-dev-sec-scientist/Vorrin/blob/dan/phase3-live-demo/";
   const fixtureProfiles = JSON.parse(dataNode.textContent).profiles;
   let profiles = { ...fixtureProfiles };
   let profileKeys = Object.keys(profiles);
@@ -40,6 +43,7 @@
   let assistantWelcomed = false;
   let liveSnapshotLoaded = false;
   let staticMode = false;
+  let liveApiUnavailable = false;
   let latestFreshness = null;
   let rinSessionToken = null;
   let assistantBusy = false;
@@ -49,6 +53,16 @@
     if (className) node.className = className;
     if (text !== undefined && text !== null) node.textContent = String(text);
     return node;
+  }
+
+  function repositorySourceLink(label, path) {
+    const link = element("a", "module-evidence-link", label);
+    link.href = `${REPOSITORY_SOURCE_BASE}${path}`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.setAttribute("aria-label", `${label} (opens repository source in a new tab)`);
+    link.append(icon("external"));
+    return link;
   }
 
   function icon(name) {
@@ -73,6 +87,28 @@
     return isLiveProfile() ? ["live"] : Object.keys(profiles).filter((key) => key !== "live");
   }
 
+  function mapPublicEvidenceSummary(summary) {
+    const booleanFields = new Set([
+      "block_public_policy", "console_access_enabled", "credential_active", "encryption_configuration_present",
+      "ever_used", "get_bucket_policy_status_is_public", "ignore_public_acls", "is_logging",
+      "log_file_validation_enabled", "policy_is_aws_managed", "public_access_block_configured",
+      "public_access_block_known", "restrict_public_buckets",
+    ]);
+    const numberFields = new Set([
+      "age_days", "disabled_setting_count", "dormancy_threshold_days", "escalation_threshold_days",
+      "grant_count", "group_count", "last_used_days_ago", "mfa_device_count", "multi_region_trail_count",
+      "statement_count", "threshold_days", "trail_count",
+    ]);
+    if (!summary || typeof summary !== "object" || Array.isArray(summary)) throw new Error("invalid evidence summary");
+    const mapped = {};
+    Object.entries(summary).forEach(([field, value]) => {
+      if (booleanFields.has(field) && typeof value === "boolean") mapped[field] = value;
+      else if (numberFields.has(field) && Number.isSafeInteger(value) && value >= 0 && value <= 100000) mapped[field] = value;
+      else throw new Error("invalid evidence summary");
+    });
+    return mapped;
+  }
+
   function mapPublicFinding(finding) {
     const allowedSeverities = new Set(["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"]);
     const allowedStates = new Set(["open", "resolved", "suppressed", "accepted", "unknown"]);
@@ -94,7 +130,7 @@
       description: finding.description,
       rationale: finding.description,
       remediation: finding.remediation,
-      evidence: {},
+      evidence: mapPublicEvidenceSummary(finding.evidence_summary),
       fingerprint: finding.id,
       detectedAt: finding.detected_at || "",
       publicId: finding.id,
@@ -103,7 +139,7 @@
 
   function normalizePublicEnvelope(envelope) {
     const snapshot = envelope && envelope.data;
-    if (!snapshot || snapshot.schema_version !== "1.0.0" || !/^[a-f0-9]{24}$/.test(snapshot.snapshot_id || "")) throw new Error("invalid snapshot");
+    if (!snapshot || snapshot.schema_version !== "2.0.0" || !/^[a-f0-9]{24}$/.test(snapshot.snapshot_id || "")) throw new Error("invalid snapshot");
     const scan = snapshot.scan;
     const statuses = new Set(["PASS", "FAIL", "UNKNOWN", "ERROR"]);
     if (!scan || !statuses.has(scan.status) || !["NOT_CONFIGURED", "PASS", "FAIL"].includes(scan.gate_status)) throw new Error("invalid scan state");
@@ -117,7 +153,30 @@
     });
     const completedAt = scan.completed_at;
     if (typeof completedAt !== "string" || Number.isNaN(Date.parse(completedAt))) throw new Error("invalid scan time");
-    if (!envelope.freshness || typeof envelope.freshness.stale !== "boolean") throw new Error("invalid freshness");
+    const freshness = envelope.freshness;
+    const allowedAttemptStatuses = new Set(["PASS", "FAIL", "UNKNOWN", "ERROR"]);
+    const allowedServices = new Set(["iam", "s3", "cloudtrail"]);
+    if (
+      !freshness
+      || typeof freshness.stale !== "boolean"
+      || (freshness.latest_attempt_status !== undefined
+        && freshness.latest_attempt_status !== null
+        && !allowedAttemptStatuses.has(freshness.latest_attempt_status))
+      || (freshness.publication_paused !== undefined && typeof freshness.publication_paused !== "boolean")
+      || (freshness.affected_services !== undefined
+        && (!Array.isArray(freshness.affected_services)
+          || freshness.affected_services.length > 3
+          || freshness.affected_services.some((item) => (
+            !item
+            || typeof item !== "object"
+            || Object.keys(item).length !== 2
+            || !allowedServices.has(item.service)
+            || !["UNKNOWN", "ERROR"].includes(item.status)
+            || item.status !== freshness.latest_attempt_status
+          ))))
+    ) throw new Error("invalid freshness");
+    const affectedServices = freshness.affected_services || [];
+    if (new Set(affectedServices.map((item) => item.service)).size !== affectedServices.length) throw new Error("invalid affected services");
     const openFindingCount = findings.filter((finding) => finding.status === "OPEN").length;
     const run = {
       runId: snapshot.snapshot_id,
@@ -155,8 +214,7 @@
   }
 
   function updateSourceBanner(mode, detail) {
-    document.getElementById("source-label").textContent = mode;
-    document.getElementById("source-detail").textContent = detail;
+    statusUi.renderSource(document, mode, detail);
   }
 
   function updateAssistantMode() {
@@ -165,12 +223,12 @@
     const description = document.getElementById("assistant-description");
     if (isLiveProfile() && !staticMode) {
       mode.lastChild.textContent = "Live evidence · provider optional";
-      disclosure.textContent = "If Rin is enabled, your question and one redacted finding go to the configured AI provider. No raw account identifiers or evidence are sent.";
+      disclosure.textContent = "If Rin is enabled, your question and one redacted finding with its safe evidence summary go to the configured AI provider. Raw account identifiers and evidence are never sent.";
       description.textContent = "I follow the evidence. I don't guess. I receive one redacted finding at a time.";
     } else {
       mode.lastChild.textContent = "Fixture mode · no model calls";
       disclosure.textContent = "Fixture answers stay in this browser. No question leaves the page.";
-      description.textContent = "I follow the evidence. I don't guess. Answers use the selected saved report.";
+      description.textContent = "I follow the evidence. I don't guess. Answers use the saved report or approved platform notes.";
     }
   }
 
@@ -190,8 +248,8 @@
       const payload = await response.json();
       if (response.headers.get("X-Phase3-Static-Mode") === "true") {
         staticMode = true;
-        updateSourceBanner("Static mode active", "Budget kill switch is on · showing checked-in fixtures · last-good public snapshot remains available from the API");
-        document.getElementById("state-explainer").textContent = "Live console mode is paused by the budget kill switch. This page is showing checked-in fixtures; public last-good scan data remains stored.";
+        liveApiUnavailable = false;
+        statusUi.render(document, statusUi.staticMode());
         updateAssistantMode();
         return;
       }
@@ -201,43 +259,49 @@
       liveSnapshotLoaded = true;
       latestFreshness = payload.freshness;
       activeProfile = "live";
+      liveApiUnavailable = false;
       const selector = document.getElementById("scope-select");
       const option = element("option", "", "Live sanitized snapshot");
       option.value = "live";
       if (![...selector.options].some((item) => item.value === "live")) selector.append(option);
       selector.value = "live";
-      const attempt = latestFreshness.latest_attempt_status;
-      const freshnessText = attempt ? `latest attempt ${attempt}` : latestFreshness.stale ? "snapshot stale" : "snapshot current";
-      if (latestFreshness.publication_paused === true) {
-        updateSourceBanner("Publication paused", "The last complete public snapshot remains available · publication needs review");
-      } else {
-        updateSourceBanner("Live redacted AWS data", `Dedicated demo scope · read only · ${freshnessText}`);
-      }
+      statusUi.render(document, statusUi.liveSnapshot({
+        freshness: latestFreshness,
+        completedAt: formatDate(current().run.completedAt),
+        executionStatus: current().run.executionStatus,
+        gateStatus: current().run.gateStatus,
+      }));
       document.getElementById("nav-finding-count").textContent = String(live.openFindingCount);
       updateAssistantMode();
       setView(activeView);
     } catch (_error) {
       staticMode = false;
-      updateSourceBanner("Saved fixture data", "Live API unavailable · showing checked-in Moto reports · no credentials or cross-origin requests");
+      liveApiUnavailable = true;
+      statusUi.render(document, statusUi.apiUnavailable());
       updateAssistantMode();
     }
   }
 
   function updateStateExplainer() {
-    const explainer = document.getElementById("state-explainer");
-    if (!isLiveProfile()) {
-      explainer.textContent = "Execution status does not mean findings are absent. The saved fixture scan gate is NOT CONFIGURED.";
+    if (staticMode) {
+      statusUi.renderExplainer(document, statusUi.staticMode().stateExplainer);
       return;
     }
-    if (latestFreshness && latestFreshness.publication_paused === true) {
-      explainer.textContent = `Publication is paused. The console is keeping the last complete public snapshot from ${formatDate(current().run.completedAt)}.`;
-    } else if (latestFreshness && ["UNKNOWN", "ERROR"].includes(latestFreshness.latest_attempt_status)) {
-      explainer.textContent = `Latest scan attempt is ${latestFreshness.latest_attempt_status}. The console is keeping the last complete snapshot from ${formatDate(current().run.completedAt)}.`;
-    } else if (latestFreshness && latestFreshness.stale) {
-      explainer.textContent = `This live snapshot is stale. Last complete scan: ${formatDate(current().run.completedAt)}. Findings remain visible; stale data is not a clean result.`;
-    } else {
-      explainer.textContent = `Live read-only snapshot · execution ${readableStatus(current().run.executionStatus)} · security gate ${readableStatus(current().run.gateStatus)}.`;
+    if (liveApiUnavailable) {
+      statusUi.renderExplainer(document, statusUi.apiUnavailable().stateExplainer);
+      return;
     }
+    if (!isLiveProfile()) {
+      statusUi.renderExplainer(document, statusUi.fixture().stateExplainer);
+      return;
+    }
+    const presentation = statusUi.liveSnapshot({
+      freshness: latestFreshness,
+      completedAt: formatDate(current().run.completedAt),
+      executionStatus: readableStatus(current().run.executionStatus),
+      gateStatus: readableStatus(current().run.gateStatus),
+    });
+    statusUi.renderExplainer(document, presentation.stateExplainer);
   }
 
   function isMobileNavigation() {
@@ -258,6 +322,9 @@
     const sidebar = document.getElementById("sidebar");
     const toggle = document.getElementById("menu-toggle");
     const backdrop = document.getElementById("sidebar-backdrop");
+    const workspace = document.querySelector(".workspace");
+    const skipLink = document.querySelector(".skip-link");
+    const assistantLauncher = document.getElementById("assistant-launcher");
     const mobile = isMobileNavigation();
 
     if (mobile) {
@@ -266,6 +333,9 @@
       appFrame.classList.toggle("is-mobile-open", open);
       sidebar.inert = !open;
       sidebar.setAttribute("aria-hidden", String(!open));
+      workspace.inert = open;
+      skipLink.inert = open;
+      assistantLauncher.inert = open;
       backdrop.hidden = !open;
       toggle.setAttribute("aria-expanded", String(open));
       toggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
@@ -275,6 +345,9 @@
       sidebar.classList.remove("is-open");
       sidebar.inert = false;
       sidebar.removeAttribute("aria-hidden");
+      workspace.inert = false;
+      skipLink.inert = false;
+      assistantLauncher.inert = false;
       backdrop.hidden = true;
       const preference = storedNavigationPreference();
       const collapsed = preference ? preference === "collapsed" : window.innerWidth <= 1220;
@@ -290,12 +363,11 @@
     }
 
     document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
-      const label = item.dataset.label || item.textContent.trim().replace(/\s+/g, " ");
+      const label = item.dataset.label || item.getAttribute("aria-label") || item.textContent.trim().replace(/\s+/g, " ");
+      item.setAttribute("aria-label", label);
       if (!mobile && appFrame.classList.contains("is-collapsed")) {
-        item.setAttribute("aria-label", label);
         item.title = label;
       } else {
-        item.removeAttribute("aria-label");
         item.removeAttribute("title");
       }
     });
@@ -905,20 +977,25 @@
         : "This published preview uses checked-in Moto fixtures. It makes no AWS calls and sends no data to a model.")
     );
     view.append(notice);
+    const evidenceNotice = element("p", "transparency-note", "Repository links show local design and tests, not live AWS proof. Actual AWS role-policy captures are still pending review, and no Phase 3 stage acceptance is recorded.");
+    view.append(evidenceNotice);
 
     const grid = element("div", "module-grid");
     [
-      ["AWS scan role", "Read-only target", "The Fargate task assumes only the named target role, which has no AWS write actions. The task can invoke only the private snapshot writer; it has no direct S3 or DynamoDB access."],
-      ["Public results", "Allowlisted", "A separate publisher removes unapproved fields and identifiers before results reach the public store."],
-      ["Rin", "Disabled by default", "Rin stays disabled until an approved provider, secret, model, quotas, and separate spend limits are configured."],
-      ["Live acceptance", "Pending", "No live Phase 3 stage gate has passed. Local tests and Terraform code are not deployment evidence."],
-    ].forEach(([title, state, description]) => {
+      ["AWS scan role", "Read-only design", "The local target role policy grants AWS read actions only. The task can invoke only the private snapshot writer and has no direct S3 or DynamoDB access. Actual AWS role-policy captures are still pending review.", [["Role policy design", "infra/phase3/policies/target-readonly.json"], ["Capture checklist", "docs/phase3-bootstrap.md"]]],
+      ["Public results", "Allowlisted design", "A separate publisher removes unapproved fields and identifiers before results reach the public store.", [["Redaction implementation", "phase3/redaction.py"], ["Redaction tests", "tests/test_phase3_redaction.py"]]],
+      ["Rin", "Disabled by default", "Rin stays disabled until an approved provider, secret, model, published Guardrail, quotas, and separate spend limits are configured.", [["Rin service controls", "phase3/rin_service.py"], ["Rin IAM policy", "infra/phase3/control-plane/stage3.tf"], ["Guardrail bootstrap", "docs/phase3-bootstrap.md"], ["Rin tests", "tests/test_phase3_rin.py"]]],
+      ["Live acceptance", "Pending", "No live Phase 3 stage gate has passed. Local tests and Terraform code are not deployment evidence.", [["Stage status", "docs/phase3-status.md"]]],
+    ].forEach(([title, state, description, sources]) => {
       const card = element("article", "module-card");
       card.append(
         element("h2", "", title),
         element("span", "module-value is-text", state),
         element("p", "module-note", description)
       );
+      const sourceLinks = element("div", "module-evidence-links");
+      sources.forEach(([label, path]) => sourceLinks.append(repositorySourceLink(label, path)));
+      card.append(sourceLinks);
       grid.append(card);
     });
     view.append(grid);
@@ -984,8 +1061,8 @@
     setView(activeView);
   }
 
-  function answerFromFixture(question) {
-    const profile = current();
+  function answerFromFixture(question, profileKey = activeProfile) {
+    const profile = profiles[profileKey] || current();
     const severityCounts = profile.severityCounts || {};
     const findings = Array.isArray(profile.findings) ? profile.findings : [];
     const normalized = String(question || "").toLowerCase();
@@ -1036,6 +1113,10 @@
     };
   }
 
+  function formatPlatformKnowledge(answer) {
+    return `${answer.text}\n\nSources (${answer.version}): ${answer.citations.join("; ")}`;
+  }
+
   function appendAssistantMessage(message, role) {
     const log = document.getElementById("assistant-messages");
     const bubble = element("div", `assistant-message${role === "user" ? " is-user" : ""}`, message);
@@ -1047,6 +1128,12 @@
   function askLocalAssistant(rawQuestion) {
     const question = String(rawQuestion || "").trim().slice(0, 500);
     if (!question) return;
+    const platformAnswer = platformKnowledge.answerPlatformQuestion(question);
+    if (platformAnswer) {
+      appendAssistantMessage(question, "user");
+      appendAssistantMessage(formatPlatformKnowledge(platformAnswer), "assistant");
+      return;
+    }
     if (isLiveProfile() && !staticMode) {
       void askLiveRin(question);
       return;
@@ -1133,14 +1220,36 @@
         });
         bubble.append(openFinding);
       } else {
-        bubble.textContent = typeof payload.message === "string" ? payload.message : "Rin is unavailable. The scan evidence remains available in the console.";
+        renderRinFixtureFallback(bubble, question);
       }
     } catch (_error) {
-      bubble.textContent = "Rin is unavailable. The scan evidence remains available in the console.";
+      renderRinFixtureFallback(bubble, question);
     } finally {
       assistantBusy = false;
       send.disabled = false;
     }
+  }
+
+  function renderRinFixtureFallback(bubble, question) {
+    const knowledgeAnswer = platformKnowledge.answerPlatformQuestion(question);
+    const answer = knowledgeAnswer
+      ? { text: formatPlatformKnowledge(knowledgeAnswer), source: "platform-knowledge" }
+      : answerFromFixture(question, "misconfigured");
+    statusUi.renderRinFallback(bubble, answer.text, answer.source);
+    if (!answer.finding) return;
+    const openFinding = element("button", "assistant-finding-action", "Open fixture finding");
+    openFinding.type = "button";
+    openFinding.addEventListener("click", () => {
+      const assistant = document.getElementById("assistant-dialog");
+      if (assistant.open && typeof assistant.close === "function") assistant.close();
+      setScope("misconfigured");
+      setView("findings");
+      const search = document.getElementById("global-search");
+      search.value = answer.finding.title;
+      search.dispatchEvent(new Event("input", { bubbles: true }));
+      search.focus();
+    });
+    bubble.append(openFinding);
   }
 
   function openLocalAssistant() {
@@ -1190,7 +1299,7 @@
 
     const evidenceSection = element("section", "dialog-section");
     const toolbar = element("div", "evidence-toolbar");
-    toolbar.append(element("h3", "", "Collected evidence"));
+    toolbar.append(element("h3", "", "Redacted evidence summary"));
     const copy = element("button", "button", "Copy JSON");
     copy.type = "button";
     copy.append(icon("copy"));
@@ -1207,7 +1316,7 @@
       }
       try {
         await navigator.clipboard.writeText(evidence.textContent);
-        copied.textContent = "Evidence copied.";
+        copied.textContent = "Evidence summary copied.";
       } catch (_error) {
         copied.textContent = "Clipboard access was denied; select the evidence text to copy it.";
       }
@@ -1217,7 +1326,7 @@
   }
 
   document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
-    item.dataset.label = item.textContent.trim().replace(/\s+/g, " ");
+    item.dataset.label = item.getAttribute("aria-label") || item.textContent.trim().replace(/\s+/g, " ");
     item.addEventListener("click", () => setView(item.dataset.view));
   });
   updateNavigationState();

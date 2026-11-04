@@ -3,8 +3,8 @@
 Read-only AWS account security for IAM, S3, and CloudTrail. Vorrin inspects
 configuration, records evidence, and produces findings you can review.
 
-[Open the console demo](https://tdinh-dev-sec-scientist.github.io/account-access-auditor/console/) ·
-[Open the scan replay](https://tdinh-dev-sec-scientist.github.io/account-access-auditor/) ·
+[Open the static console demo](https://tdinh-dev-sec-scientist.github.io/Vorrin/console/) ·
+[Open the scan replay](https://tdinh-dev-sec-scientist.github.io/Vorrin/) ·
 [Review Phase 2 status](docs/implementation-status.md) ·
 [Review Phase 3 status](docs/phase3-status.md)
 · [Review Phase 3 cost record](docs/costs.md)
@@ -19,6 +19,35 @@ for stage evidence and limitations.
 gate has passed.** The published site remains the static fixture demo. See the
 [Phase 3 status](docs/phase3-status.md) for the scoped AWS boundary and release
 gates.
+
+The console currently shows saved fixture evidence; it does not read a live AWS
+account. Phase 3 infrastructure and live acceptance remain pending.
+
+## Phase 3 architecture
+
+This is the prepared design, not a deployed system:
+
+```mermaid
+flowchart LR
+  Demo[Dedicated demo account] -->|Scheduled read-only scan| Scan[Scan worker]
+  Scan --> Private[Private snapshots and drift index]
+  Private --> Publisher[Redact and validate]
+  Publisher --> Public[Isolated public-results store]
+  Public --> API[Read-only public API]
+  API --> Web[CloudFront and static console]
+  Web --> Rin[Rin: one redacted finding]
+  Rin --> Input[Bedrock Guardrail input check]
+  Input --> Provider[Owner-selected external model]
+  Provider --> Output[Bedrock Guardrail output check]
+  Output --> Rin
+  Budget[100% AWS budget action] --> Kill[Disable Rin and select static mode]
+  Kill --> Web
+```
+
+The scanner cannot change demo-account resources. The public site, API, and
+Rin cannot write to the target account or scan results. See the
+[threat model](docs/threat-model.md) and [Phase 3 status](docs/phase3-status.md)
+for the implemented boundaries and pending live checks.
 
 ## Quick start
 

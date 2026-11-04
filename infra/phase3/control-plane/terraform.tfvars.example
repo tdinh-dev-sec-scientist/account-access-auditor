@@ -1,7 +1,7 @@
 aws_region = "us-east-1"
 demo_account_id = "123456789012"
 bucket_prefix = "owner-unique-prefix"
-github_repository = "tdinh-dev-sec-scientist/account-access-auditor"
+github_repository = "tdinh-dev-sec-scientist/Vorrin"
 github_image_environment = "phase3-scan-image"
 enable_scan_pipeline = false
 scan_container_image = ""
@@ -10,4 +10,7 @@ enable_stage2 = false
 enable_stage3 = false
 enable_stage4 = false
 rin_enabled = false
+# Keep Rin disabled until the owner confirms provider rates/budgets and publishes a Bedrock Guardrail.
+rin_guardrail_arn     = ""
+rin_guardrail_version = ""
 # Set monthly/provider budgets and provider inputs only after the owner confirms them.

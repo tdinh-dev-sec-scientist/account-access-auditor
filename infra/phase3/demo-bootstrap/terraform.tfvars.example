@@ -1,7 +1,7 @@
 aws_region = "us-east-1"
 demo_account_id = "123456789012"
 bucket_prefix = "owner-unique-prefix"
-github_repository = "tdinh-dev-sec-scientist/account-access-auditor"
+github_repository = "tdinh-dev-sec-scientist/Vorrin"
 github_ref = "refs/heads/main"
 github_plan_environment = "phase3-demo-account-plan"
 github_apply_environment = "phase3-demo-account-apply"

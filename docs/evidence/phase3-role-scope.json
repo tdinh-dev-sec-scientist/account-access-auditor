@@ -1,0 +1,45 @@
+{
+  "schema_version": 3,
+  "roles": {
+    "org": {
+      "plan": {
+        "status": "pending",
+        "role_arn_sha256": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "evidence": [],
+        "evidence_sha256": {},
+        "source_evidence_sha256": {}
+      },
+      "apply": {
+        "status": "pending",
+        "role_arn_sha256": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "evidence": [],
+        "evidence_sha256": {},
+        "source_evidence_sha256": {}
+      }
+    },
+    "control-plane": {
+      "plan": {
+        "status": "pending",
+        "role_arn_sha256": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "evidence": [],
+        "evidence_sha256": {},
+        "source_evidence_sha256": {}
+      },
+      "apply": {
+        "status": "pending",
+        "role_arn_sha256": null,
+        "reviewed_by": null,
+        "reviewed_at": null,
+        "evidence": [],
+        "evidence_sha256": {},
+        "source_evidence_sha256": {}
+      }
+    }
+  }
+}

@@ -67,14 +67,16 @@ class MemoryStore:
         self.snapshots = []
         self.attempts = []
         self.publication_statuses = []
+        self.affected_services = []
 
     def publish(self, snapshot):
         self.snapshots.append(snapshot)
         return True
 
-    def record_attempt(self, status, completed_at, *, publication_status="READY"):
+    def record_attempt(self, status, completed_at, *, publication_status="READY", affected_services=()):
         self.attempts.append((status, completed_at))
         self.publication_statuses.append(publication_status)
+        self.affected_services.append(list(affected_services))
 
 
 def test_publisher_publishes_complete_failures_but_retains_last_good_for_partial_or_error():
@@ -93,6 +95,7 @@ def test_publisher_publishes_complete_failures_but_retains_last_good_for_partial
         ("FAIL", "2026-11-01T00:00:00+00:00"),
         ("UNKNOWN", "2026-11-02T00:00:00+00:00"),
     ]
+    assert store.affected_services == [[], [{"service": "s3", "status": "UNKNOWN"}]]
 
 
 @mock_aws
@@ -122,7 +125,8 @@ def test_s3_dynamo_publisher_writes_snapshot_before_advancing_pointer():
     assert result["status"] == "PUBLISHED"
     assert latest["snapshot_id"] == snapshot["snapshot_id"]
     assert b"123456789012" not in stored
-    assert b"evidence" not in stored
+    assert b'"evidence_summary":{}' in stored
+    assert b'"raw"' not in stored
 
 
 @mock_aws

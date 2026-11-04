@@ -99,7 +99,7 @@ not add dependencies unless the implementation proves they are needed.
 **Files:**
 - Create: `phase3/public_schema.py`, `phase3/redaction.py`,
   `phase3/publisher.py`, `phase3/public_api.py`
-- Create: `schemas/public-snapshot-v1.schema.json`
+- Create: `schemas/public-snapshot-v2.schema.json`
 - Create: public-results S3/DynamoDB resources and scoped Lambda roles in
   `infra/phase3/`
 - Test: `tests/test_phase3_redaction.py`, `tests/test_phase3_publisher.py`,

@@ -96,7 +96,7 @@ def test_readme_is_a_concise_product_guide_with_a_clear_quick_start():
     assert readme.startswith("# Vorrin")
     assert "## Quick start" in readme
     assert readme.index("## Quick start") < readme.index("## What Phase 2 includes")
-    assert "https://tdinh-dev-sec-scientist.github.io/account-access-auditor/console/" in readme
+    assert "https://tdinh-dev-sec-scientist.github.io/Vorrin/console/" in readme
     assert "## Security boundary" in readme
     assert "## Project map" in readme
     assert "## Documentation" in readme

@@ -1,11 +1,20 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
+from pathlib import Path
 
 import pytest
 
-from phase3.redaction import PublicSnapshotError, _pseudonym, redact_snapshot, validate_public_snapshot
+from phase3.redaction import (
+    PUBLIC_SCHEMA_VERSION,
+    PublicSnapshotError,
+    _EVIDENCE_PUBLIC_FIELDS,
+    _pseudonym,
+    redact_snapshot,
+    validate_public_snapshot,
+)
 
 
 HMAC_KEY = b"p3-test-key-material-with-at-least-32-bytes"
@@ -80,7 +89,7 @@ def test_redaction_keeps_only_public_allowlist_and_stable_keyed_pseudonyms():
     assert public["summary"]["total_findings"] == 1
     assert public["findings"][0]["id"] == again["findings"][0]["id"]
     assert public["findings"][0]["resource_ref"].startswith("resource-")
-    assert "evidence" not in public["findings"][0]
+    assert public["findings"][0]["evidence_summary"] == {}
     assert "account_id" not in encoded
     assert "123456789012" not in encoded
     assert "arn:aws" not in encoded
@@ -102,6 +111,24 @@ def test_redaction_rejects_secret_patterns_in_public_text_and_unknown_fields_sta
     clean["contract"]["findings"][0]["unexpected"] = "private"
     public = redact_snapshot(clean, HMAC_KEY)
     assert "unexpected" not in repr(public)
+
+
+@pytest.mark.parametrize(
+    "identifier",
+    (
+        "198.51.100.42",
+        "analyst@example.com",
+        "AKIA" + "1234567890ABCDEF",
+        "Bearer abcdefghijklmnop",
+        "https://internal.example.com/path",
+    ),
+)
+def test_redaction_fails_closed_on_seeded_ip_email_key_token_and_endpoint_identifiers(identifier):
+    report = _report()
+    report["contract"]["findings"][0]["description"] = f"Demo evidence includes {identifier}."
+
+    with pytest.raises(PublicSnapshotError, match="sensitive pattern"):
+        redact_snapshot(report, HMAC_KEY)
 
 
 def test_redaction_rejects_short_key_and_invalid_scan_contract():
@@ -132,6 +159,82 @@ def test_redaction_removes_resource_and_principal_names_embedded_in_allowed_pros
     for private_value in ("lab-public-assets", "alice-admin", "lab-full-admin"):
         assert private_value not in text
     assert "[redacted]" in text
+
+
+def test_public_evidence_summary_keeps_only_bounded_safe_facts():
+    report = _report()
+    finding = report["contract"]["findings"][0]
+    finding["evidence"] = {
+        "username": "alice-admin",
+        "principal_arn": "arn:aws:iam::123456789012:user/alice-admin",
+        "console_access_enabled": True,
+        "mfa_device_count": 0,
+        "age_days": 187,
+        "last_used_days_ago": 45,
+        "ever_used": False,
+        "statements": [{"action": "*", "resource": "*"}],
+        "disabled_settings": ["BlockPublicPolicy", "RestrictPublicBuckets"],
+        "escalation_threshold_days": 123456789012,
+        "private_future_field": "must not be reflected",
+        "mfa_device_count_too_large": 123456789012,
+    }
+
+    public = redact_snapshot(report, HMAC_KEY)
+    summary = public["findings"][0]["evidence_summary"]
+
+    assert summary == {
+        "console_access_enabled": True,
+        "mfa_device_count": 0,
+        "age_days": 187,
+        "last_used_days_ago": 45,
+        "ever_used": False,
+        "statement_count": 1,
+        "disabled_setting_count": 2,
+    }
+    encoded = repr(public)
+    for secret in ("alice-admin", "arn:aws", "username", "principal_arn", "private_future_field", "must not be reflected"):
+        assert secret not in encoded
+
+
+def test_public_evidence_summary_rejects_unknown_keys_and_invalid_values():
+    public = redact_snapshot(_report(), HMAC_KEY)
+    public["findings"][0]["evidence_summary"] = {"account_id": "123456789012"}
+
+    with pytest.raises(PublicSnapshotError, match="schema"):
+        validate_public_snapshot(public)
+
+
+def test_public_json_schema_declares_the_same_closed_evidence_summary_allowlist():
+    schema = json.loads((Path(__file__).resolve().parents[1] / "schemas/public-snapshot-v2.schema.json").read_text())
+    finding_schema = schema["$defs"]["finding"]
+    evidence_schema = schema["$defs"]["evidenceSummary"]
+
+    assert "evidence_summary" in finding_schema["required"]
+    assert finding_schema["properties"]["evidence_summary"] == {"$ref": "#/$defs/evidenceSummary"}
+    assert evidence_schema["additionalProperties"] is False
+    assert set(evidence_schema["properties"]) == _EVIDENCE_PUBLIC_FIELDS
+
+    public = redact_snapshot(_report(), HMAC_KEY)
+    public["findings"][0]["evidence_summary"] = {"mfa_device_count": True}
+
+    with pytest.raises(PublicSnapshotError, match="schema"):
+        validate_public_snapshot(public)
+
+
+def test_breaking_public_snapshot_shape_uses_a_new_major_version_and_rejects_v1():
+    assert PUBLIC_SCHEMA_VERSION == "2.0.0"
+    root = Path(__file__).resolve().parents[1]
+    current_schema = json.loads((root / "schemas/public-snapshot-v2.schema.json").read_text())
+    legacy_schema = json.loads((root / "schemas/public-snapshot-v1.schema.json").read_text())
+    assert current_schema["properties"]["schema_version"]["const"] == PUBLIC_SCHEMA_VERSION
+    assert legacy_schema["properties"]["schema_version"]["const"] == "1.0.0"
+    assert "evidence_summary" not in legacy_schema["$defs"]["finding"]["required"]
+    assert "affected_services" not in legacy_schema["properties"]["scan"]["required"]
+
+    public = redact_snapshot(_report(), HMAC_KEY)
+    public["schema_version"] = "1.0.0"
+    with pytest.raises(PublicSnapshotError, match="schema v2"):
+        validate_public_snapshot(public)
 
 
 def test_public_schema_rejects_extra_fields_or_unsafe_identifiers():

@@ -45,7 +45,7 @@ def build_web_bundle(output: Path = DEFAULT_OUTPUT) -> Path:
     html = html.replace("Source report", "Public snapshot")
     html = html.replace("View JSON evidence", "View public snapshot")
     (output / "index.html").write_text(html, encoding="utf-8")
-    for name in ("console.css", "console.js"):
+    for name in ("console.css", "console.js", "status.js", "knowledge.js"):
         shutil.copy2(ROOT / "scripts" / "console" / name, output / name)
     return output
 

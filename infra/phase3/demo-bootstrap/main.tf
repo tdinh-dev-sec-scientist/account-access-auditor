@@ -215,25 +215,38 @@ resource "aws_iam_role_policy" "terraform_apply" {
         Resource = concat(local.demo_bucket_arns, local.demo_object_arns)
       },
       {
-        Sid    = "CreateAndAttachOnlyTargetReadonlyRolePolicy"
-        Effect = "Allow"
-        Action = [
-          "iam:CreateRole",
-          "iam:TagRole",
-          "iam:UntagRole",
-          "iam:AttachRolePolicy",
-          "iam:DetachRolePolicy"
-        ]
+        Sid      = "CreateTargetRoleWithReadOnlyPermissionsBoundary"
+        Effect   = "Allow"
+        Action   = "iam:CreateRole"
+        Resource = local.target_role_arn
+        Condition = {
+          ArnEquals = {
+            "iam:PermissionsBoundary" = local.target_policy_arn
+          }
+        }
+      },
+      {
+        Sid      = "TagOnlyTargetReadonlyRole"
+        Effect   = "Allow"
+        Action   = ["iam:TagRole", "iam:UntagRole"]
         Resource = local.target_role_arn
       },
       {
-        Sid    = "ManageOnlyTargetReadonlyPolicyVersions"
+        Sid      = "AttachOnlyTargetReadonlyPolicy"
+        Effect   = "Allow"
+        Action   = ["iam:AttachRolePolicy", "iam:DetachRolePolicy"]
+        Resource = local.target_role_arn
+        Condition = {
+          ArnEquals = {
+            "iam:PolicyARN" = local.target_policy_arn
+          }
+        }
+      },
+      {
+        Sid    = "CreateOnlyNamedTargetReadonlyPolicy"
         Effect = "Allow"
         Action = [
           "iam:CreatePolicy",
-          "iam:CreatePolicyVersion",
-          "iam:SetDefaultPolicyVersion",
-          "iam:DeletePolicyVersion",
           "iam:TagPolicy",
           "iam:UntagPolicy"
         ]

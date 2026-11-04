@@ -22,9 +22,12 @@ MAX_QUESTION_CHARS = 500
 MAX_REQUEST_BYTES = 8192
 MIN_INPUT_TOKENS = 512
 MAX_INPUT_TOKENS = 8192
+_INSTRUCTION_ECHO_MIN_TOKENS = 12
 _ID = re.compile(r"^[a-f0-9]{24}$")
 _MODEL = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 _SESSION_TOKEN = re.compile(r"^[A-Za-z0-9_-]{22,128}$")
+_GUARDRAIL_ARN = re.compile(r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$")
+_GUARDRAIL_VERSION = re.compile(r"^[1-9][0-9]{0,7}$")
 
 
 class RinRequestError(ValueError):
@@ -43,6 +46,9 @@ def rin_response(
     max_input_tokens: int = 4096,
     enabled_check: Any = None,
     provider: Any = None,
+    guardrail_identifier: Any = None,
+    guardrail_version: Any = None,
+    guardrail: Any = None,
     now: datetime | None = None,
 ) -> dict[str, Any]:
     if not isinstance(event, dict) or event.get("httpMethod") != "POST" or event.get("path") != "/api/rin":
@@ -68,6 +74,14 @@ def rin_response(
             200,
             {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED", "message": "Rin is using the local fixture fallback."},
         )
+    if (
+        not isinstance(guardrail_identifier, str)
+        or not _GUARDRAIL_ARN.fullmatch(guardrail_identifier)
+        or not isinstance(guardrail_version, str)
+        or not _GUARDRAIL_VERSION.fullmatch(guardrail_version)
+        or not callable(guardrail)
+    ):
+        return _response(200, {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED", "message": "Rin is using the local fixture fallback."})
     if not 128 <= max_output_tokens <= 1200 or not MIN_INPUT_TOKENS <= max_input_tokens <= MAX_INPUT_TOKENS:
         return _response(200, {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED"})
     try:
@@ -83,8 +97,9 @@ def rin_response(
     if finding is None:
         return _response(404, {"status": "UNAVAILABLE", "reason_code": "FINDING_NOT_FOUND"}, no_store=True)
 
-    # Build and bound exactly the content sent to the provider before charging a
-    # quota unit. UTF-8 bytes are a conservative upper bound for token count.
+    # Bound all billable input sent to the provider, including system
+    # instructions, before charging a quota unit. UTF-8 bytes conservatively
+    # bound the provider's input-token count.
     try:
         request, supplied_findings = _build_request(_finding_report(finding), model=model)
         request_payload = json.loads(request["input"])
@@ -96,7 +111,10 @@ def rin_response(
             "cite supplied catalog IDs, and return proposal as null."
         )
         request["max_output_tokens"] = max_output_tokens
-        if len(request["input"].encode("utf-8")) > max_input_tokens:
+        provider_input_bytes = len(request["input"].encode("utf-8")) + len(
+            request["instructions"].encode("utf-8")
+        )
+        if provider_input_bytes > max_input_tokens:
             return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_INPUT_LIMIT", "message": "Rin is using the local fixture fallback."})
     except Exception:
         return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_INPUT_INVALID", "message": "Rin is using the local fixture fallback."})
@@ -126,6 +144,13 @@ def rin_response(
                 {"status": "UNAVAILABLE", "reason_code": "RIN_DISABLED", "message": "Rin is using the local fixture fallback."},
             )
     try:
+        _require_guardrail_clear(guardrail(source="INPUT", text=request["input"]))
+    except AIAnalystError as exc:
+        state = "REJECTED" if exc.code == "GUARDRAIL_BLOCKED" else "UNAVAILABLE"
+        return _response(200, {"status": state, "reason_code": exc.code, "message": "Rin is using the local fixture fallback."})
+    except Exception:
+        return _response(200, {"status": "UNAVAILABLE", "reason_code": "GUARDRAIL_UNAVAILABLE", "message": "Rin is using the local fixture fallback."})
+    try:
         selected_key = api_key() if callable(api_key) else api_key
     except Exception:
         selected_key = None
@@ -138,10 +163,19 @@ def rin_response(
         if len(analyses) != 1 or analyses[0]["proposal"] is not None:
             raise AIAnalystError("Rin output contains an unsupported proposal", code="InvalidOutputSchema")
         for text in (analyses[0]["explanation"], analyses[0]["uncertainty"]):
-            if _contains_sensitive(text):
-                raise AIAnalystError("Rin output contains a sensitive pattern", code="SensitiveOutputBlocked")
+            if _contains_sensitive(text) or _contains_instruction_echo(text, request["instructions"]):
+                raise AIAnalystError("Rin output contains sensitive or internal instruction text", code="SensitiveOutputBlocked")
+        try:
+            _require_guardrail_clear(guardrail(
+                source="OUTPUT",
+                text=f"{analyses[0]['explanation']}\n{analyses[0]['uncertainty']}",
+            ))
+        except AIAnalystError:
+            raise
+        except Exception:
+            raise AIAnalystError("Rin output guardrail is unavailable", code="GUARDRAIL_UNAVAILABLE") from None
     except AIAnalystError as exc:
-        state = "UNAVAILABLE" if exc.code == "ProviderUnavailable" else "REJECTED"
+        state = "UNAVAILABLE" if exc.code in {"ProviderUnavailable", "GUARDRAIL_UNAVAILABLE"} else "REJECTED"
         return _response(200, {"status": state, "reason_code": exc.code, "message": "Rin is using the local fixture fallback."})
     except Exception:
         return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_UNAVAILABLE", "message": "Rin is using the local fixture fallback."})
@@ -157,6 +191,37 @@ def rin_response(
                 for citation in analysis["citations"]
             ],
         },
+    )
+
+
+def _require_guardrail_clear(result: Any) -> None:
+    if not isinstance(result, dict):
+        raise AIAnalystError("Rin guardrail returned an invalid response", code="GUARDRAIL_UNAVAILABLE")
+    action = result.get("action")
+    if action == "GUARDRAIL_INTERVENED":
+        raise AIAnalystError("Rin guardrail blocked the content", code="GUARDRAIL_BLOCKED")
+    if action != "NONE":
+        raise AIAnalystError("Rin guardrail returned an invalid action", code="GUARDRAIL_UNAVAILABLE")
+
+
+def _apply_bedrock_guardrail(
+    client: Any,
+    *,
+    guardrail_identifier: str,
+    guardrail_version: str,
+    source: str,
+    text: str,
+) -> dict[str, Any]:
+    """Assess bounded, redacted Rin input or output without invoking a model."""
+    if source not in {"INPUT", "OUTPUT"}:
+        raise ValueError("invalid guardrail source")
+    if not isinstance(text, str) or not text:
+        raise ValueError("guardrail content must be non-empty text")
+    return client.apply_guardrail(
+        guardrailIdentifier=guardrail_identifier,
+        guardrailVersion=guardrail_version,
+        source=source,
+        content=[{"text": {"text": text}}],
     )
 
 
@@ -211,6 +276,20 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def _contains_instruction_echo(value: str, instructions: str) -> bool:
+    """Reject answers that copy a long contiguous fragment of Rin's private prompt."""
+    output_tokens = re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKC", value).casefold())
+    instruction_tokens = re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKC", instructions).casefold())
+    if len(output_tokens) < _INSTRUCTION_ECHO_MIN_TOKENS:
+        return False
+    normalized_output = " ".join(output_tokens)
+    for start in range(len(instruction_tokens) - _INSTRUCTION_ECHO_MIN_TOKENS + 1):
+        fragment = " ".join(instruction_tokens[start : start + _INSTRUCTION_ECHO_MIN_TOKENS])
+        if fragment in normalized_output:
+            return True
+    return False
+
+
 def _scan_is_unavailable(snapshot: dict[str, Any], attempt: Any, *, now: datetime | None) -> bool:
     if snapshot["scan"]["status"] not in {"PASS", "FAIL"} or snapshot["scan"]["incomplete_scopes"] > 0:
         return True
@@ -248,7 +327,7 @@ def _finding_report(finding: dict[str, Any]) -> dict[str, Any]:
         "severity": finding["severity"],
         "title": finding["title"],
         "description": finding["description"],
-        "evidence": {},
+        "evidence": finding["evidence_summary"],
         "remediation": finding["remediation"],
         "references": references,
         "source_location": None,
@@ -290,6 +369,8 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
     quota_function = os.environ.get("PHASE3_RIN_QUOTA_FUNCTION_ARN", "").strip()
     secret_arn = os.environ.get("PHASE3_RIN_PROVIDER_SECRET_ARN", "").strip()
     model = os.environ.get("PHASE3_RIN_MODEL", "").strip()
+    guardrail_identifier = os.environ.get("PHASE3_RIN_GUARDRAIL_ARN", "").strip()
+    guardrail_version = os.environ.get("PHASE3_RIN_GUARDRAIL_VERSION", "").strip()
     token_cap = os.environ.get("PHASE3_RIN_MAX_OUTPUT_TOKENS", "")
     input_cap = os.environ.get("PHASE3_RIN_MAX_INPUT_TOKENS", "")
     if not all((region, bucket, index_name, feature_name, quota_function)):
@@ -309,6 +390,13 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
         enabled = isinstance(feature, dict) and feature.get("rin_enabled") is True
         quota_client = aws.client("lambda")
         secrets_client = aws.client("secretsmanager")
+        guardrail_client = (
+            aws.client("bedrock-runtime")
+            if enabled
+            and _GUARDRAIL_ARN.fullmatch(guardrail_identifier)
+            and _GUARDRAIL_VERSION.fullmatch(guardrail_version)
+            else None
+        )
     except Exception:
         return _response(503, {"status": "UNAVAILABLE", "reason_code": "RIN_CONFIGURATION_UNAVAILABLE"}, no_store=True)
 
@@ -336,6 +424,17 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
         ).get("Item")
         return isinstance(item, dict) and item.get("rin_enabled") is True and item.get("static_mode") is not True
 
+    def assess_guardrail(*, source: str, text: str) -> dict[str, Any]:
+        if guardrail_client is None:
+            raise RinRequestError("Rin guardrail is not configured")
+        return _apply_bedrock_guardrail(
+            guardrail_client,
+            guardrail_identifier=guardrail_identifier,
+            guardrail_version=guardrail_version,
+            source=source,
+            text=text,
+        )
+
     try:
         parsed_cap = int(token_cap) if token_cap.isascii() and token_cap.isdigit() else None
         parsed_input_cap = int(input_cap) if input_cap.isascii() and input_cap.isdigit() else 4096
@@ -352,4 +451,7 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
         quota_consumer=quota_consumer,
         max_input_tokens=parsed_input_cap,
         enabled_check=rin_enabled_now,
+        guardrail_identifier=guardrail_identifier,
+        guardrail_version=guardrail_version,
+        guardrail=assess_guardrail if guardrail_client is not None else None,
     )

@@ -1,0 +1,57 @@
+{
+  "schema_version": 3,
+  "stages": {
+    "stage1": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "criteria": {
+        "two_consecutive_scheduled_scans": false,
+        "reviewed_new_and_resolved_drift": false,
+        "read_only_target_role_evidence": false
+      },
+      "evidence": [],
+      "evidence_sha256": {}
+    },
+    "stage2": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "criteria": {
+        "redaction_and_secret_tests": false,
+        "publisher_failure_atomicity": false,
+        "public_api_method_tests": false
+      },
+      "evidence": [],
+      "evidence_sha256": {}
+    },
+    "stage3": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "criteria": {
+        "https_and_security_headers": false,
+        "rin_evaluation": false,
+        "quota_fallbacks": false,
+        "failure_banners": false,
+        "published_guardrail_policy_review": false,
+        "bedrock_invocation_logging_review": false
+      },
+      "evidence": [],
+      "evidence_sha256": {}
+    },
+    "stage4": {
+      "status": "pending",
+      "reviewed_by": null,
+      "reviewed_at": null,
+      "criteria": {
+        "budget_cutoff": false,
+        "kill_switch_recovery": false,
+        "actual_monthly_cost": false,
+        "launch_evidence": false
+      },
+      "evidence": [],
+      "evidence_sha256": {}
+    }
+  }
+}

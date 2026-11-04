@@ -26,7 +26,7 @@ variable "bucket_prefix" {
 variable "github_repository" {
   description = "Exact GitHub owner/repository allowed to publish a signed Phase 3 scan image."
   type        = string
-  default     = "tdinh-dev-sec-scientist/account-access-auditor"
+  default     = "tdinh-dev-sec-scientist/Vorrin"
   validation {
     condition     = can(regex("^[a-z0-9_.-]+/[a-z0-9_.-]+$", var.github_repository))
     error_message = "github_repository must be a lowercase owner/repository pair."
@@ -130,17 +130,41 @@ variable "budget_alert_email" {
 }
 
 variable "rin_enabled" {
-  description = "Enable live provider-backed Rin only after secret, model, quotas, and budgets are configured."
+  description = "Enable live provider-backed Rin only after its provider, published Bedrock Guardrail, quotas, and budgets are configured."
   type        = bool
   default     = false
   validation {
     condition = !var.rin_enabled || (
       var.enable_stage3 && var.enable_stage4 && var.monthly_budget_usd != null &&
       var.provider_monthly_budget_usd != null && var.rin_model != "" &&
+      var.rin_guardrail_arn != "" && can(regex("^[1-9][0-9]{0,7}$", var.rin_guardrail_version)) &&
       var.rin_input_cost_per_million_tokens_usd != null && var.rin_output_cost_per_million_tokens_usd != null &&
       var.rin_input_cost_per_million_tokens_usd > 0 && var.rin_output_cost_per_million_tokens_usd > 0
     )
-    error_message = "Live Rin requires Stage 3/4, owner AWS/provider budgets, an approved model, and explicit provider token rates."
+    error_message = "Live Rin requires Stage 3/4, owner AWS/provider budgets, an approved model and published Guardrail version, and explicit provider token rates."
+  }
+}
+
+variable "rin_guardrail_arn" {
+  description = "Owner-managed Bedrock Guardrail ARN. Its published policy must block prompt attacks, denied/off-topic topics, and sensitive data on input and output."
+  type        = string
+  default     = ""
+  validation {
+    condition = var.rin_guardrail_arn == "" || can(regex(
+      "^arn:(aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$",
+      var.rin_guardrail_arn
+    ))
+    error_message = "rin_guardrail_arn must be the exact owner-managed Bedrock Guardrail ARN."
+  }
+}
+
+variable "rin_guardrail_version" {
+  description = "Numeric, published Bedrock Guardrail version used by Rin; DRAFT is not accepted."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.rin_guardrail_version == "" || can(regex("^[1-9][0-9]{0,7}$", var.rin_guardrail_version))
+    error_message = "rin_guardrail_version must be a numeric published version, never DRAFT."
   }
 }
 
@@ -165,7 +189,7 @@ variable "rin_output_cost_per_million_tokens_usd" {
 }
 
 variable "rin_max_input_tokens" {
-  description = "Maximum estimated input-token budget for one evidence-only answer."
+  description = "Maximum estimated input-token budget for one answer, including the system instructions and finding payload."
   type        = number
   default     = 4096
   validation {

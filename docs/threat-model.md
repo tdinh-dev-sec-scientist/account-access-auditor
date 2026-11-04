@@ -29,7 +29,10 @@ flowchart LR
   Public --> API[Read-only public API]
   API --> Web[CloudFront, WAF, static console]
   Web --> Rin[Rin: one public finding, bounded question]
-  Rin --> Provider[Owner-selected external provider]
+  Rin --> Guardrail[Bedrock Guardrail: INPUT]
+  Guardrail --> Provider[Owner-selected external provider]
+  Provider --> OutputGuardrail[Bedrock Guardrail: OUTPUT]
+  OutputGuardrail --> Rin
   Budget[AWS budget and daily quota alert] --> Kill[Static-mode kill switch]
   Kill --> Rin
   Kill --> Web
@@ -47,9 +50,9 @@ flowchart LR
 | Local reports and history | Reports can contain account IDs, resource names, policies, and evidence. History directories and exports use restrictive file permissions; repositories ignore local reports. Protect backups and host access. |
 | Supply-chain release key and tools | Cosign private keys stay outside the source/output tree with restrictive permissions. Tools are version-checked; Grype data must be fresh. Local signatures do not establish a public signer identity. |
 | AI provider boundary | AI is explicitly invoked, receives bounded redacted context, has no tools, and cannot set the gate. Provider-side retention depends on account policy; `store: false` is not a no-retention guarantee. |
-| Phase 3 target scan | A scheduled worker assumes only the named demo-account read-only role. A separate private snapshot writer stores validated reports; the target role receives no write actions. The schedule is disabled by default. |
+| Phase 3 target scan | A scheduled worker assumes only the named demo-account read-only role. That role has a permissions boundary with an explicit deny outside the read allowlist, including writes granted directly to a role session by a resource policy. S3 metadata reads are restricted to buckets owned by the selected account. A separate private snapshot writer stores validated reports; the schedule is disabled by default. |
 | Phase 3 publication boundary | Only the publisher bridges private snapshots to the isolated public-results store. It applies a versioned allowlist, keyed pseudonyms, sensitive-pattern rejection, and schema validation. Failure preserves the last good public snapshot. |
-| Phase 3 public API and Rin | API and Rin read only public results. Rin sends one redacted finding to an owner-selected external provider, has no tools, and is disabled until the provider secret, model, rates, and budgets are configured. A separate quota role can write only quota records. |
+| Phase 3 public API and Rin | The API reads sanitized scan results and its feature flag, and writes its own logs. Rin reads sanitized scan results, its feature flag and provider secret, writes its own logs, and invokes only the separate quota function. When enabled, its role can call `bedrock:ApplyGuardrail` on one exact owner-managed Guardrail ARN; it cannot invoke a Bedrock model. Input and validated output are checked before the external provider response reaches the visitor. Rin is disabled until its provider, published Guardrail, rates, quotas, and budgets are configured. |
 | Phase 3 kill switch and cost | AWS Budgets can disable Rin and mark the console static. A separate quota-limit metric alerts without message or session data. Budget notifications may be delayed and do not cap accrued charges. |
 
 ## Main threats and controls
@@ -68,12 +71,14 @@ flowchart LR
    credentials or OIDC. The remediation PR workflow uses trusted default-branch
    code and validates dispatch paths and plans before opening a review-only PR.
    Its GitHub write token cannot mutate AWS.
-4. **Prompt injection, hallucinated citations, or sensitive AI output.** Model
-   input is labeled untrusted and redacted. Structured output, exact finding
-   matching, local citation allowlists, sensitive-output checks, no tools, and
-   fail-safe provider handling prevent AI output from changing severity,
-   findings, or gates. Proposals are returned only after a temporary-copy
-   rescan passes.
+4. **Prompt injection, off-topic requests, or sensitive AI output.** Model
+   input is treated as untrusted and redacted. The owner-managed Bedrock
+   Guardrail checks the bounded input and validated answer for prompt attacks,
+   denied topics, and sensitive data; any intervention or error selects the
+   fixture fallback. Structured output, exact finding matching, local citation
+   allowlists, sensitive-output checks, and no tools prevent AI output from
+   changing severity, findings, or gates. The deployed Guardrail configuration
+   and adversarial evaluation remain live acceptance evidence.
 5. **Compromised release key, stale vulnerability data, or misleading
    signatures.** The release command requires pinned scanner versions, checks
    Grype DB freshness/provenance, signs exact output bytes, and verifies before
@@ -84,18 +89,26 @@ flowchart LR
    the host and its backups as trusted administrative infrastructure.
 7. **Public data leakage or unsafe publication.** Public users cannot read the
    private snapshot store. The publisher is the only data bridge and rejects
-   unknown or sensitive values before updating the last-good pointer; the API
-   and Rin cannot publish or access target-account data directly.
+   unknown or sensitive values before updating the last-good pointer. The
+   public contract includes only a schema-checked summary of bounded numeric
+   and boolean facts; raw evidence blobs remain private. The API and Rin cannot
+   publish or access target-account data directly.
 8. **Anonymous traffic or provider-cost abuse.** WAF rate limits requests,
    session and daily quotas are atomic, question/input/output sizes are
    bounded, and the provider secret is fetched only after a fresh kill-switch
-   check. Static fallback keeps scan results available when Rin is paused.
+   check and an input Guardrail pass. Two Guardrail evaluations per live
+   request are included in the AWS cost estimate. Static fallback keeps scan
+   results available when Rin is paused.
 
 ## Residual risks and limitations
 
 - Redaction is defense in depth, not a guarantee for arbitrary custom evidence.
   Review the data sent before enabling the optional provider, and verify the
   provider's current retention and contractual settings.
+- The code calls a configured Bedrock Guardrail, but this repository does not
+  create or verify its policies. The owner must publish and test the exact
+  prompt-attack, denied-topic, and sensitive-information configuration and
+  review invocation logging before enabling Rin.
 - A read-only AWS credential can still disclose account configuration. Restrict
   role trust, account scope, regions, and operator access.
 - Findings describe scanned evidence, not effective IAM permissions or proof

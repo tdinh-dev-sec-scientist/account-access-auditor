@@ -174,3 +174,12 @@ def test_gatekeeper_policy_evaluates_demo_manifests_with_conftest(tmp_path):
 
     assert clean.returncode == 0, clean.stdout + clean.stderr
     assert violating.returncode == 1, violating.stdout + violating.stderr
+
+
+def test_phase3_workflows_use_the_renamed_github_repository():
+    scan_workflow = (ROOT / ".github/workflows/phase3-scan-image.yml").read_text()
+    terraform_workflow = (ROOT / ".github/workflows/phase3-terraform.yml").read_text()
+
+    assert "https://github.com/tdinh-dev-sec-scientist/Vorrin/.github/workflows/phase3-scan-image.yml@refs/heads/main" in scan_workflow
+    assert "tdinh-dev-sec-scientist/Vorrin" in terraform_workflow
+    assert "tdinh-dev-sec-scientist/account-access-auditor" not in scan_workflow + terraform_workflow

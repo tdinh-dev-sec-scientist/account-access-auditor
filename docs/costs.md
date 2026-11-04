@@ -19,7 +19,8 @@ remain unset until a current estimate and deployment boundary are supplied.
 The Phase 3 control-plane Terraform keeps the public stage disabled until the
 AWS estimate reference is present and the owner-set monthly cap covers the
 estimate. Live Rin also stays disabled until a separate provider budget, model,
-and current input/output token rates produce a positive daily cap.
+current input/output token rates, and a published Bedrock Guardrail ARN/version
+produce a positive daily cap.
 
 ## Cost controls in code
 
@@ -33,6 +34,10 @@ and current input/output token rates produce a positive daily cap.
   budget and current per-token rates, reserving 20% of that budget and capping
   at 1,000 calls per day. A blocked request emits only an aggregate metric; it
   does not log a session token or question text.
+- Each live Rin request also makes two Bedrock Guardrail evaluations: one for
+  the bounded redacted input before the external model call and one for the
+  validated response before it reaches the visitor. Include both evaluations
+  in the AWS estimate and monthly cap; they incur Guardrail evaluation charges.
 - WAF limits API traffic to 100 requests per IP per five minutes. Provider input
   bytes and output tokens are bounded before a call. The live API, Rin, and
   scanners cannot create, update, or delete target-account resources.
