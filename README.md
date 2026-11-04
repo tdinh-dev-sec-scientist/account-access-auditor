@@ -1,19 +1,34 @@
 # Vorrin
 
+[![CI](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/ci.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/ci.yml)
+[![IaC guardrails](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/iac-guardrails.yml/badge.svg)](https://github.com/tdinh-dev-sec-scientist/Vorrin/actions/workflows/iac-guardrails.yml)
+![Python 3.11 | 3.12](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 **Read-only AWS security auditing with evidence reviewers can inspect.** Vorrin
 checks IAM, S3, and CloudTrail configuration, then produces findings with
-severity, rationale, and remediation guidance. The repository also includes
-IaC, Kubernetes, CI, and supply-chain security checks.
+severity, rationale, CIS mapping, and remediation guidance. The repository also
+includes IaC, Kubernetes, CI, and supply-chain security checks.
 
 [Open the interactive console](https://tdinh-dev-sec-scientist.github.io/Vorrin/console/) ·
 [Watch the scan replay](https://tdinh-dev-sec-scientist.github.io/Vorrin/) ·
 [Read a sample report](https://tdinh-dev-sec-scientist.github.io/Vorrin/report.html) ·
 [Inspect the JSON evidence](https://tdinh-dev-sec-scientist.github.io/Vorrin/aws_audit_results.json)
 
+![HTML report summary for the emulated lab account](docs/images/report-light.png)
+
 > **Demo boundary:** the public site uses saved results from an emulated Moto
 > account. It does not connect to AWS, accept credentials, or run scans against
 > visitors' accounts. Live AWS deployment and acceptance are not available in
 > this demo.
+
+## Why it exists
+
+Misconfigured identities, public buckets, and missing audit logs are among the
+most common root causes of cloud breaches. Commercial CSPM tools find them, but
+their results are hard to verify. Vorrin is deliberately small and auditable:
+every API call it makes is declared and read-only, every rule has labeled test
+cases, and every number in this README links to the file that produced it.
 
 ## Try the console
 
@@ -38,18 +53,61 @@ against their source artifacts.
 ## What is included
 
 - **AWS audit:** read-only IAM, S3, and CloudTrail collection with 14
-  deterministic checks and structured reports.
+  deterministic checks and JSON, CSV, HTML, SARIF, and ticket reports.
 - **Infrastructure and policy:** Terraform, IAM policy, Kubernetes, and
-  rendered Helm scanning with normalized findings and policy gates.
+  rendered Helm scanning (Checkov and Conftest/Rego) with normalized findings
+  and policy gates.
 - **Delivery guardrails:** credential-free CI feedback, supply-chain
   inventory, vulnerability checks, and signed local release artifacts.
-- **Review workflows:** drift history, expiring exceptions, and remediation
-  proposals that are rescanned in a temporary local copy.
+- **Review workflows:** multi-account fleet scans, drift history, expiring
+  exceptions, and remediation proposals that are rescanned in a temporary
+  local copy.
 - **Evidence console:** a static, read-only interface for exploring saved
   findings, report details, and fixture-backed answers.
 
 Rin is a local fixture assistant in the public demo. Optional AI integrations
 are documented in the repository but are not connected to the published site.
+
+### Security checks
+
+| Rule | Severity | CIS v3.0.0 | Check |
+| --- | --- | --- | --- |
+| IAM-001 | High | 1.10 | Console-enabled IAM user lacks MFA |
+| IAM-002 | High / Medium | 1.14 | Active access key exceeds maximum age |
+| IAM-003 | Medium / Low | 1.12 | Dormant or disabled access key |
+| IAM-004 | Critical | 1.16 | Policy grants `*` actions on `*` resources |
+| IAM-005 | High / Low | 1.16 | Policy grants service-wide actions on all resources |
+| IAM-006 | Info | - | IAM user without MFA (no console access) |
+| S3-001 | Medium | 2.1.4 | Public Access Block not fully enabled |
+| S3-002 | Critical / Low | 2.1.4 | Bucket ACL grants public access |
+| S3-003 | Critical / Medium / Low | 2.1.4 | Bucket policy grants access to a public principal |
+| S3-004 | Medium | - | No explicit bucket encryption configuration observed |
+| CT-001 | High | 3.1 | No CloudTrail trail configured |
+| CT-002 | Medium | 3.1 | No multi-region trail |
+| CT-003 | Medium | 3.2 | Log file validation disabled |
+| CT-004 | High | 3.1 | Trail is not delivering logs |
+
+`python -m auditor.cli list-rules` prints this table from the rule registry.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    A[AWS account<br/>read-only role] -->|Get / List / Describe| B[collectors/<br/>IAM, S3, CloudTrail]
+    B --> C[normalize/<br/>typed resource views]
+    C --> D[rules/engine<br/>14 rules + config.yaml thresholds]
+    D --> E[Findings<br/>versioned contract]
+    E --> F[reporters/<br/>JSON, CSV, HTML, SARIF, tickets]
+    E --> G[history/<br/>drift + exceptions]
+    F --> H[results/ evidence<br/>static console]
+```
+
+- A **runtime guard** (`auditor/readonly.py`) refuses any AWS operation that is
+  not in the declared read-only inventory (`auditor/permissions.py`).
+- The least-privilege IAM policy in `policies/` is generated from that
+  inventory, and CI fails if the two drift apart.
+- Findings follow the versioned JSON schemas in `schemas/`; see
+  [docs/contracts.md](docs/contracts.md).
 
 ## Run it locally
 
@@ -68,6 +126,28 @@ python -m http.server --directory site 8000
 Open `http://localhost:8000/console/` for the interactive console or
 `http://localhost:8000/` for the scan replay. The benchmark writes its reports
 under `results/`; the site is built from those generated files.
+
+### Audit your own account
+
+Attach `policies/auditor-readonly-policy.json` to a dedicated role or user,
+then run:
+
+```bash
+python -m auditor.cli audit --profile audit-readonly --output json,html --output-dir reports --redact
+```
+
+Add `--fail-on high` to use it as a CI gate. Reports go to `reports/`, which is
+gitignored because it can contain real account data.
+
+### Docker
+
+```bash
+docker build -t vorrin .
+docker run --rm -v "$PWD/reports:/out" vorrin
+```
+
+The default command audits the emulated lab account; `docker run --rm vorrin
+verify` re-runs the test suite and benchmark inside the container.
 
 ## Benchmark results
 
@@ -105,6 +185,9 @@ generated evidence with `python scripts/collect_metrics.py`.
 - The public demo is hosted on GitHub Pages with HTTPS. It has no application
   server, inbound listener, or project-managed firewall.
 
+See [SECURITY.md](SECURITY.md) to report a vulnerability and
+[docs/threat-model.md](docs/threat-model.md) for the threat model.
+
 ## Development checks
 
 ```bash
@@ -115,19 +198,33 @@ ruff format --check auditor phase3 lab tests scripts examples conftest.py
 ```
 
 CI also validates the Phase 3 Terraform roots and runs the pinned IaC security
-scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup.
+scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup and
+[CONTRIBUTING.md](CONTRIBUTING.md) for contribution rules.
 
 ## Repository map
 
 | Path | Contents |
 | --- | --- |
-| `auditor/` | AWS collectors, security rules, policy checks, and reporters |
-| `iac/`, `k8s/`, `supply_chain/` | Infrastructure, cluster, and release scanning |
+| `auditor/` | CLI, AWS collectors, normalizers, rules engine, and reporters |
+| `auditor/iac/`, `auditor/supply_chain.py` | IaC scanning (Checkov, Conftest/Rego) and release scanning and signing |
+| `auditor/fleet_scan.py`, `auditor/history.py` | Multi-account scans and local drift history |
+| `phase3/` | Lambda and Fargate handlers for the scheduled, redacted live demo |
+| `infra/phase3/` | Terraform for the Phase 3 AWS organization and demo accounts |
+| `deploy/gatekeeper/` | OPA Gatekeeper policy for Kubernetes admission |
 | `scripts/console/` | Static console, navigation, and local evidence assistant |
-| `lab/`, `tests/` | Moto benchmark, test cases, and regression tests |
-| `schemas/`, `contract/` | Versioned findings and scan evidence contracts |
-| `docs/` | Security model, architecture, operations, and tool guides |
+| `lab/`, `tests/` | Moto benchmark, labeled test cases, and regression tests |
+| `schemas/`, `policies/`, `compliance/` | Versioned contracts, the generated IAM policy, and the CIS mapping |
+| `docs/` | Security model, architecture decisions, operations, and tool guides |
 | `results/` | Generated benchmark reports and evidence |
+
+## Roadmap
+
+- Raise `phase3/` test coverage and add it to the CI coverage gate.
+- Evaluate effective permissions (SCPs, permission boundaries) rather than
+  policy shape alone.
+- Add checks for more services, such as EC2 security groups and KMS key
+  policies.
+- Complete live AWS acceptance of the Phase 3 scheduled demo.
 
 ## Documentation
 
@@ -135,6 +232,7 @@ scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup.
 - [AWS permissions](docs/least-privilege.md)
 - [Architecture decisions](docs/architecture/README.md)
 - [IaC scanning setup](docs/iac-scanning.md)
+- [Fleet scanning](docs/fleet-scanning.md)
 - [Operations and troubleshooting](docs/operations-runbook.md)
 - [Fixture environment](docs/test-environment.md)
 
