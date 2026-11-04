@@ -139,6 +139,7 @@ locals {
 }
 
 resource "aws_s3_bucket" "private_snapshots" {
+  #checkov:skip=CKV_AWS_145:Private snapshots use SSE-S3 at rest; KMS customer-managed keys add recurring cost outside the demo plan.
   bucket        = local.private_bucket_name
   force_destroy = false
   tags          = { project = "guardrails-phase3" }

@@ -494,6 +494,8 @@ def test_demo_account_is_cost_guarded_and_cloudtrail_is_protected():
         assert action in org_policy
     assert 'resource "aws_cloudtrail" "demo"' in demo_stack
     assert 'resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail"' in demo_stack
+    assert 'resource "aws_s3_bucket_versioning" "demo_a"' in demo_stack
+    assert 'resource "aws_s3_bucket_versioning" "demo_b"' in demo_stack
     assert 'project = "guardrails-phase3"' in demo_stack
     assert "event_selector" not in demo_stack
 

@@ -7,6 +7,7 @@ locals {
 }
 
 resource "aws_s3_bucket" "public_results" {
+  #checkov:skip=CKV_AWS_145:Public sanitized results use SSE-S3 at rest; a KMS customer-managed key adds cost without improving the public boundary.
   count         = var.enable_stage2 ? 1 : 0
   bucket        = local.public_bucket_name
   force_destroy = false

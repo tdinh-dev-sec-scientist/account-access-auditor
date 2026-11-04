@@ -53,6 +53,8 @@ resource "aws_iam_role_policy_attachment" "target_readonly" {
 }
 
 resource "aws_s3_bucket" "demo_a" {
+  #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
+  #checkov:skip=CKV_AWS_18:This bucket intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
   bucket        = local.demo_a_bucket_name
   force_destroy = false
 
@@ -64,6 +66,7 @@ resource "aws_s3_bucket" "demo_a" {
 }
 
 resource "aws_s3_bucket" "demo_b" {
+  #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
   bucket        = local.demo_b_bucket_name
   force_destroy = false
 
@@ -90,6 +93,16 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "demo_b" {
       sse_algorithm = "AES256"
     }
   }
+}
+
+resource "aws_s3_bucket_versioning" "demo_a" {
+  bucket = aws_s3_bucket.demo_a.id
+  versioning_configuration { status = "Enabled" }
+}
+
+resource "aws_s3_bucket_versioning" "demo_b" {
+  bucket = aws_s3_bucket.demo_b.id
+  versioning_configuration { status = "Enabled" }
 }
 
 resource "aws_s3_bucket_ownership_controls" "demo_a" {
@@ -123,6 +136,7 @@ resource "aws_s3_bucket_public_access_block" "demo_b" {
 }
 
 resource "aws_s3_bucket" "cloudtrail" {
+  #checkov:skip=CKV_AWS_145:CloudTrail logs use SSE-S3 at rest; a customer-managed KMS key adds cost without a plan requirement.
   bucket        = local.trail_bucket_name
   force_destroy = false
   tags          = { project = "guardrails-phase3" }

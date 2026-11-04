@@ -20,6 +20,7 @@ locals {
 }
 
 resource "aws_s3_bucket" "web" {
+  #checkov:skip=CKV_AWS_145:Static console assets use SSE-S3 at rest; a KMS customer-managed key adds cost without improving the public boundary.
   count         = var.enable_stage3 ? 1 : 0
   bucket        = local.web_bucket_name
   force_destroy = false
