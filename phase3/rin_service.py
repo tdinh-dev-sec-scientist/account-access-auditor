@@ -11,12 +11,11 @@ from datetime import UTC, datetime
 from typing import Any
 
 import boto3
-from botocore.exceptions import BotoCoreError, ClientError
 
 from auditor.ai_analyst import AIAnalystError, _build_request, _openai_responses, _validate_model_output
 
-from .public_api import AwsPublicReadStore, STALE_AFTER_SECONDS
-from .redaction import PublicSnapshotError, _contains_sensitive, validate_public_snapshot
+from .public_api import STALE_AFTER_SECONDS, AwsPublicReadStore
+from .redaction import _contains_sensitive, validate_public_snapshot
 
 MAX_QUESTION_CHARS = 500
 MAX_REQUEST_BYTES = 8192
@@ -26,7 +25,9 @@ _INSTRUCTION_ECHO_MIN_TOKENS = 12
 _ID = re.compile(r"^[a-f0-9]{24}$")
 _MODEL = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 _SESSION_TOKEN = re.compile(r"^[A-Za-z0-9_-]{22,128}$")
-_GUARDRAIL_ARN = re.compile(r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$")
+_GUARDRAIL_ARN = re.compile(
+    r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$"
+)
 _GUARDRAIL_VERSION = re.compile(r"^[1-9][0-9]{0,7}$")
 
 
@@ -60,7 +61,11 @@ def rin_response(
     if not enabled:
         return _response(
             200,
-            {"status": "UNAVAILABLE", "reason_code": "RIN_DISABLED", "message": "Rin is using the local fixture fallback."},
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": "RIN_DISABLED",
+                "message": "Rin is using the local fixture fallback.",
+            },
         )
     if (
         not isinstance(model, str)
@@ -72,7 +77,11 @@ def rin_response(
     ):
         return _response(
             200,
-            {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED", "message": "Rin is using the local fixture fallback."},
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": "RIN_NOT_CONFIGURED",
+                "message": "Rin is using the local fixture fallback.",
+            },
         )
     if (
         not isinstance(guardrail_identifier, str)
@@ -81,16 +90,27 @@ def rin_response(
         or not _GUARDRAIL_VERSION.fullmatch(guardrail_version)
         or not callable(guardrail)
     ):
-        return _response(200, {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED", "message": "Rin is using the local fixture fallback."})
+        return _response(
+            200,
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": "RIN_NOT_CONFIGURED",
+                "message": "Rin is using the local fixture fallback.",
+            },
+        )
     if not 128 <= max_output_tokens <= 1200 or not MIN_INPUT_TOKENS <= max_input_tokens <= MAX_INPUT_TOKENS:
         return _response(200, {"status": "UNAVAILABLE", "reason_code": "RIN_NOT_CONFIGURED"})
     try:
         snapshot, attempt = store.get_latest()
         if not isinstance(snapshot, dict):
-            return _response(503, {"status": "UNAVAILABLE", "reason_code": "PUBLIC_DATA_UNAVAILABLE"}, no_store=True)
+            return _response(
+                503, {"status": "UNAVAILABLE", "reason_code": "PUBLIC_DATA_UNAVAILABLE"}, no_store=True
+            )
         validate_public_snapshot(snapshot)
     except Exception:
-        return _response(503, {"status": "UNAVAILABLE", "reason_code": "PUBLIC_DATA_UNAVAILABLE"}, no_store=True)
+        return _response(
+            503, {"status": "UNAVAILABLE", "reason_code": "PUBLIC_DATA_UNAVAILABLE"}, no_store=True
+        )
     if _scan_is_unavailable(snapshot, attempt, now=now):
         return _response(503, {"status": "UNAVAILABLE", "reason_code": "SCAN_INCOMPLETE"}, no_store=True)
     finding = next((item for item in snapshot["findings"] if item["id"] == finding_id), None)
@@ -115,9 +135,23 @@ def rin_response(
             request["instructions"].encode("utf-8")
         )
         if provider_input_bytes > max_input_tokens:
-            return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_INPUT_LIMIT", "message": "Rin is using the local fixture fallback."})
+            return _response(
+                200,
+                {
+                    "status": "UNAVAILABLE",
+                    "reason_code": "PROVIDER_INPUT_LIMIT",
+                    "message": "Rin is using the local fixture fallback.",
+                },
+            )
     except Exception:
-        return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_INPUT_INVALID", "message": "Rin is using the local fixture fallback."})
+        return _response(
+            200,
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": "PROVIDER_INPUT_INVALID",
+                "message": "Rin is using the local fixture fallback.",
+            },
+        )
 
     if not callable(quota_consumer):
         return _response(503, {"status": "UNAVAILABLE", "reason_code": "QUOTA_UNAVAILABLE"}, no_store=True)
@@ -130,7 +164,11 @@ def rin_response(
         status_code = 429 if reason in {"SESSION_LIMIT", "DAILY_LIMIT"} else 503
         return _response(
             status_code,
-            {"status": "UNAVAILABLE", "reason_code": reason or "QUOTA_UNAVAILABLE", "message": "Rin is using the local fixture fallback."},
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": reason or "QUOTA_UNAVAILABLE",
+                "message": "Rin is using the local fixture fallback.",
+            },
             no_store=True,
         )
     if callable(enabled_check):
@@ -141,15 +179,29 @@ def rin_response(
         if not still_enabled:
             return _response(
                 200,
-                {"status": "UNAVAILABLE", "reason_code": "RIN_DISABLED", "message": "Rin is using the local fixture fallback."},
+                {
+                    "status": "UNAVAILABLE",
+                    "reason_code": "RIN_DISABLED",
+                    "message": "Rin is using the local fixture fallback.",
+                },
             )
     try:
         _require_guardrail_clear(guardrail(source="INPUT", text=request["input"]))
     except AIAnalystError as exc:
         state = "REJECTED" if exc.code == "GUARDRAIL_BLOCKED" else "UNAVAILABLE"
-        return _response(200, {"status": state, "reason_code": exc.code, "message": "Rin is using the local fixture fallback."})
+        return _response(
+            200,
+            {"status": state, "reason_code": exc.code, "message": "Rin is using the local fixture fallback."},
+        )
     except Exception:
-        return _response(200, {"status": "UNAVAILABLE", "reason_code": "GUARDRAIL_UNAVAILABLE", "message": "Rin is using the local fixture fallback."})
+        return _response(
+            200,
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": "GUARDRAIL_UNAVAILABLE",
+                "message": "Rin is using the local fixture fallback.",
+            },
+        )
     try:
         selected_key = api_key() if callable(api_key) else api_key
     except Exception:
@@ -164,21 +216,38 @@ def rin_response(
             raise AIAnalystError("Rin output contains an unsupported proposal", code="InvalidOutputSchema")
         for text in (analyses[0]["explanation"], analyses[0]["uncertainty"]):
             if _contains_sensitive(text) or _contains_instruction_echo(text, request["instructions"]):
-                raise AIAnalystError("Rin output contains sensitive or internal instruction text", code="SensitiveOutputBlocked")
+                raise AIAnalystError(
+                    "Rin output contains sensitive or internal instruction text",
+                    code="SensitiveOutputBlocked",
+                )
         try:
-            _require_guardrail_clear(guardrail(
-                source="OUTPUT",
-                text=f"{analyses[0]['explanation']}\n{analyses[0]['uncertainty']}",
-            ))
+            _require_guardrail_clear(
+                guardrail(
+                    source="OUTPUT",
+                    text=f"{analyses[0]['explanation']}\n{analyses[0]['uncertainty']}",
+                )
+            )
         except AIAnalystError:
             raise
         except Exception:
-            raise AIAnalystError("Rin output guardrail is unavailable", code="GUARDRAIL_UNAVAILABLE") from None
+            raise AIAnalystError(
+                "Rin output guardrail is unavailable", code="GUARDRAIL_UNAVAILABLE"
+            ) from None
     except AIAnalystError as exc:
         state = "UNAVAILABLE" if exc.code in {"ProviderUnavailable", "GUARDRAIL_UNAVAILABLE"} else "REJECTED"
-        return _response(200, {"status": state, "reason_code": exc.code, "message": "Rin is using the local fixture fallback."})
+        return _response(
+            200,
+            {"status": state, "reason_code": exc.code, "message": "Rin is using the local fixture fallback."},
+        )
     except Exception:
-        return _response(200, {"status": "UNAVAILABLE", "reason_code": "PROVIDER_UNAVAILABLE", "message": "Rin is using the local fixture fallback."})
+        return _response(
+            200,
+            {
+                "status": "UNAVAILABLE",
+                "reason_code": "PROVIDER_UNAVAILABLE",
+                "message": "Rin is using the local fixture fallback.",
+            },
+        )
     analysis = analyses[0]
     return _response(
         200,
@@ -250,7 +319,9 @@ def _parse_request(event: Any) -> tuple[str, str, str] | None:
     if not isinstance(payload, dict) or set(payload) != {"question", "finding_id", "session_token"}:
         return None
     question, finding_id, session_token = (
-        payload.get("question"), payload.get("finding_id"), payload.get("session_token")
+        payload.get("question"),
+        payload.get("finding_id"),
+        payload.get("session_token"),
     )
     if (
         not isinstance(question, str)
@@ -384,9 +455,9 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
             s3_client=aws.client("s3"),
         )
         feature_table = dynamodb.Table(feature_name)
-        feature = feature_table.get_item(
-            Key={"pk": "PLATFORM", "sk": "CONFIG"}, ConsistentRead=True
-        ).get("Item")
+        feature = feature_table.get_item(Key={"pk": "PLATFORM", "sk": "CONFIG"}, ConsistentRead=True).get(
+            "Item"
+        )
         enabled = isinstance(feature, dict) and feature.get("rin_enabled") is True
         quota_client = aws.client("lambda")
         secrets_client = aws.client("secretsmanager")
@@ -398,7 +469,9 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
             else None
         )
     except Exception:
-        return _response(503, {"status": "UNAVAILABLE", "reason_code": "RIN_CONFIGURATION_UNAVAILABLE"}, no_store=True)
+        return _response(
+            503, {"status": "UNAVAILABLE", "reason_code": "RIN_CONFIGURATION_UNAVAILABLE"}, no_store=True
+        )
 
     def quota_consumer(session_token: str):
         response = quota_client.invoke(
@@ -419,10 +492,10 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
         return value if isinstance(value, str) else None
 
     def rin_enabled_now() -> bool:
-        item = feature_table.get_item(
-            Key={"pk": "PLATFORM", "sk": "CONFIG"}, ConsistentRead=True
-        ).get("Item")
-        return isinstance(item, dict) and item.get("rin_enabled") is True and item.get("static_mode") is not True
+        item = feature_table.get_item(Key={"pk": "PLATFORM", "sk": "CONFIG"}, ConsistentRead=True).get("Item")
+        return (
+            isinstance(item, dict) and item.get("rin_enabled") is True and item.get("static_mode") is not True
+        )
 
     def assess_guardrail(*, source: str, text: str) -> dict[str, Any]:
         if guardrail_client is None:

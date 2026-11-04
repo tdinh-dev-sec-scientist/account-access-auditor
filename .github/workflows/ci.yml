@@ -143,5 +143,5 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install ruff==0.17.3
-      - run: ruff check auditor lab tests scripts
-      - run: ruff format --check auditor lab tests scripts
+      - run: ruff check auditor phase3 lab tests scripts examples conftest.py
+      - run: ruff format --check auditor phase3 lab tests scripts examples conftest.py

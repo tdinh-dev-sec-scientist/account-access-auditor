@@ -204,7 +204,9 @@ def public_response(
             severity = query.get("severity")
             if severity is not None and severity not in _SEVERITIES:
                 return _response(400, {"error": "INVALID_QUERY"}, method=method)
-            findings = [item for item in snapshot["findings"] if severity is None or item["severity"] == severity]
+            findings = [
+                item for item in snapshot["findings"] if severity is None or item["severity"] == severity
+            ]
             return _response(
                 200,
                 {"snapshot_id": snapshot["snapshot_id"], "findings": findings[:limit]},
@@ -235,13 +237,10 @@ def _latest_response(
     completed = datetime.fromisoformat(snapshot["scan"]["completed_at"])
     age_seconds = max(0, int((current.astimezone(UTC) - completed.astimezone(UTC)).total_seconds()))
     newer_attempt = bool(
-        attempt
-        and datetime.fromisoformat(attempt["completed_at"]) > completed.astimezone(UTC)
+        attempt and datetime.fromisoformat(attempt["completed_at"]) > completed.astimezone(UTC)
     )
     attempt_status = attempt["status"] if newer_attempt and attempt else None
-    publication_paused = bool(
-        newer_attempt and attempt and attempt.get("publication_status") == "PAUSED"
-    )
+    publication_paused = bool(newer_attempt and attempt and attempt.get("publication_status") == "PAUSED")
     data = {
         "data": snapshot,
         "freshness": {
@@ -250,9 +249,7 @@ def _latest_response(
             "latest_attempt_status": attempt_status,
             "last_good_preserved": attempt_status in {"UNKNOWN", "ERROR"},
             "publication_paused": publication_paused,
-            "affected_services": (
-                attempt.get("affected_services", []) if newer_attempt and attempt else []
-            ),
+            "affected_services": (attempt.get("affected_services", []) if newer_attempt and attempt else []),
         },
     }
     return _response(200, data, method=method)

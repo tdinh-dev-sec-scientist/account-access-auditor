@@ -53,8 +53,9 @@ def findings():
             "without any condition.",
             {
                 "bucket": "example-public-assets",
-                "statements": [{"sid": "PublicRead", "actions": ["s3:GetObject"],
-                                "is_effectively_constrained": False}],
+                "statements": [
+                    {"sid": "PublicRead", "actions": ["s3:GetObject"], "is_effectively_constrained": False}
+                ],
                 "get_bucket_policy_status_is_public": True,
             },
             detected_at=STAMP,
@@ -112,12 +113,17 @@ def main() -> int:
         account_id=ACCOUNT,
         region="us-east-1",
         findings=findings(),
-        collection_errors=[{
-            "service": "S3", "operation": "s3:GetBucketAcl", "resource": "example-restricted",
-            "code": "AccessDenied", "category": "access_denied",
-            "message": "An error occurred (AccessDenied) when calling the GetBucketAcl operation",
-            "required_permissions": ["s3:GetBucketAcl"],
-        }],
+        collection_errors=[
+            {
+                "service": "S3",
+                "operation": "s3:GetBucketAcl",
+                "resource": "example-restricted",
+                "code": "AccessDenied",
+                "category": "access_denied",
+                "message": "An error occurred (AccessDenied) when calling the GetBucketAcl operation",
+                "required_permissions": ["s3:GetBucketAcl"],
+            }
+        ],
         services_scanned=["IAM", "S3", "CloudTrail"],
         tool_version=__version__,
         run_id="example00run0",

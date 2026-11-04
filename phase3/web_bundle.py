@@ -6,7 +6,6 @@ from typing import Any
 
 from .redaction import redact_snapshot
 
-
 _SERVICE_NAMES = {"iam": "IAM", "s3": "S3", "cloudtrail": "CloudTrail"}
 
 
@@ -35,12 +34,14 @@ def safe_fixture_profile(report: Any, *, key: str, label: str, pseudonym_key: by
         service = service_name.lower()
         if service not in _SERVICE_NAMES:
             raise ValueError("fixture contains an unsupported service")
-        coverage.append({
-            "account_id": account_id,
-            "service": service,
-            "region": region,
-            "complete": not bool(report.get("collection_errors")),
-        })
+        coverage.append(
+            {
+                "account_id": account_id,
+                "service": service,
+                "region": region,
+                "complete": not bool(report.get("collection_errors")),
+            }
+        )
 
     contract_findings = []
     for finding in legacy_findings:
@@ -54,30 +55,38 @@ def safe_fixture_profile(report: Any, *, key: str, label: str, pseudonym_key: by
         reference_id = compliance.get("control_id")
         references = []
         if isinstance(framework, str) and isinstance(reference_id, str):
-            references.append({
-                "type": "compliance",
-                "framework": framework,
-                "id": reference_id,
-                **({"title": compliance["control_title"]} if isinstance(compliance.get("control_title"), str) else {}),
-            })
-        contract_findings.append({
-            "fingerprint": finding.get("fingerprint"),
-            "control_id": control_id,
-            "scanner_rule_id": finding.get("rule_id"),
-            "source_type": "aws",
-            "severity": finding.get("severity"),
-            "title": finding.get("title"),
-            "description": finding.get("description"),
-            "evidence": finding.get("evidence") or {},
-            "remediation": finding.get("remediation"),
-            "references": references,
-            "lifecycle_state": str(finding.get("status") or "open").lower(),
-            "detected_at": finding.get("detected_at") or run.get("completed_at"),
-            "account_ref": {"provider": "aws", "id": account_id},
-            "service": service,
-            "region": region,
-            "resource_reference": finding.get("resource"),
-        })
+            references.append(
+                {
+                    "type": "compliance",
+                    "framework": framework,
+                    "id": reference_id,
+                    **(
+                        {"title": compliance["control_title"]}
+                        if isinstance(compliance.get("control_title"), str)
+                        else {}
+                    ),
+                }
+            )
+        contract_findings.append(
+            {
+                "fingerprint": finding.get("fingerprint"),
+                "control_id": control_id,
+                "scanner_rule_id": finding.get("rule_id"),
+                "source_type": "aws",
+                "severity": finding.get("severity"),
+                "title": finding.get("title"),
+                "description": finding.get("description"),
+                "evidence": finding.get("evidence") or {},
+                "remediation": finding.get("remediation"),
+                "references": references,
+                "lifecycle_state": str(finding.get("status") or "open").lower(),
+                "detected_at": finding.get("detected_at") or run.get("completed_at"),
+                "account_ref": {"provider": "aws", "id": account_id},
+                "service": service,
+                "region": region,
+                "resource_reference": finding.get("resource"),
+            }
+        )
 
     sanitized_input = {
         "metadata": {

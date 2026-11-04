@@ -75,9 +75,7 @@ class PrivateSnapshotStore:
                 history = self._rebuild_history(self._prior_reports())
                 enriched = history.record_scan(report)
                 payload = self._encode(enriched)
-                snapshot_key = (
-                    f"snapshots/{self.account_id}/{completed_at:%Y/%m/%d}/{run_id}.json"
-                )
+                snapshot_key = f"snapshots/{self.account_id}/{completed_at:%Y/%m/%d}/{run_id}.json"
                 self.s3.put_object(
                     Bucket=self.bucket_name,
                     Key=snapshot_key,
@@ -152,8 +150,7 @@ class PrivateSnapshotStore:
             "finding_count": _dynamodb_count(item.get("finding_count")),
             "snapshot_key": item.get("snapshot_key"),
             "drift_counts": {
-                state: _dynamodb_count(item.get("drift_counts", {}).get(state))
-                for state in DRIFT_STATES
+                state: _dynamodb_count(item.get("drift_counts", {}).get(state)) for state in DRIFT_STATES
             }
             if isinstance(item.get("drift_counts"), dict)
             else None,
@@ -386,33 +383,38 @@ class PrivateSnapshotStore:
             "finding_count": finding_count,
             "expires_at": int(self._timestamp(completed).timestamp()) + PRIVATE_HISTORY_RETENTION_SECONDS,
             "drift_counts": {
-                state: int(report.get("summary", {}).get("drift", {}).get(state, 0))
-                for state in DRIFT_STATES
+                state: int(report.get("summary", {}).get("drift", {}).get(state, 0)) for state in DRIFT_STATES
             },
         }
 
 
 def _valid_receipt(value: Any, *, account_id: str, run_id: str) -> bool:
     if not isinstance(value, dict) or set(value) != {
-        "run_id", "status", "finding_count", "snapshot_key", "drift_counts"
+        "run_id",
+        "status",
+        "finding_count",
+        "snapshot_key",
+        "drift_counts",
     }:
         return False
     if value["run_id"] != run_id or value["status"] not in {"PASS", "FAIL", "UNKNOWN", "ERROR"}:
         return False
-    if not isinstance(value["finding_count"], int) or isinstance(value["finding_count"], bool) or value["finding_count"] < 0:
+    if (
+        not isinstance(value["finding_count"], int)
+        or isinstance(value["finding_count"], bool)
+        or value["finding_count"] < 0
+    ):
         return False
     key = value["snapshot_key"]
-    if (
-        not isinstance(key, str)
-        or not key.startswith(f"snapshots/{account_id}/")
-        or ".." in key.split("/")
-    ):
+    if not isinstance(key, str) or not key.startswith(f"snapshots/{account_id}/") or ".." in key.split("/"):
         return False
     drift = value["drift_counts"]
     return (
         isinstance(drift, dict)
         and set(drift) == set(DRIFT_STATES)
-        and all(isinstance(count, int) and not isinstance(count, bool) and count >= 0 for count in drift.values())
+        and all(
+            isinstance(count, int) and not isinstance(count, bool) and count >= 0 for count in drift.values()
+        )
     )
 
 

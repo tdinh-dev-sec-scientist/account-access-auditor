@@ -74,7 +74,9 @@ class S3DynamoPublicStore:
 
     def publish(self, snapshot: dict[str, Any]) -> bool:
         try:
-            body = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
+            body = json.dumps(snapshot, sort_keys=True, separators=(",", ":"), allow_nan=False).encode(
+                "utf-8"
+            )
         except (TypeError, ValueError, UnicodeError):
             raise PublicationError("sanitized snapshot is not valid JSON") from None
         if len(body) > MAX_PUBLIC_SNAPSHOT_BYTES:
@@ -141,7 +143,9 @@ class S3DynamoPublicStore:
         if publication_status == "PAUSED":
             message = "Publication is paused. The console is showing the last complete public snapshot."
         elif status in {"UNKNOWN", "ERROR"}:
-            message = "The last scan was incomplete or failed. The console is showing the last complete snapshot."
+            message = (
+                "The last scan was incomplete or failed. The console is showing the last complete snapshot."
+            )
         else:
             message = "The latest complete scan is available."
         try:
@@ -187,7 +191,7 @@ class S3DynamoPublicStore:
             except (ClientError, BotoCoreError, KeyError, OSError):
                 raise PublicationError("existing public snapshot could not be verified") from None
             if existing != body:
-                raise PublicationError("public snapshot key already contains different data")
+                raise PublicationError("public snapshot key already contains different data") from None
         except (BotoCoreError, OSError, TypeError, ValueError):
             raise PublicationError("immutable public snapshot object could not be written") from None
 
@@ -249,7 +253,11 @@ def publish_private_snapshot(
     table_name = values.get("PHASE3_PUBLIC_INDEX_TABLE", "").strip()
     secret_arn = values.get("PHASE3_PSEUDONYM_SECRET_ARN", "").strip()
     if not isinstance(receipt, dict) or set(receipt) != {
-        "run_id", "status", "finding_count", "snapshot_key", "drift_counts"
+        "run_id",
+        "status",
+        "finding_count",
+        "snapshot_key",
+        "drift_counts",
     }:
         raise PublicationError("private snapshot receipt is invalid")
     if not _ACCOUNT_ID.fullmatch(account_id):
@@ -339,7 +347,9 @@ def lambda_handler(event: Any, context: Any, *, public_store: Any = None) -> dic
                     raise ValueError
                 aws = boto3.session.Session(region_name=region)
                 table = aws.resource("dynamodb").Table(table_name)
-                public_store = S3DynamoPublicStore(bucket_name="phase3-status-only", table=table, s3_client=None)
+                public_store = S3DynamoPublicStore(
+                    bucket_name="phase3-status-only", table=table, s3_client=None
+                )
             paused = event["kind"] == "publication_failure"
             public_store.record_attempt(
                 "ERROR",

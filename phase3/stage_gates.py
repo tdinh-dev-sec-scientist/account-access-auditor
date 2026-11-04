@@ -95,7 +95,9 @@ _GUARDRAIL_EVALUATION_ACTIONS = {
 _STAGE_NUMBER = {f"stage{number}": number for number in range(1, 5)}
 _EVIDENCE_PATH = re.compile(r"^[a-z0-9][a-z0-9._/-]{0,199}$")
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
-_GUARDRAIL_ARN = re.compile(r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$")
+_GUARDRAIL_ARN = re.compile(
+    r"^arn:(?:aws|aws-us-gov|aws-cn):bedrock:[a-z0-9-]+:[0-9]{12}:guardrail/[a-z0-9]+$"
+)
 _GUARDRAIL_VERSION = re.compile(r"^[1-9][0-9]{0,7}$")
 
 
@@ -132,7 +134,9 @@ def _validate_evidence_paths(stage_name: str, paths: Any, *, root: Path) -> None
     try:
         evidence_root.relative_to(root)
     except ValueError:
-        raise StageGateError(f"{stage_name} acceptance evidence directory is outside the repository") from None
+        raise StageGateError(
+            f"{stage_name} acceptance evidence directory is outside the repository"
+        ) from None
     for raw_path in paths:
         if (
             not isinstance(raw_path, str)
@@ -316,7 +320,9 @@ def _valid_logging_scope(
         or not _SHA256.fullmatch(value["settings_sha256"])
         or value.get("evidence_path") != evidence_path
         or value["settings_sha256"] != _evidence_sha256(evidence_root, evidence_path)
-        or (require_provider and (not isinstance(value.get("provider"), str) or not value["provider"].strip()))
+        or (
+            require_provider and (not isinstance(value.get("provider"), str) or not value["provider"].strip())
+        )
     ):
         return False
     retention = value.get("retention_days")
@@ -345,8 +351,7 @@ def _valid_logging_capture(document: Any, review: dict[str, Any], *, require_pro
     if retention is not None and (type(retention) is not int or retention < 0):
         return False
     return all(
-        document[field] == review[field]
-        for field in ("enabled", "includes_prompt_content", "retention_days")
+        document[field] == review[field] for field in ("enabled", "includes_prompt_content", "retention_days")
     )
 
 
@@ -381,29 +386,30 @@ def _valid_bedrock_logging_review(
     max_retention = document.get("maximum_prompt_retention_days")
     if type(max_retention) is not int or not 0 <= max_retention <= STAGE3_MAX_PROMPT_RETENTION_DAYS:
         return False
-    return (
-        _valid_logging_scope(
-            document.get("bedrock_model_invocation_logging"),
-            max_prompt_retention_days=max_retention,
-            require_provider=False,
-            evidence_root=evidence_root,
-            evidence_path=_STAGE3_BEDROCK_LOGGING,
-        )
-        and _valid_logging_scope(
-            document.get("external_provider_logging"),
-            max_prompt_retention_days=max_retention,
-            require_provider=True,
-            evidence_root=evidence_root,
-            evidence_path=_STAGE3_EXTERNAL_LOGGING,
-        )
+    return _valid_logging_scope(
+        document.get("bedrock_model_invocation_logging"),
+        max_prompt_retention_days=max_retention,
+        require_provider=False,
+        evidence_root=evidence_root,
+        evidence_path=_STAGE3_BEDROCK_LOGGING,
+    ) and _valid_logging_scope(
+        document.get("external_provider_logging"),
+        max_prompt_retention_days=max_retention,
+        require_provider=True,
+        evidence_root=evidence_root,
+        evidence_path=_STAGE3_EXTERNAL_LOGGING,
     )
 
 
 def _validate_stage3_review_artifacts(record: dict[str, Any], *, root: Path) -> None:
     evidence_root = root / "docs/evidence"
     try:
-        policy = _load_json((evidence_root / "stage3/guardrail-policy-review.json").read_text(encoding="utf-8"))
-        logging = _load_json((evidence_root / "stage3/bedrock-logging-review.json").read_text(encoding="utf-8"))
+        policy = _load_json(
+            (evidence_root / "stage3/guardrail-policy-review.json").read_text(encoding="utf-8")
+        )
+        logging = _load_json(
+            (evidence_root / "stage3/bedrock-logging-review.json").read_text(encoding="utf-8")
+        )
         guardrail_configuration = _load_json(
             (evidence_root / _STAGE3_GUARDRAIL_CONFIGURATION).read_text(encoding="utf-8")
         )
@@ -416,10 +422,9 @@ def _validate_stage3_review_artifacts(record: dict[str, Any], *, root: Path) -> 
         raise StageGateError("Stage 3 Guardrail policy review evidence is invalid") from None
     if not _valid_guardrail_policy_review(policy, record, evidence_root=evidence_root):
         raise StageGateError("Stage 3 Guardrail policy review evidence is invalid")
-    if (
-        not _valid_guardrail_configuration_capture(guardrail_configuration, policy)
-        or not _valid_guardrail_evaluation_capture(guardrail_evaluation, policy)
-    ):
+    if not _valid_guardrail_configuration_capture(
+        guardrail_configuration, policy
+    ) or not _valid_guardrail_evaluation_capture(guardrail_evaluation, policy):
         raise StageGateError("Stage 3 Guardrail policy review evidence is invalid")
     if not _valid_bedrock_logging_review(
         logging,
@@ -429,17 +434,14 @@ def _validate_stage3_review_artifacts(record: dict[str, Any], *, root: Path) -> 
         evidence_root=evidence_root,
     ):
         raise StageGateError("Stage 3 Bedrock logging review evidence is invalid")
-    if (
-        not _valid_logging_capture(
-            bedrock_logging,
-            logging["bedrock_model_invocation_logging"],
-            require_provider=False,
-        )
-        or not _valid_logging_capture(
-            external_logging,
-            logging["external_provider_logging"],
-            require_provider=True,
-        )
+    if not _valid_logging_capture(
+        bedrock_logging,
+        logging["bedrock_model_invocation_logging"],
+        require_provider=False,
+    ) or not _valid_logging_capture(
+        external_logging,
+        logging["external_provider_logging"],
+        require_provider=True,
     ):
         raise StageGateError("Stage 3 Bedrock logging review evidence is invalid")
 
@@ -509,10 +511,14 @@ def _validate_stage_record(
     try:
         if require_runtime_bindings and stage_name == "stage1" and expected_demo_account_id_sha256 is None:
             raise StageEvidenceError("Stage 1 acceptance requires the configured demo account ID")
-        if require_runtime_bindings and stage_name == "stage3" and (
-            expected_daily_invocation_limit is None or expected_monthly_budget_usd is None
+        if (
+            require_runtime_bindings
+            and stage_name == "stage3"
+            and (expected_daily_invocation_limit is None or expected_monthly_budget_usd is None)
         ):
-            raise StageEvidenceError("Stage 3 acceptance requires the configured Rin daily cap and provider budget")
+            raise StageEvidenceError(
+                "Stage 3 acceptance requires the configured Rin daily cap and provider budget"
+            )
         validate_stage_evidence(
             stage_name,
             record,

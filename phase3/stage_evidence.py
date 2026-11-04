@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import math
 import re
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
-
 
 _SHA256 = re.compile(r"^[a-f0-9]{64}$")
 _RUN_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
@@ -110,7 +109,9 @@ def _sha256(value: Any) -> bool:
     return isinstance(value, str) and _SHA256.fullmatch(value) is not None
 
 
-def _bound_report(evidence_root: Path, document: dict[str, Any], *, path_field: str, digest_field: str, expected_path: str) -> bool:
+def _bound_report(
+    evidence_root: Path, document: dict[str, Any], *, path_field: str, digest_field: str, expected_path: str
+) -> bool:
     return (
         document.get(path_field) == expected_path
         and _sha256(document.get(digest_field))
@@ -126,11 +127,7 @@ def _file_sha256(evidence_root: Path, relative_path: str) -> str | None:
 
 
 def _finite_number(value: Any, *, positive: bool) -> bool:
-    return (
-        type(value) in {int, float}
-        and math.isfinite(value)
-        and (value > 0 if positive else value >= 0)
-    )
+    return type(value) in {int, float} and math.isfinite(value) and (value > 0 if positive else value >= 0)
 
 
 def _reviewed_document(
@@ -159,7 +156,9 @@ def _nonempty_unique_strings(value: Any) -> bool:
     )
 
 
-def _validate_stage1(evidence_root: Path, record: dict[str, Any], *, expected_demo_account_id_sha256: str | None = None) -> None:
+def _validate_stage1(
+    evidence_root: Path, record: dict[str, Any], *, expected_demo_account_id_sha256: str | None = None
+) -> None:
     scans = _read_json(evidence_root, "stage1/scheduled-scan-results.json")
     if not _reviewed_document(
         scans,
@@ -201,7 +200,8 @@ def _validate_stage1(evidence_root: Path, record: dict[str, Any], *, expected_de
     for run in runs:
         if (
             not isinstance(run, dict)
-            or set(run) != {"scan_run_id", "trigger", "status", "started_at", "completed_at", "snapshot_sha256"}
+            or set(run)
+            != {"scan_run_id", "trigger", "status", "started_at", "completed_at", "snapshot_sha256"}
             or not isinstance(run.get("scan_run_id"), str)
             or not _RUN_ID.fullmatch(run["scan_run_id"])
             or run.get("trigger") != "scheduled"
@@ -238,20 +238,37 @@ def _validate_stage1(evidence_root: Path, record: dict[str, Any], *, expected_de
         or len(executions) != 2
         or any(
             not isinstance(execution, dict)
-            or set(execution) != {"scan_run_id", "scheduled_at", "workflow_started_at", "scan_started_at", "status", "snapshot_sha256"}
+            or set(execution)
+            != {
+                "scan_run_id",
+                "scheduled_at",
+                "workflow_started_at",
+                "scan_started_at",
+                "status",
+                "snapshot_sha256",
+            }
             or execution.get("scan_run_id") != run_ids[index]
             or _timestamp(execution.get("scheduled_at")) is None
             or _timestamp(execution.get("workflow_started_at")) is None
-            or not timedelta(0) <= _timestamp(execution.get("workflow_started_at")) - _timestamp(execution.get("scheduled_at")) <= timedelta(hours=1)
+            or not timedelta(0)
+            <= _timestamp(execution.get("workflow_started_at")) - _timestamp(execution.get("scheduled_at"))
+            <= timedelta(hours=1)
             or _timestamp(execution.get("scan_started_at")) != run_starts[index]
             or _timestamp(execution.get("scan_started_at")) < _timestamp(execution.get("workflow_started_at"))
-            or (index > 0 and _timestamp(execution.get("scheduled_at")) - _timestamp(executions[index - 1].get("scheduled_at")) != timedelta(hours=6))
+            or (
+                index > 0
+                and _timestamp(execution.get("scheduled_at"))
+                - _timestamp(executions[index - 1].get("scheduled_at"))
+                != timedelta(hours=6)
+            )
             or execution.get("status") != "complete"
             or execution.get("snapshot_sha256") != runs[index]["snapshot_sha256"]
             for index, execution in enumerate(executions)
         )
     ):
-        raise StageEvidenceError("Stage 1 schedule log does not prove two complete consecutive scheduled runs")
+        raise StageEvidenceError(
+            "Stage 1 schedule log does not prove two complete consecutive scheduled runs"
+        )
 
     drift = _read_json(evidence_root, "stage1/drift-review.json")
     if (
@@ -271,11 +288,15 @@ def _validate_stage1(evidence_root: Path, record: dict[str, Any], *, expected_de
         or not _nonempty_unique_strings(drift.get("new_finding_ids"))
         or not _nonempty_unique_strings(drift.get("resolved_finding_ids"))
     ):
-        raise StageEvidenceError("Stage 1 drift-review evidence does not show a reviewed new and resolved finding")
+        raise StageEvidenceError(
+            "Stage 1 drift-review evidence does not show a reviewed new and resolved finding"
+        )
 
     role = _read_json(evidence_root, "stage1/read-only-role-review.json")
     if (
-        not _reviewed_document(role, record, fields={"role_arn_sha256", "policy_evidence_sha256", "effective_write_actions"})
+        not _reviewed_document(
+            role, record, fields={"role_arn_sha256", "policy_evidence_sha256", "effective_write_actions"}
+        )
         or not _sha256(role.get("role_arn_sha256"))
         or not _sha256(role.get("policy_evidence_sha256"))
         or role.get("effective_write_actions") != []
@@ -289,7 +310,13 @@ def _validate_stage2(evidence_root: Path, record: dict[str, Any]) -> None:
         not _reviewed_document(
             redaction,
             record,
-            fields={"test_suite_sha256", "passed_case_categories", "failed_case_ids", "leaked_identifier_count", "published_unapproved_fields"},
+            fields={
+                "test_suite_sha256",
+                "passed_case_categories",
+                "failed_case_ids",
+                "leaked_identifier_count",
+                "published_unapproved_fields",
+            },
         )
         or not _sha256(redaction.get("test_suite_sha256"))
         or not isinstance(redaction.get("passed_case_categories"), list)
@@ -310,7 +337,12 @@ def _validate_stage2(evidence_root: Path, record: dict[str, Any]) -> None:
         not _reviewed_document(
             publisher,
             record,
-            fields={"injected_failure", "previous_snapshot_sha256", "published_snapshot_sha256", "last_good_preserved"},
+            fields={
+                "injected_failure",
+                "previous_snapshot_sha256",
+                "published_snapshot_sha256",
+                "last_good_preserved",
+            },
         )
         or publisher.get("injected_failure") not in {"redaction", "schema_validation", "publication_write"}
         or not _sha256(publisher.get("previous_snapshot_sha256"))
@@ -336,9 +368,25 @@ def _validate_stage2(evidence_root: Path, record: dict[str, Any]) -> None:
 def _validate_stage3_transport(evidence_root: Path, record: dict[str, Any]) -> None:
     document = _read_json(evidence_root, "stage3/transport-security.json")
     external_scan = _read_json(evidence_root, _STAGE3_EXTERNAL_SCAN_PATH)
-    headers = {"strict_transport_security", "content_security_policy", "x_content_type_options", "referrer_policy", "frame_ancestors"}
+    headers = {
+        "strict_transport_security",
+        "content_security_policy",
+        "x_content_type_options",
+        "referrer_policy",
+        "frame_ancestors",
+    }
     if (
-        not _reviewed_document(document, record, fields={"http_redirect_status", "https_status", "headers", "external_scan_evidence_path", "external_scan_sha256"})
+        not _reviewed_document(
+            document,
+            record,
+            fields={
+                "http_redirect_status",
+                "https_status",
+                "headers",
+                "external_scan_evidence_path",
+                "external_scan_sha256",
+            },
+        )
         or document.get("http_redirect_status") not in {301, 302, 307, 308}
         or document.get("https_status") != 200
         or not isinstance(document.get("headers"), dict)
@@ -350,7 +398,18 @@ def _validate_stage3_transport(evidence_root: Path, record: dict[str, Any]) -> N
     ):
         raise StageEvidenceError("Stage 3 HTTPS and security-header evidence is incomplete or failed")
     if (
-        not _reviewed_document(external_scan, record, fields={"provider", "scanned_at", "tls_result", "security_headers_result", "source_report_evidence_path", "source_report_sha256"})
+        not _reviewed_document(
+            external_scan,
+            record,
+            fields={
+                "provider",
+                "scanned_at",
+                "tls_result",
+                "security_headers_result",
+                "source_report_evidence_path",
+                "source_report_sha256",
+            },
+        )
         or not isinstance(external_scan.get("provider"), str)
         or not external_scan["provider"].strip()
         or _timestamp(external_scan.get("scanned_at")) is None
@@ -374,12 +433,39 @@ def _validate_stage3_privacy_accessibility(evidence_root: Path, record: dict[str
         not _reviewed_document(
             document,
             record,
-            fields={"browser_network_report_evidence_path", "browser_network_log_sha256", "unapproved_third_party_requests", "lighthouse_report_evidence_path", "lighthouse_report_sha256", "accessibility_report_evidence_path", "accessibility_report_sha256", "pages_checked"},
+            fields={
+                "browser_network_report_evidence_path",
+                "browser_network_log_sha256",
+                "unapproved_third_party_requests",
+                "lighthouse_report_evidence_path",
+                "lighthouse_report_sha256",
+                "accessibility_report_evidence_path",
+                "accessibility_report_sha256",
+                "pages_checked",
+            },
         )
         or document.get("unapproved_third_party_requests") != []
-        or not _bound_report(evidence_root, document, path_field="browser_network_report_evidence_path", digest_field="browser_network_log_sha256", expected_path=_SOURCE_REPORT_PATHS["browser_network"])
-        or not _bound_report(evidence_root, document, path_field="lighthouse_report_evidence_path", digest_field="lighthouse_report_sha256", expected_path=_SOURCE_REPORT_PATHS["lighthouse"])
-        or not _bound_report(evidence_root, document, path_field="accessibility_report_evidence_path", digest_field="accessibility_report_sha256", expected_path=_SOURCE_REPORT_PATHS["accessibility"])
+        or not _bound_report(
+            evidence_root,
+            document,
+            path_field="browser_network_report_evidence_path",
+            digest_field="browser_network_log_sha256",
+            expected_path=_SOURCE_REPORT_PATHS["browser_network"],
+        )
+        or not _bound_report(
+            evidence_root,
+            document,
+            path_field="lighthouse_report_evidence_path",
+            digest_field="lighthouse_report_sha256",
+            expected_path=_SOURCE_REPORT_PATHS["lighthouse"],
+        )
+        or not _bound_report(
+            evidence_root,
+            document,
+            path_field="accessibility_report_evidence_path",
+            digest_field="accessibility_report_sha256",
+            expected_path=_SOURCE_REPORT_PATHS["accessibility"],
+        )
         or not isinstance(document.get("pages_checked"), list)
         or any(not isinstance(page, str) for page in document["pages_checked"])
         or set(document["pages_checked"]) != pages
@@ -407,9 +493,8 @@ def _validate_stage3_rin(evidence_root: Path, record: dict[str, Any]) -> None:
         for case in cases
     ):
         raise StageEvidenceError("Stage 3 Rin evaluation contains a failing or invalid case")
-    if (
-        len({case["case_id"] for case in cases}) != len(cases)
-        or not _RIN_EVALUATION_CASES.issubset({case["category"] for case in cases})
+    if len({case["case_id"] for case in cases}) != len(cases) or not _RIN_EVALUATION_CASES.issubset(
+        {case["category"] for case in cases}
     ):
         raise StageEvidenceError("Stage 3 Rin evaluation does not cover every required test category")
 
@@ -422,7 +507,11 @@ def _validate_stage3_quotas(
     expected_monthly_budget_usd: float | None = None,
 ) -> None:
     document = _read_json(evidence_root, "stage3/quota-fallbacks.json")
-    if not _reviewed_document(document, record, fields={"per_session_limit", "daily_invocation_limit", "monthly_budget_usd", "cases"}):
+    if not _reviewed_document(
+        document,
+        record,
+        fields={"per_session_limit", "daily_invocation_limit", "monthly_budget_usd", "cases"},
+    ):
         raise StageEvidenceError("Stage 3 quota evidence has an invalid schema")
     cases = document["cases"]
     required_cases = {"session", "daily", "monthly_budget"}
@@ -432,8 +521,14 @@ def _validate_stage3_quotas(
         or type(document.get("daily_invocation_limit")) is not int
         or document["daily_invocation_limit"] < 1
         or not _finite_number(document.get("monthly_budget_usd"), positive=True)
-        or (expected_daily_invocation_limit is not None and document["daily_invocation_limit"] != expected_daily_invocation_limit)
-        or (expected_monthly_budget_usd is not None and document["monthly_budget_usd"] != expected_monthly_budget_usd)
+        or (
+            expected_daily_invocation_limit is not None
+            and document["daily_invocation_limit"] != expected_daily_invocation_limit
+        )
+        or (
+            expected_monthly_budget_usd is not None
+            and document["monthly_budget_usd"] != expected_monthly_budget_usd
+        )
         or not isinstance(cases, dict)
         or set(cases) != required_cases
         or any(cases[key] != {"limit_reached": True, "response_mode": "fixture"} for key in required_cases)
@@ -455,7 +550,17 @@ def _validate_stage3_banners(evidence_root: Path, record: dict[str, Any]) -> Non
 
 def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
     budget = _read_json(evidence_root, "stage4/budget-cutoff.json")
-    if not _reviewed_document(budget, record, fields={"monthly_budget_usd", "alert_thresholds", "alerts_triggered", "rin_disabled_at_100_percent", "cached_results_served"}):
+    if not _reviewed_document(
+        budget,
+        record,
+        fields={
+            "monthly_budget_usd",
+            "alert_thresholds",
+            "alerts_triggered",
+            "rin_disabled_at_100_percent",
+            "cached_results_served",
+        },
+    ):
         raise StageEvidenceError("Stage 4 budget-cutoff evidence has an invalid schema")
     if (
         not _finite_number(budget.get("monthly_budget_usd"), positive=True)
@@ -468,7 +573,18 @@ def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
 
     recovery = _read_json(evidence_root, "stage4/kill-switch-recovery.json")
     if (
-        not _reviewed_document(recovery, record, fields={"runbook_followed", "reviewer_not_builder", "static_mode_verified", "recovery_verified", "recovery_seconds", "parity_sha256"})
+        not _reviewed_document(
+            recovery,
+            record,
+            fields={
+                "runbook_followed",
+                "reviewer_not_builder",
+                "static_mode_verified",
+                "recovery_verified",
+                "recovery_seconds",
+                "parity_sha256",
+            },
+        )
         or recovery.get("runbook_followed") is not True
         or recovery.get("reviewer_not_builder") is not True
         or recovery.get("static_mode_verified") is not True
@@ -481,8 +597,24 @@ def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
     load = _read_json(evidence_root, "stage4/load-resilience.json")
     multipliers = load.get("traffic_multipliers") if isinstance(load, dict) else None
     if (
-        not _reviewed_document(load, record, fields={"load_report_evidence_path", "load_report_sha256", "traffic_multipliers", "waf_rate_limits_engaged", "cost_within_budget"})
-        or not _bound_report(evidence_root, load, path_field="load_report_evidence_path", digest_field="load_report_sha256", expected_path=_SOURCE_REPORT_PATHS["load"])
+        not _reviewed_document(
+            load,
+            record,
+            fields={
+                "load_report_evidence_path",
+                "load_report_sha256",
+                "traffic_multipliers",
+                "waf_rate_limits_engaged",
+                "cost_within_budget",
+            },
+        )
+        or not _bound_report(
+            evidence_root,
+            load,
+            path_field="load_report_evidence_path",
+            digest_field="load_report_sha256",
+            expected_path=_SOURCE_REPORT_PATHS["load"],
+        )
         or not isinstance(multipliers, list)
         or len(multipliers) < 3
         or any(not _finite_number(value, positive=True) for value in multipliers)
@@ -491,12 +623,33 @@ def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
         or load.get("waf_rate_limits_engaged") is not True
         or load.get("cost_within_budget") is not True
     ):
-        raise StageEvidenceError("Stage 4 load/resilience evidence does not prove WAF limits and budget control")
+        raise StageEvidenceError(
+            "Stage 4 load/resilience evidence does not prove WAF limits and budget control"
+        )
 
     actuals = _read_json(evidence_root, "stage4/actual-monthly-cost.json")
-    start, end = _timestamp(actuals.get("period_start")) if isinstance(actuals, dict) else None, _timestamp(actuals.get("period_end")) if isinstance(actuals, dict) else None
+    start, end = (
+        _timestamp(actuals.get("period_start")) if isinstance(actuals, dict) else None,
+        _timestamp(actuals.get("period_end")) if isinstance(actuals, dict) else None,
+    )
     if (
-        not _reviewed_document(actuals, record, fields={"period_start", "period_end", "currency", "aws_actual_usd", "aws_budget_usd", "cost_explorer_evidence_path", "cost_explorer_sha256", "provider_actual_usd", "provider_budget_usd", "provider_cost_report_evidence_path", "provider_cost_report_sha256"})
+        not _reviewed_document(
+            actuals,
+            record,
+            fields={
+                "period_start",
+                "period_end",
+                "currency",
+                "aws_actual_usd",
+                "aws_budget_usd",
+                "cost_explorer_evidence_path",
+                "cost_explorer_sha256",
+                "provider_actual_usd",
+                "provider_budget_usd",
+                "provider_cost_report_evidence_path",
+                "provider_cost_report_sha256",
+            },
+        )
         or start is None
         or end is None
         or end < start
@@ -504,11 +657,23 @@ def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
         or not _finite_number(actuals.get("aws_actual_usd"), positive=False)
         or not _finite_number(actuals.get("aws_budget_usd"), positive=True)
         or actuals["aws_actual_usd"] > actuals["aws_budget_usd"]
-        or not _bound_report(evidence_root, actuals, path_field="cost_explorer_evidence_path", digest_field="cost_explorer_sha256", expected_path=_SOURCE_REPORT_PATHS["aws_cost"])
+        or not _bound_report(
+            evidence_root,
+            actuals,
+            path_field="cost_explorer_evidence_path",
+            digest_field="cost_explorer_sha256",
+            expected_path=_SOURCE_REPORT_PATHS["aws_cost"],
+        )
         or not _finite_number(actuals.get("provider_actual_usd"), positive=False)
         or not _finite_number(actuals.get("provider_budget_usd"), positive=True)
         or actuals["provider_actual_usd"] > actuals["provider_budget_usd"]
-        or not _bound_report(evidence_root, actuals, path_field="provider_cost_report_evidence_path", digest_field="provider_cost_report_sha256", expected_path=_SOURCE_REPORT_PATHS["provider_cost"])
+        or not _bound_report(
+            evidence_root,
+            actuals,
+            path_field="provider_cost_report_evidence_path",
+            digest_field="provider_cost_report_sha256",
+            expected_path=_SOURCE_REPORT_PATHS["provider_cost"],
+        )
     ):
         raise StageEvidenceError("Stage 4 actual monthly cost evidence is invalid or over budget")
 

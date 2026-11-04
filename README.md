@@ -110,8 +110,8 @@ generated evidence with `python scripts/collect_metrics.py`.
 ```bash
 python -m pytest -q
 node --test tests/*.test.cjs
-ruff check auditor lab tests scripts
-ruff format --check auditor lab tests scripts
+ruff check auditor phase3 lab tests scripts examples conftest.py
+ruff format --check auditor phase3 lab tests scripts examples conftest.py
 ```
 
 CI also validates the Phase 3 Terraform roots and runs the pinned IaC security
