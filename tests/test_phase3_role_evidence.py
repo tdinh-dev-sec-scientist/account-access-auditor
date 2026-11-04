@@ -1,14 +1,19 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import subprocess
 import sys
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
+from unittest import mock
 
 from phase3.role_evidence import ROLE_SOURCE_FILES
+from scripts import validate_phase3_role_evidence as validate_cli
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts/validate_phase3_role_evidence.py"
@@ -115,15 +120,37 @@ def _write_manifest(
     return path
 
 
+def _argv(root: Path, stack: str, phase: str) -> list[str]:
+    return [str(SCRIPT), "--root", str(root), "--stack", stack, "--phase", phase]
+
+
 def _run(root: Path, *, stack: str, phase: str = "plan", role_arn: str = ROLE_ARN):
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), "--root", str(root), "--stack", stack, "--phase", phase],
+    """Run the gate CLI in-process so coverage sees phase3.role_evidence."""
+    stdout, stderr = io.StringIO(), io.StringIO()
+    with (
+        mock.patch.object(sys, "argv", _argv(root, stack, phase)),
+        mock.patch.dict(os.environ, {"PHASE3_TERRAFORM_ROLE_ARN": role_arn}),
+        redirect_stdout(stdout),
+        redirect_stderr(stderr),
+    ):
+        returncode = validate_cli.main()
+    return SimpleNamespace(returncode=returncode, stdout=stdout.getvalue(), stderr=stderr.getvalue())
+
+
+def test_role_evidence_gate_script_runs_as_a_standalone_process(tmp_path):
+    _write_manifest(tmp_path, status="reviewed")
+
+    result = subprocess.run(
+        [sys.executable, *_argv(tmp_path, "org", "plan")],
         cwd=ROOT,
-        env={**os.environ, "PHASE3_TERRAFORM_ROLE_ARN": role_arn},
+        env={**os.environ, "PHASE3_TERRAFORM_ROLE_ARN": ROLE_ARN},
         capture_output=True,
         text=True,
         check=False,
     )
+
+    assert result.returncode == 0, result.stderr
+    assert "org plan Terraform role-scope evidence matches" in result.stdout
 
 
 def test_role_evidence_gate_blocks_org_stack_until_policy_review_is_recorded(tmp_path):
