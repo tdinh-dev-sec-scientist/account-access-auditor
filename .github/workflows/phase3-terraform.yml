@@ -165,6 +165,13 @@ jobs:
         working-directory: infra/phase3/${{ inputs.stack }}
         run: |
           set -euo pipefail
+          # An unset optional number arrives as the text "null", which Terraform
+          # rejects from an environment variable; unset it so the default applies.
+          for name in $(compgen -e | grep -E '^TF_VAR_[A-Za-z0-9_]+$'); do
+            if [[ "${!name}" == "null" ]]; then
+              unset "$name"
+            fi
+          done
           terraform init -input=false -no-color \
             -backend-config="bucket=$TF_STATE_BUCKET" \
             -backend-config="key=phase3/${{ inputs.stack }}/terraform.tfstate" \
