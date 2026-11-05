@@ -190,6 +190,14 @@ def _validate_trust_policy(stack: str, phase: str, document: Any, *, role_arn: s
         )
 
 
+def _managed_policy_identity(item: dict[str, Any]) -> str:
+    """Capture redacts policy names, so distinct policies can share one projected
+    ARN; those are told apart by their content. Real ARNs must be unique."""
+    if "<" not in item["PolicyArn"]:
+        return item["PolicyArn"]
+    return json.dumps(item, sort_keys=True)
+
+
 def _validate_managed_policies(stack: str, value: Any) -> None:
     if not isinstance(value, list):
         raise RoleEvidenceError(f"{stack} attached policy evidence has an invalid shape")
@@ -200,12 +208,12 @@ def _validate_managed_policies(stack: str, value: Any) -> None:
             or set(item) != {"PolicyArn", "DefaultVersionId", "PolicyDocument"}
             or not isinstance(item["PolicyArn"], str)
             or not _POLICY_ARN.fullmatch(item["PolicyArn"])
-            or item["PolicyArn"] in seen_arns
+            or _managed_policy_identity(item) in seen_arns
             or not isinstance(item["DefaultVersionId"], str)
             or not _POLICY_VERSION.fullmatch(item["DefaultVersionId"])
         ):
             raise RoleEvidenceError(f"{stack} attached policy evidence has an invalid shape")
-        seen_arns.add(item["PolicyArn"])
+        seen_arns.add(_managed_policy_identity(item))
         _validate_policy_document(
             item["PolicyDocument"], context=f"{stack} attached policy document", require_resource=True
         )

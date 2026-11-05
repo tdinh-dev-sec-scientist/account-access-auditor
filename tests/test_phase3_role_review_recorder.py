@@ -14,7 +14,7 @@ from phase3.role_capture import capture_role_evidence
 from phase3.role_evidence import validate_role_scope_evidence
 from scripts import record_phase3_role_review as recorder
 from scripts.render_phase3_org_roles import render_documents
-from tests.test_phase3_role_capture import _FakeIam
+from tests.test_phase3_role_capture import _FakeIam, _Paginator
 
 ROOT = Path(__file__).resolve().parents[1]
 ACCOUNT = "123456789012"
@@ -30,7 +30,7 @@ VALUES = {
 }
 
 
-def _captured_repository(tmp_path: Path, *, trust=None) -> Path:
+def _captured_repository(tmp_path: Path, *, trust=None, iam=None) -> Path:
     evidence = tmp_path / "docs/evidence"
     evidence.mkdir(parents=True)
     # A fresh manifest: the repository's own manifest may already hold real reviews.
@@ -51,7 +51,7 @@ def _captured_repository(tmp_path: Path, *, trust=None) -> Path:
     }
     (evidence / "phase3-role-scope.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     documents = render_documents(VALUES)
-    iam = _FakeIam(role_arn=ROLE_ARN, boundary=False)
+    iam = iam or _FakeIam(role_arn=ROLE_ARN, boundary=False)
     iam.trust = documents["plan-trust"] if trust is None else trust
     iam.policy = documents["plan-permissions"]
     capture_role_evidence(root=tmp_path, stack="org", phase="plan", role_arn=ROLE_ARN, iam_client=iam)
@@ -181,3 +181,36 @@ def test_cli_records_a_confirmed_review(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert "The role-evidence gate accepts it." in result.stdout
+
+
+class _TwoManagedPolicies(_FakeIam):
+    def get_paginator(self, operation_name):
+        if operation_name == "list_attached_role_policies":
+            arns = [
+                f"arn:aws:iam::{ACCOUNT}:policy/ApplyManage1",
+                f"arn:aws:iam::{ACCOUNT}:policy/ApplyManage2",
+            ]
+            return _Paginator("AttachedPolicies", [{"PolicyArn": arn} for arn in arns], self.calls)
+        return super().get_paginator(operation_name)
+
+    def get_policy_version(self, *, PolicyArn, VersionId):
+        response = super().get_policy_version(PolicyArn=PolicyArn, VersionId=VersionId)
+        if PolicyArn.endswith("2"):
+            document = json.loads(json.dumps(response["PolicyVersion"]["Document"]))
+            document["Statement"] = document["Statement"][:1]
+            response["PolicyVersion"]["Document"] = document
+        return response
+
+
+def test_a_role_with_several_managed_policies_can_be_recorded(tmp_path):
+    # Capture redacts both policy names to the same projected ARN; that is not a duplicate.
+    root = _captured_repository(tmp_path, iam=_TwoManagedPolicies(role_arn=ROLE_ARN, boundary=False))
+
+    record = _record(root)
+
+    assert record["status"] == "reviewed"
+    attached = json.loads(
+        (root / "docs/evidence/terraform-roles/org/plan/attached-policies.json").read_text(encoding="utf-8")
+    )
+    assert len(attached) == 2
+    assert attached[0]["PolicyArn"] == attached[1]["PolicyArn"]
