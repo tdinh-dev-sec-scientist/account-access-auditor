@@ -650,3 +650,14 @@ def test_cloudfront_behaviors_use_method_sets_cloudfront_accepts():
     assert len(method_sets) == 2
     assert all(methods in accepted for methods in method_sets), method_sets
     assert "POST" in method_sets[1], "Rin needs POST through the /api/* behavior"
+
+
+def test_demo_terraform_apply_role_uses_real_iam_action_names():
+    bootstrap = (ROOT / "infra/phase3/demo-bootstrap/main.tf").read_text(encoding="utf-8")
+
+    # PutPublicAccessBlock is the S3 API name; IAM authorizes it as PutBucketPublicAccessBlock.
+    assert '"s3:PutPublicAccessBlock"' not in bootstrap
+    assert '"s3:PutBucketPublicAccessBlock"' in bootstrap
+    # Default tags make CreateTrail and CreateRole need tag and inline-policy reads.
+    assert '"cloudtrail:AddTags"' in bootstrap
+    assert '"iam:ListRolePolicies"' in bootstrap

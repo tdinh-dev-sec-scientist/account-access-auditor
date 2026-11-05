@@ -90,7 +90,7 @@ resource "aws_iam_role_policy" "terraform_plan" {
       {
         Sid      = "ReadOnlyPhase3TargetRole"
         Effect   = "Allow"
-        Action   = ["iam:GetRole", "iam:ListAttachedRolePolicies"]
+        Action   = ["iam:GetRole", "iam:ListAttachedRolePolicies", "iam:ListRolePolicies"]
         Resource = local.target_role_arn
       },
       {
@@ -102,7 +102,7 @@ resource "aws_iam_role_policy" "terraform_plan" {
       {
         Sid      = "ReadOnlyPhase3CloudTrail"
         Effect   = "Allow"
-        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors"]
+        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors", "cloudtrail:ListTags"]
         Resource = local.trail_arn
       },
       {
@@ -172,7 +172,7 @@ resource "aws_iam_role_policy" "terraform_apply" {
       {
         Sid      = "ReadOnlyPhase3TargetRole"
         Effect   = "Allow"
-        Action   = ["iam:GetRole", "iam:ListAttachedRolePolicies"]
+        Action   = ["iam:GetRole", "iam:ListAttachedRolePolicies", "iam:ListRolePolicies"]
         Resource = local.target_role_arn
       },
       {
@@ -184,7 +184,7 @@ resource "aws_iam_role_policy" "terraform_apply" {
       {
         Sid      = "ReadOnlyPhase3CloudTrail"
         Effect   = "Allow"
-        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors"]
+        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors", "cloudtrail:ListTags"]
         Resource = local.trail_arn
       },
       {
@@ -207,7 +207,7 @@ resource "aws_iam_role_policy" "terraform_apply" {
           "s3:PutBucketTagging",
           "s3:PutEncryptionConfiguration",
           "s3:PutBucketOwnershipControls",
-          "s3:PutPublicAccessBlock",
+          "s3:PutBucketPublicAccessBlock",
           "s3:PutBucketVersioning",
           "s3:PutLifecycleConfiguration",
           "s3:PutBucketPolicy"
@@ -255,7 +255,7 @@ resource "aws_iam_role_policy" "terraform_apply" {
       {
         Sid      = "CreateAndStartOnlyDemoManagementTrail"
         Effect   = "Allow"
-        Action   = ["cloudtrail:CreateTrail", "cloudtrail:StartLogging"]
+        Action   = ["cloudtrail:CreateTrail", "cloudtrail:StartLogging", "cloudtrail:AddTags"]
         Resource = local.trail_arn
       },
       {
