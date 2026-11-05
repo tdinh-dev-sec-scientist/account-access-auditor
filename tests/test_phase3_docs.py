@@ -1,4 +1,6 @@
+import hashlib
 import json
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -27,19 +29,39 @@ def test_phase3_status_records_unavailable_aws_identity_and_pending_policy_revie
     assert "version-3 role manifest" in status.lower()
 
 
-def test_role_scope_manifest_keeps_plan_and_apply_roles_separately_pending():
+def test_role_scope_manifest_records_are_pending_or_complete_untampered_reviews():
+    from datetime import datetime
+
+    from phase3.role_evidence import ROLE_EVIDENCE_FILES, ROLE_SOURCE_FILES
+
     manifest = json.loads((ROOT / "docs/evidence/phase3-role-scope.json").read_text(encoding="utf-8"))
 
     assert manifest["schema_version"] == 3
     assert set(manifest["roles"]) == {"org", "control-plane"}
-    for phases in manifest["roles"].values():
+    for stack, phases in manifest["roles"].items():
         assert set(phases) == {"plan", "apply"}
-        for record in phases.values():
-            assert record["status"] == "pending"
-            assert record["role_arn_sha256"] is None
-            assert record["evidence"] == []
-            assert record["evidence_sha256"] == {}
-            assert record["source_evidence_sha256"] == {}
+        for phase, record in phases.items():
+            if record["status"] == "pending":
+                assert record["role_arn_sha256"] is None
+                assert record["evidence"] == []
+                assert record["evidence_sha256"] == {}
+                assert record["source_evidence_sha256"] == {}
+                continue
+            # A reviewed record names every redacted projection, and each
+            # checked-in projection still has the digest the reviewer recorded.
+            assert record["status"] == "reviewed", (stack, phase)
+            assert re.fullmatch(r"[a-f0-9]{64}", record["role_arn_sha256"])
+            assert record["reviewed_by"].strip()
+            assert datetime.fromisoformat(record["reviewed_at"]).tzinfo is not None
+            assert record["evidence"] == sorted(ROLE_EVIDENCE_FILES[stack][phase])
+            assert set(record["evidence_sha256"]) == set(record["evidence"])
+            for relative, digest in record["evidence_sha256"].items():
+                content = (ROOT / "docs/evidence" / relative).read_bytes()
+                assert hashlib.sha256(content).hexdigest() == digest, relative
+            assert set(record["source_evidence_sha256"]) == ROLE_SOURCE_FILES[stack][phase]
+            assert all(
+                re.fullmatch(r"[a-f0-9]{64}", value) for value in record["source_evidence_sha256"].values()
+            )
 
 
 def test_role_capture_guide_uses_non_root_read_only_capture_and_keeps_manifest_pending():
