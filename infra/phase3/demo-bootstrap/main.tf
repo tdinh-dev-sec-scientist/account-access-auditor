@@ -102,13 +102,13 @@ resource "aws_iam_role_policy" "terraform_plan" {
       {
         Sid      = "ReadOnlyPhase3CloudTrail"
         Effect   = "Allow"
-        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors", "cloudtrail:ListTags"]
+        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors", "cloudtrail:GetInsightSelectors", "cloudtrail:ListTags"]
         Resource = local.trail_arn
       },
       {
         Sid      = "ListCloudTrailsForTerraformRefresh"
         Effect   = "Allow"
-        Action   = "cloudtrail:ListTrails"
+        Action   = ["cloudtrail:ListTrails", "cloudtrail:DescribeTrails"]
         Resource = "*"
       },
       {
@@ -184,13 +184,13 @@ resource "aws_iam_role_policy" "terraform_apply" {
       {
         Sid      = "ReadOnlyPhase3CloudTrail"
         Effect   = "Allow"
-        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors", "cloudtrail:ListTags"]
+        Action   = ["cloudtrail:GetTrail", "cloudtrail:GetTrailStatus", "cloudtrail:GetEventSelectors", "cloudtrail:GetInsightSelectors", "cloudtrail:ListTags"]
         Resource = local.trail_arn
       },
       {
         Sid      = "ListCloudTrailsForTerraformRefresh"
         Effect   = "Allow"
-        Action   = "cloudtrail:ListTrails"
+        Action   = ["cloudtrail:ListTrails", "cloudtrail:DescribeTrails"]
         Resource = "*"
       },
       {

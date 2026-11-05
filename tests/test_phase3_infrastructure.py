@@ -661,3 +661,5 @@ def test_demo_terraform_apply_role_uses_real_iam_action_names():
     # Default tags make CreateTrail and CreateRole need tag and inline-policy reads.
     assert '"cloudtrail:AddTags"' in bootstrap
     assert '"iam:ListRolePolicies"' in bootstrap
+    # The provider reads a trail back with DescribeTrails, which has no resource ARN.
+    assert '"cloudtrail:DescribeTrails"' in bootstrap
