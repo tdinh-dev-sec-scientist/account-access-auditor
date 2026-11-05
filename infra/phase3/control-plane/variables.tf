@@ -28,8 +28,8 @@ variable "github_repository" {
   type        = string
   default     = "tdinh-dev-sec-scientist/Vorrin"
   validation {
-    condition     = can(regex("^[a-z0-9_.-]+/[a-z0-9_.-]+$", var.github_repository))
-    error_message = "github_repository must be a lowercase owner/repository pair."
+    condition     = can(regex("^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$", var.github_repository))
+    error_message = "github_repository must be an exact owner/repository pair, in the case GitHub reports it."
   }
 }
 
@@ -90,7 +90,7 @@ variable "monthly_budget_usd" {
   default     = null
   nullable    = true
   validation {
-    condition     = var.monthly_budget_usd == null || var.monthly_budget_usd > 0
+    condition     = try(var.monthly_budget_usd > 0, var.monthly_budget_usd == null)
     error_message = "monthly_budget_usd must be positive when supplied."
   }
 }
@@ -114,7 +114,7 @@ variable "provider_monthly_budget_usd" {
   default     = null
   nullable    = true
   validation {
-    condition     = var.provider_monthly_budget_usd == null || var.provider_monthly_budget_usd > 0
+    condition     = try(var.provider_monthly_budget_usd > 0, var.provider_monthly_budget_usd == null)
     error_message = "provider_monthly_budget_usd must be positive when supplied."
   }
 }
@@ -138,8 +138,8 @@ variable "rin_enabled" {
       var.enable_stage3 && var.enable_stage4 && var.monthly_budget_usd != null &&
       var.provider_monthly_budget_usd != null && var.rin_model != "" &&
       var.rin_guardrail_arn != "" && can(regex("^[1-9][0-9]{0,7}$", var.rin_guardrail_version)) &&
-      var.rin_input_cost_per_million_tokens_usd != null && var.rin_output_cost_per_million_tokens_usd != null &&
-      var.rin_input_cost_per_million_tokens_usd > 0 && var.rin_output_cost_per_million_tokens_usd > 0
+      try(var.rin_input_cost_per_million_tokens_usd > 0, false) &&
+      try(var.rin_output_cost_per_million_tokens_usd > 0, false)
     )
     error_message = "Live Rin requires Stage 3/4, owner AWS/provider budgets, an approved model and published Guardrail version, and explicit provider token rates."
   }
@@ -215,10 +215,8 @@ variable "enable_stage2" {
   validation {
     condition = !var.enable_stage2 || (
       var.enable_scan_pipeline &&
-      var.monthly_budget_usd != null &&
-      var.aws_pricing_estimate_monthly_usd != null &&
-      var.aws_pricing_estimate_monthly_usd > 0 &&
-      var.monthly_budget_usd >= var.aws_pricing_estimate_monthly_usd &&
+      try(var.aws_pricing_estimate_monthly_usd > 0, false) &&
+      try(var.monthly_budget_usd >= var.aws_pricing_estimate_monthly_usd, false) &&
       trimspace(var.aws_pricing_estimate_reference) != ""
     )
     error_message = "Stage 2 requires an owner AWS cap that covers a recorded AWS Pricing Calculator estimate."

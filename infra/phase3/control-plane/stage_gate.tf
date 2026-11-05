@@ -391,14 +391,13 @@ locals {
       can(regex("^[a-f0-9]{64}$", logging.settings_sha256)) &&
       (logging.enabled == true || logging.enabled == false) &&
       (logging.includes_prompt_content == true || logging.includes_prompt_content == false) &&
-      (logging.retention_days == null || (
-        logging.retention_days >= 0 &&
-        floor(logging.retention_days) == logging.retention_days
-      )) &&
+      try(
+        logging.retention_days >= 0 && floor(logging.retention_days) == logging.retention_days,
+        logging.retention_days == null
+      ) &&
       (!logging.includes_prompt_content || (
         logging.enabled == true &&
-        logging.retention_days != null &&
-        logging.retention_days <= local.phase3_stage3_logging_review.maximum_prompt_retention_days
+        try(logging.retention_days <= local.phase3_stage3_logging_review.maximum_prompt_retention_days, false)
       ))
     ]) &&
     trimspace(local.phase3_stage3_logging_review.external_provider_logging.provider) != "" &&
