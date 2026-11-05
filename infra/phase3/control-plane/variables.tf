@@ -323,3 +323,14 @@ variable "api_throttle_burst_limit" {
     error_message = "api_throttle_burst_limit must be a whole number between 1 and 500."
   }
 }
+
+
+variable "github_subject_repository" {
+  description = "Repository as GitHub writes it in OIDC subject claims. This repository uses the immutable-ID format owner@owner_id/repo@repo_id (verified with a live probe); a subject built from owner/repo never matches its tokens."
+  type        = string
+  default     = "tdinh-dev-sec-scientist@172205018/Vorrin@1360779179"
+  validation {
+    condition     = can(regex("^[A-Za-z0-9_.-]+@[0-9]+/[A-Za-z0-9_.-]+@[0-9]+$", var.github_subject_repository))
+    error_message = "github_subject_repository must use GitHub's immutable-ID subject format: owner@owner_id/repo@repo_id."
+  }
+}

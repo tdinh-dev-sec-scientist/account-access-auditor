@@ -39,3 +39,13 @@ variable "organization_root_id" {
     error_message = "organization_root_id must be a valid Organizations root ID."
   }
 }
+
+variable "existing_demo_account_id" {
+  description = "Account ID of an existing demo account to import instead of creating one. Leave empty to create the account."
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.existing_demo_account_id == "" || can(regex("^[0-9]{12}$", var.existing_demo_account_id))
+    error_message = "existing_demo_account_id must be empty or a 12-digit AWS account ID."
+  }
+}

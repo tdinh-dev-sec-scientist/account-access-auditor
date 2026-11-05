@@ -18,7 +18,7 @@ Before dispatching the demo-bootstrap stack:
    | Claim | Plan role | Apply role |
    | --- | --- | --- |
    | aud | sts.amazonaws.com | sts.amazonaws.com |
-   | sub | repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-demo-bootstrap-plan | repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-demo-bootstrap-apply |
+   | sub | repo:tdinh-dev-sec-scientist@172205018/Vorrin@1360779179:environment:phase3-demo-bootstrap-plan | repo:tdinh-dev-sec-scientist@172205018/Vorrin@1360779179:environment:phase3-demo-bootstrap-apply |
    | ref | refs/heads/main | refs/heads/main |
    | workflow | Phase 3 Terraform | Phase 3 Terraform |
 
@@ -37,6 +37,42 @@ The demo-bootstrap Terraform root reads the pre-existing OIDC provider and
 creates only the later demo-account Terraform roles. Its plan and apply roles
 do not have permissions to create target-account data resources, pass roles,
 create users, or assume the account administrator role.
+
+## GitHub OIDC subject format
+
+This repository's OIDC tokens use GitHub's immutable-ID subject format,
+`repo:tdinh-dev-sec-scientist@172205018/Vorrin@1360779179:...`, not
+`repo:tdinh-dev-sec-scientist/Vorrin:...`. A trust policy with the short form
+never matches. A live probe on 2026-11-05 confirmed this and also confirmed
+that AWS evaluates the `workflow` and `ref` claims: a role whose `workflow`
+condition did not match was denied. `phase3.role_evidence.GITHUB_SUBJECT_REPOSITORY`
+and the Terraform variable `github_subject_repository` hold the value.
+
+## Org stack roles
+
+Create the org plan and apply roles in the management account from the
+reviewed templates `infra/phase3/policies/github-oidc-trust.json`,
+`org-terraform-plan.json`, and `org-terraform-apply.json`:
+
+```sh
+python scripts/render_phase3_org_roles.py --profile vorrin-admin --state-bucket <state-bucket> --lock-table <lock-table> --demo-account-name vorrin-demo
+```
+
+The script discovers the account, organization, root, and demo account IDs
+with read-only calls, writes the filled documents to the gitignored
+`build/phase3/roles/org/`, and prints the `aws iam create-role` and
+`put-role-policy` commands. The plan role can only read the organization and
+lock the org state. The apply role can create organizational units under the
+root, move only the demo account, create, update, and attach service control
+policies to organizational units (never the root), and write only the org
+state object; it explicitly denies leaving or deleting the organization,
+closing or removing accounts, detaching or deleting policies, and
+`sts:AssumeRole`.
+
+To adopt a demo account that already exists, set the repository variable
+`PHASE3_EXISTING_DEMO_ACCOUNT_ID`, and make `PHASE3_DEMO_ACCOUNT_NAME` and the
+`PHASE3_DEMO_ACCOUNT_EMAIL` secret match it exactly. The org stack then imports
+the account instead of creating a second one.
 
 ## Organizations and control-plane roles
 

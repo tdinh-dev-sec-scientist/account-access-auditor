@@ -447,7 +447,7 @@ def test_demo_account_changes_use_protected_github_oidc_terraform_workflow():
     assert 'data "aws_iam_openid_connect_provider" "github"' in bootstrap
     assert "sts:AssumeRoleWithWebIdentity" in bootstrap
     assert re.search(
-        r'github_apply_subject\s*=\s*"repo:\$\{var\.github_repository\}:environment:\$\{var\.github_apply_environment\}"',
+        r'github_apply_subject\s*=\s*"repo:\$\{var\.github_subject_repository\}:environment:\$\{var\.github_apply_environment\}"',
         bootstrap,
     )
     assert "token.actions.githubusercontent.com:ref" in bootstrap

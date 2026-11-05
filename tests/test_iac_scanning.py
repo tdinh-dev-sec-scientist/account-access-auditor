@@ -628,3 +628,90 @@ def test_real_scanners_accept_clean_fixtures(fixture, helm_rendered):
     report = scan_paths([FIXTURES / fixture], helm_rendered=helm_rendered, run_id="clean-scan")
     assert report["contract"]["scan_run"]["status"] == "PASS", report["collection_errors"]
     assert report["contract"]["findings"] == []
+
+
+TRUST_POLICY = {
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Federated": "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com"
+            },
+            "Action": "sts:AssumeRoleWithWebIdentity",
+            "Condition": {"StringEquals": {"token.actions.githubusercontent.com:aud": "sts.amazonaws.com"}},
+        }
+    ],
+}
+
+
+def _scan_single_iam(monkeypatch, tmp_path, document, run_id):
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(document))
+
+    def fake_run(command, *, capture_output, text, check, timeout, env):
+        if "--version" in command:
+            stdout = "Conftest: 0.71.1\nOPA: 1.21.1"
+        else:
+            stdout = json.dumps([{"filename": command[-1], "namespace": "main", "successes": 1}])
+        return SimpleNamespace(returncode=0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr("auditor.iac.scanning.shutil.which", lambda name: name)
+    monkeypatch.setattr("auditor.iac.scanning.subprocess.run", fake_run)
+    return scan_paths([path], run_id=run_id)
+
+
+def test_role_trust_policy_is_accepted_without_identity_policy_findings(monkeypatch, tmp_path):
+    report = _scan_single_iam(monkeypatch, tmp_path, TRUST_POLICY, "trust-policy")
+
+    assert report["collection_errors"] == []
+    assert report["findings"] == []
+    assert report["contract"]["scan_run"]["status"] != "ERROR"
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda statement: statement.update(Action="s3:GetObject"),
+        lambda statement: statement.update(Action=["sts:AssumeRoleWithWebIdentity", "iam:PassRole"]),
+        lambda statement: statement.pop("Principal"),
+    ],
+    ids=["non-sts-action", "mixed-actions", "no-principal"],
+)
+def test_statements_that_are_not_pure_trust_still_need_a_resource(monkeypatch, tmp_path, change):
+    document = json.loads(json.dumps(TRUST_POLICY))
+    change(document["Statement"][0])
+    report = _scan_single_iam(monkeypatch, tmp_path, document, "not-trust")
+
+    assert report["contract"]["scan_run"]["status"] == "ERROR"
+    assert (
+        report["collection_errors"][0]["message"]
+        == "each IAM statement must contain Resource or NotResource, but not both"
+    )
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda statement: statement.update(Principal=[]), "Principal must be"),
+        (lambda statement: statement.update(Effect="Permit"), "Effect Allow or Deny"),
+        (lambda statement: statement.update(Condition=["aud"]), "Condition must be an object"),
+    ],
+)
+def test_malformed_trust_policies_are_errors(monkeypatch, tmp_path, change, message):
+    document = json.loads(json.dumps(TRUST_POLICY))
+    change(document["Statement"][0])
+
+    report = _scan_single_iam(monkeypatch, tmp_path, document, "bad-trust")
+
+    assert report["contract"]["scan_run"]["status"] == "ERROR"
+    assert message in report["collection_errors"][0]["message"]
+
+
+def test_a_statement_with_a_resource_is_analysed_as_a_permissions_policy(monkeypatch, tmp_path):
+    document = json.loads(json.dumps(TRUST_POLICY))
+    document["Statement"][0]["Resource"] = "*"
+
+    report = _scan_single_iam(monkeypatch, tmp_path, document, "resource-policy")
+
+    assert report["collection_errors"] == []

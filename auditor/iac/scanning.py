@@ -756,6 +756,11 @@ def _run_conftest(
 
 def _scan_iam_policy(item: ScanInput, root: Path, run_id: str) -> list[dict[str, Any]]:
     document = _load_json(item.path)
+    if _is_role_trust_policy(document):
+        # A role trust policy names who may assume a role; it grants no
+        # permissions, so the identity-policy rules do not apply to it.
+        _validate_trust_document(document)
+        return []
     _validate_iam_document(document)
     username = item.path.name[:128] or "policy"
     data = {
@@ -797,6 +802,50 @@ def _scan_iam_policy(item: ScanInput, root: Path, run_id: str) -> list[dict[str,
                 statement.pop("sid", None)
         records.append(record)
     return records
+
+
+_TRUST_ACTION = re.compile(
+    r"^sts:(?:AssumeRole|AssumeRoleWithWebIdentity|AssumeRoleWithSAML|TagSession|SetSourceIdentity|SetContext)$"
+)
+
+
+def _statement_list(document: Any) -> list[Any]:
+    raw = document.get("Statement") if isinstance(document, dict) else None
+    return raw if isinstance(raw, list) else [raw]
+
+
+def _is_role_trust_policy(document: Any) -> bool:
+    """A trust policy: every statement names a Principal and only role-assumption actions, and no Resource."""
+    statements = _statement_list(document)
+    if not statements or not all(isinstance(statement, dict) for statement in statements):
+        return False
+    for statement in statements:
+        actions = statement.get("Action")
+        actions = actions if isinstance(actions, list) else [actions]
+        if (
+            "Principal" not in statement
+            or "NotPrincipal" in statement
+            or "NotAction" in statement
+            or "Resource" in statement
+            or "NotResource" in statement
+            or not actions
+            or not all(isinstance(action, str) and _TRUST_ACTION.fullmatch(action) for action in actions)
+        ):
+            return False
+    return True
+
+
+def _validate_trust_document(document: dict[str, Any]) -> None:
+    if "Version" in document and document["Version"] not in {"2008-10-17", "2012-10-17"}:
+        raise InputError("IAM policy Version must be 2008-10-17 or 2012-10-17")
+    for statement in _statement_list(document):
+        if statement.get("Effect") not in {"Allow", "Deny"}:
+            raise InputError("each IAM statement must have Effect Allow or Deny")
+        principal = statement["Principal"]
+        if principal != "*" and (not isinstance(principal, dict) or not principal):
+            raise InputError('IAM trust statement Principal must be "*" or a non-empty object')
+        if "Condition" in statement and not isinstance(statement["Condition"], dict):
+            raise InputError("IAM statement Condition must be an object")
 
 
 def _validate_iam_document(document: dict[str, Any]) -> None:

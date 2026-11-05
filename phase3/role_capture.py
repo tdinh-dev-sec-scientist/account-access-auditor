@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from phase3.role_evidence import ROLE_EVIDENCE_FILES, ROLE_SOURCE_FILES
+from phase3.role_evidence import ROLE_EVIDENCE_FILES, ROLE_SOURCE_FILES, github_environment_subject
 
 _ROLE_ARN = re.compile(r"^arn:[a-z0-9-]+:iam::[0-9]{12}:role/[A-Za-z0-9+=,.@_/-]+$")
 _ACCOUNT_ID = re.compile(r"(?<![0-9])([0-9]{12})(?![0-9])")
@@ -296,9 +296,7 @@ def _redact_condition_value(value: Any) -> Any:
 def _expected_github_claim_value(key: str, *, stack: str, phase: str) -> str:
     expected = {
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
-        "token.actions.githubusercontent.com:sub": (
-            f"repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-{stack}-{phase}"
-        ),
+        "token.actions.githubusercontent.com:sub": github_environment_subject(f"phase3-{stack}-{phase}"),
         "token.actions.githubusercontent.com:workflow": "Phase 3 Terraform",
         "token.actions.githubusercontent.com:ref": "refs/heads/main",
     }

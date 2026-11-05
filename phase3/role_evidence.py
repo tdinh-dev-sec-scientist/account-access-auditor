@@ -44,6 +44,15 @@ _POLICY_ARN = re.compile(
 _POLICY_VERSION = re.compile(r"^v[0-9]+$")
 _GITHUB_OIDC = "token.actions.githubusercontent.com"
 _GITHUB_REPOSITORY = "tdinh-dev-sec-scientist/Vorrin"
+# GitHub issues this repository's OIDC subject in the immutable-ID format
+# (owner@owner_id/repo@repo_id), verified with a live probe on 2026-11-05. A
+# trust policy written for "repo:owner/repo:..." never matches its tokens.
+GITHUB_SUBJECT_REPOSITORY = "tdinh-dev-sec-scientist@172205018/Vorrin@1360779179"
+
+
+def github_environment_subject(environment: str) -> str:
+    """The exact OIDC sub claim GitHub sends for a job in a protected environment."""
+    return f"repo:{GITHUB_SUBJECT_REPOSITORY}:environment:{environment}"
 
 
 class RoleEvidenceError(ValueError):
@@ -126,7 +135,7 @@ def _validate_trust_policy(stack: str, phase: str, document: Any, *, role_arn: s
     statements = _validate_policy_document(
         document, context=f"{stack} trust-policy evidence", require_resource=False
     )
-    expected_subjects = {f"repo:{_GITHUB_REPOSITORY}:environment:phase3-{stack}-{phase}"}
+    expected_subjects = {github_environment_subject(f"phase3-{stack}-{phase}")}
     partition = role_arn.split(":")[1]
     expected_provider = f"arn:{partition}:iam::<TARGET_ACCOUNT>:oidc-provider/{_GITHUB_OIDC}"
     allowed_subjects: set[str] = set()

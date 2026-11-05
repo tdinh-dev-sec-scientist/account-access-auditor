@@ -5,7 +5,7 @@ locals {
   snapshot_writer_name     = "${var.bucket_prefix}-p3-snapshot-writer"
   target_role_arn          = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:role/AccountAccessAuditorReadOnly"
   scan_cluster_name        = "${var.bucket_prefix}-p3-scan"
-  github_image_subject     = "repo:${var.github_repository}:environment:${var.github_image_environment}"
+  github_image_subject     = "repo:${var.github_subject_repository}:environment:${var.github_image_environment}"
   github_oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
 
   scan_workflow_states = {
