@@ -55,7 +55,7 @@ def _allowed(*documents):
 
 def _write_like(action):
     verb = action.split(":", 1)[1]
-    return not verb.startswith(("Describe", "Get", "List", "View")) and action != "apigateway:GET"
+    return not verb.startswith(("Describe", "Get", "List", "View", "Validate")) and action != "apigateway:GET"
 
 
 @pytest.mark.parametrize("phase", ["plan", "apply"])
