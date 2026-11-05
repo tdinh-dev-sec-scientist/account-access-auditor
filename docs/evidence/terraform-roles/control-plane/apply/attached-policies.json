@@ -1,0 +1,411 @@
+[
+  {
+    "DefaultVersionId": "v1",
+    "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
+    "PolicyDocument": {
+      "Statement": [
+        {
+          "Action": [
+            "sns:CreateTopic",
+            "sns:DeleteTopic",
+            "sns:SetTopicAttributes",
+            "sns:Subscribe",
+            "sns:TagResource",
+            "sns:UntagResource",
+            "cloudwatch:PutMetricAlarm",
+            "cloudwatch:DeleteAlarms",
+            "cloudwatch:TagResource",
+            "cloudwatch:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:sns:us-east-1:<TARGET_ACCOUNT>:<RESOURCE_PATTERN>",
+            "arn:aws:sns:us-east-1:<TARGET_ACCOUNT>:<RESOURCE_PATTERN>",
+            "arn:aws:cloudwatch:us-east-1:<TARGET_ACCOUNT>:alarm:<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "sns:Unsubscribe",
+            "sns:SetSubscriptionAttributes"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "secretsmanager:CreateSecret",
+            "secretsmanager:DeleteSecret",
+            "secretsmanager:UpdateSecret",
+            "secretsmanager:TagResource",
+            "secretsmanager:UntagResource",
+            "secretsmanager:PutResourcePolicy",
+            "secretsmanager:DeleteResourcePolicy"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:secretsmanager:us-east-1:<TARGET_ACCOUNT>:secret:vorrin/<RESOURCE_PATTERN>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "budgets:ModifyBudget",
+            "budgets:TagResource",
+            "budgets:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:budgets::<TARGET_ACCOUNT>:budget/<RESOURCE_PATTERN>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "apigateway:POST",
+            "apigateway:PUT",
+            "apigateway:PATCH",
+            "apigateway:DELETE"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:apigateway:us-east-1::/<RESOURCE>",
+            "arn:aws:apigateway:us-east-1::/<RESOURCE_PATTERN>",
+            "arn:aws:apigateway:us-east-1::/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "wafv2:CreateWebACL",
+            "wafv2:UpdateWebACL",
+            "wafv2:DeleteWebACL",
+            "wafv2:AssociateWebACL",
+            "wafv2:DisassociateWebACL",
+            "wafv2:TagResource",
+            "wafv2:UntagResource",
+            "apigateway:SetWebACL",
+            "cloudfront:UpdateDistribution"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:wafv2:*:<TARGET_ACCOUNT>:*/<RESOURCE_PATTERN>",
+            "arn:aws:apigateway:us-east-1::/<RESOURCE_PATTERN>",
+            "arn:aws:cloudfront::<TARGET_ACCOUNT>:distribution/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "cloudfront:CreateDistribution",
+            "cloudfront:CreateDistributionWithTags",
+            "cloudfront:UpdateDistribution",
+            "cloudfront:DeleteDistribution",
+            "cloudfront:TagResource",
+            "cloudfront:UntagResource",
+            "cloudfront:CreateOriginAccessControl",
+            "cloudfront:UpdateOriginAccessControl",
+            "cloudfront:DeleteOriginAccessControl",
+            "cloudfront:CreateCachePolicy",
+            "cloudfront:UpdateCachePolicy",
+            "cloudfront:DeleteCachePolicy",
+            "cloudfront:CreateOriginRequestPolicy",
+            "cloudfront:UpdateOriginRequestPolicy",
+            "cloudfront:DeleteOriginRequestPolicy",
+            "cloudfront:CreateResponseHeadersPolicy",
+            "cloudfront:UpdateResponseHeadersPolicy",
+            "cloudfront:DeleteResponseHeadersPolicy"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "cognito-idp:CreateUserPool",
+            "cognito-idp:UpdateUserPool",
+            "cognito-idp:DeleteUserPool",
+            "cognito-idp:CreateUserPoolClient",
+            "cognito-idp:UpdateUserPoolClient",
+            "cognito-idp:DeleteUserPoolClient",
+            "cognito-idp:CreateUserPoolDomain",
+            "cognito-idp:UpdateUserPoolDomain",
+            "cognito-idp:DeleteUserPoolDomain",
+            "cognito-idp:SetUserPoolMfaConfig",
+            "cognito-idp:TagResource",
+            "cognito-idp:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "ec2:CreateVpc",
+            "ec2:DeleteVpc",
+            "ec2:ModifyVpcAttribute",
+            "ec2:CreateSubnet",
+            "ec2:DeleteSubnet",
+            "ec2:ModifySubnetAttribute",
+            "ec2:CreateInternetGateway",
+            "ec2:DeleteInternetGateway",
+            "ec2:AttachInternetGateway",
+            "ec2:DetachInternetGateway",
+            "ec2:CreateRouteTable",
+            "ec2:DeleteRouteTable",
+            "ec2:CreateRoute",
+            "ec2:DeleteRoute",
+            "ec2:ReplaceRoute",
+            "ec2:AssociateRouteTable",
+            "ec2:DisassociateRouteTable",
+            "ec2:CreateSecurityGroup",
+            "ec2:DeleteSecurityGroup",
+            "ec2:AuthorizeSecurityGroupEgress",
+            "ec2:RevokeSecurityGroupEgress",
+            "ec2:AuthorizeSecurityGroupIngress",
+            "ec2:RevokeSecurityGroupIngress",
+            "ec2:CreateTags",
+            "ec2:DeleteTags"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        }
+      ],
+      "Version": "2012-10-17"
+    }
+  },
+  {
+    "DefaultVersionId": "v1",
+    "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
+    "PolicyDocument": {
+      "Statement": [
+        {
+          "Action": [
+            "iam:CreateRole",
+            "iam:PutRolePolicy",
+            "iam:DeleteRolePolicy",
+            "iam:PutRolePermissionsBoundary"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "<CONDITION_KEY_1>": "<CONDITION_VALUE>"
+            }
+          },
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>",
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "iam:DeleteRole",
+            "iam:UpdateRole",
+            "iam:UpdateRoleDescription",
+            "iam:UpdateAssumeRolePolicy",
+            "iam:TagRole",
+            "iam:UntagRole"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>",
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": "iam:PassRole",
+          "Condition": {
+            "StringEquals": {
+              "<CONDITION_KEY_1>": [
+                "<CONDITION_VALUE>",
+                "<CONDITION_VALUE>",
+                "<CONDITION_VALUE>",
+                "<CONDITION_VALUE>"
+              ]
+            }
+          },
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>",
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": "iam:CreateServiceLinkedRole",
+          "Condition": {
+            "StringEquals": {
+              "<CONDITION_KEY_1>": "<CONDITION_VALUE>"
+            }
+          },
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:CreateBucket",
+            "s3:DeleteBucket",
+            "s3:PutBucketPolicy",
+            "s3:DeleteBucketPolicy",
+            "s3:PutBucketPublicAccessBlock",
+            "s3:PutBucketVersioning",
+            "s3:PutEncryptionConfiguration",
+            "s3:PutLifecycleConfiguration",
+            "s3:PutBucketTagging",
+            "s3:PutBucketOwnershipControls"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::<RESOURCE_PATTERN>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:PutObject",
+            "s3:DeleteObject"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::<RESOURCE_PATTERN>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "dynamodb:CreateTable",
+            "dynamodb:DeleteTable",
+            "dynamodb:UpdateTable",
+            "dynamodb:UpdateTimeToLive",
+            "dynamodb:UpdateContinuousBackups",
+            "dynamodb:TagResource",
+            "dynamodb:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:dynamodb:us-east-1:<TARGET_ACCOUNT>:table/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:DeleteItem"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:dynamodb:us-east-1:<TARGET_ACCOUNT>:table/<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "lambda:CreateFunction",
+            "lambda:DeleteFunction",
+            "lambda:UpdateFunctionCode",
+            "lambda:UpdateFunctionConfiguration",
+            "lambda:AddPermission",
+            "lambda:RemovePermission",
+            "lambda:PutFunctionConcurrency",
+            "lambda:DeleteFunctionConcurrency",
+            "lambda:PublishVersion",
+            "lambda:TagResource",
+            "lambda:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:lambda:us-east-1:<TARGET_ACCOUNT>:function:<RESOURCE_PATTERN>",
+            "arn:aws:lambda:us-east-1:<TARGET_ACCOUNT>:function:<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "logs:CreateLogGroup",
+            "logs:DeleteLogGroup",
+            "logs:PutRetentionPolicy",
+            "logs:DeleteRetentionPolicy",
+            "logs:TagResource",
+            "logs:UntagResource",
+            "logs:TagLogGroup",
+            "logs:UntagLogGroup"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>",
+            "arn:aws:logs:us-east-1:<TARGET_ACCOUNT>:log-group:/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "ecr:CreateRepository",
+            "ecr:DeleteRepository",
+            "ecr:PutImageScanningConfiguration",
+            "ecr:PutImageTagMutability",
+            "ecr:SetRepositoryPolicy",
+            "ecr:DeleteRepositoryPolicy",
+            "ecr:PutLifecyclePolicy",
+            "ecr:DeleteLifecyclePolicy",
+            "ecr:TagResource",
+            "ecr:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:ecr:us-east-1:<TARGET_ACCOUNT>:repository/<RESOURCE_PATTERN>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "ecs:CreateCluster",
+            "ecs:DeleteCluster",
+            "ecs:UpdateCluster",
+            "ecs:UpdateClusterSettings",
+            "ecs:PutClusterCapacityProviders",
+            "ecs:TagResource",
+            "ecs:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:ecs:us-east-1:<TARGET_ACCOUNT>:cluster/<RESOURCE_PATTERN>",
+            "arn:aws:ecs:us-east-1:<TARGET_ACCOUNT>:task-definition/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "ecs:RegisterTaskDefinition",
+            "ecs:DeregisterTaskDefinition",
+            "ecs:DeleteTaskDefinitions"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "states:CreateStateMachine",
+            "states:UpdateStateMachine",
+            "states:DeleteStateMachine",
+            "states:TagResource",
+            "states:UntagResource",
+            "scheduler:CreateSchedule",
+            "scheduler:UpdateSchedule",
+            "scheduler:DeleteSchedule",
+            "scheduler:TagResource",
+            "scheduler:UntagResource"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:states:us-east-1:<TARGET_ACCOUNT>:stateMachine:<RESOURCE_PATTERN>",
+            "arn:aws:scheduler:us-east-1:<TARGET_ACCOUNT>:schedule/<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        }
+      ],
+      "Version": "2012-10-17"
+    }
+  }
+]

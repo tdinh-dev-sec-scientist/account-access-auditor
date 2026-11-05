@@ -1,0 +1,21 @@
+{
+  "Statement": [
+    {
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:ref": "refs/heads/main",
+          "token.actions.githubusercontent.com:sub": "repo:tdinh-dev-sec-scientist@172205018/Vorrin@1360779179:environment:phase3-control-plane-apply",
+          "token.actions.githubusercontent.com:workflow": "Phase 3 Terraform"
+        }
+      },
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::<TARGET_ACCOUNT>:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Sid": "<STATEMENT_ID>"
+    }
+  ],
+  "Version": "2012-10-17"
+}
