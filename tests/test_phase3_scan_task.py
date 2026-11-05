@@ -106,3 +106,80 @@ def test_scan_task_assumes_only_configured_read_only_target_and_invokes_private_
     assert captured["writer_function"] == "phase3-snapshot-writer"
     assert captured["invocation_type"] == "RequestResponse"
     assert captured["writer_event"]["report"]["contract"]["scan_run"]["run_id"] == captured["run_id"]
+
+
+class _ReceiptWriter:
+    def __init__(self):
+        self.calls = []
+
+    def invoke(self, *, FunctionName, InvocationType, Payload):
+        self.calls.append(FunctionName)
+        receipt = {
+            "run_id": "12345678-1234-1234-1234-123456789abc",
+            "status": "PASS",
+            "finding_count": 0,
+            "snapshot_key": "snapshots/123456789012/2026/11/05/12345678-1234-1234-1234-123456789abc.json",
+            "drift_counts": {"new": 0, "persistent": 0, "changed": 0, "resolved": 0, "unknown": 0},
+        }
+        return {"StatusCode": 200, "Payload": BytesIO(json.dumps(receipt).encode())}
+
+
+_ENVIRON = {
+    "PHASE3_TARGET_ACCOUNT_ID": "123456789012",
+    "PHASE3_TARGET_ROLE_ARN": "arn:aws:iam::123456789012:role/AccountAccessAuditorReadOnly",
+    "PHASE3_SCAN_RUN_ID": "12345678-1234-1234-1234-123456789abc",
+    "PHASE3_SNAPSHOT_WRITER_FUNCTION": "vorrin-p3-snapshot-writer",
+    "AWS_REGION": "us-east-1",
+}
+
+
+def test_the_handoff_never_uses_the_guarded_scan_session():
+    class GuardedSession:
+        def client(self, *_args, **_kwargs):
+            raise AssertionError("the guarded scan session must not build the writer client")
+
+    writer = _ReceiptWriter()
+    regions = []
+
+    def factory(region):
+        regions.append(region)
+        return writer
+
+    result = run_scan_task(
+        _ENVIRON,
+        session_factory=lambda **_kwargs: (GuardedSession(), object()),
+        scanner=lambda *_args, **kwargs: {"contract": {"scan_run": {"run_id": kwargs["run_id"]}}},
+        writer_client_factory=factory,
+    )
+
+    assert result["status"] == "PASS"
+    assert writer.calls == ["vorrin-p3-snapshot-writer"]
+    assert regions == ["us-east-1"]
+
+
+def test_the_scan_session_guard_blocks_lambda_invoke_but_the_writer_client_is_unguarded(monkeypatch):
+    from auditor.aws_session import build_session
+    from auditor.permissions import ReadOnlyViolation
+    from phase3 import scan_task
+
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    guarded, _ = build_session(profile=None, region="us-east-1")
+    with pytest.raises(ReadOnlyViolation):
+        guarded.client("lambda").invoke(FunctionName="vorrin-p3-snapshot-writer", Payload=b"{}")
+
+    built = {}
+
+    class Session:
+        def client(self, name):
+            built["client"] = name
+            return "lambda-client"
+
+    def fake_build_session(**kwargs):
+        built["kwargs"] = kwargs
+        return Session(), None
+
+    monkeypatch.setattr(scan_task, "build_session", fake_build_session)
+
+    assert scan_task.snapshot_writer_client("us-east-1") == "lambda-client"
+    assert built == {"kwargs": {"profile": None, "region": "us-east-1", "guard": False}, "client": "lambda"}
