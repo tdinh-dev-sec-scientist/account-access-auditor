@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from auditor.permissions import generate_policy
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -663,3 +665,53 @@ def test_demo_terraform_apply_role_uses_real_iam_action_names():
     assert '"iam:ListRolePolicies"' in bootstrap
     # The provider reads a trail back with DescribeTrails, which has no resource ARN.
     assert '"cloudtrail:DescribeTrails"' in bootstrap
+
+
+def _scan_workflow_states(text, start_marker, end_marker):
+    block = text.split(start_marker, 1)[1].split(end_marker, 1)[0]
+    states = {}
+    current = None
+    for line in block.splitlines():
+        header = re.match(r"^    ([A-Za-z]+) = \{", line)
+        if header:
+            current = header.group(1)
+            states[current] = []
+        if current:
+            states[current].append(line)
+    return {name: "\n".join(lines) for name, lines in states.items()}
+
+
+def _transitions(body, stage2):
+    targets = []
+    for match in re.finditer(r'Next\s+=\s+(?:var\.enable_stage2 \? "(\w+)" : "(\w+)"|"(\w+)")', body):
+        when_on, when_off, fixed = match.groups()
+        targets.append(fixed or (when_on if stage2 else when_off))
+    return targets
+
+
+@pytest.mark.parametrize("stage2", [False, True])
+def test_scan_state_machine_has_no_unreachable_or_missing_states(stage2):
+    text = (ROOT / "infra/phase3/control-plane/stage1.tf").read_text(encoding="utf-8")
+    base = _scan_workflow_states(
+        text, "  scan_workflow_states = {\n", "  scan_workflow_states_with_publication"
+    )
+    extra = _scan_workflow_states(
+        text, "scan_workflow_states_with_publication = merge(local.scan_workflow_states, {\n", "\n  })\n"
+    )
+    definition = text.split('resource "aws_sfn_state_machine" "scan"', 1)[1].split("\n}\n", 1)[0]
+    # The definition must use the publication states only when Stage 2 is on.
+    assert "var.enable_stage2 ? jsonencode" in definition
+    assert "States  = local.scan_workflow_states\n" in definition
+    states = {**base, **extra} if stage2 else base
+
+    reachable, frontier = set(), ["CreateScanRunId"]
+    while frontier:
+        name = frontier.pop()
+        if name in reachable:
+            continue
+        reachable.add(name)
+        for target in _transitions(states[name], stage2):
+            assert target in states, f"{name} -> missing state {target}"
+            frontier.append(target)
+
+    assert reachable == set(states), f"unreachable: {sorted(set(states) - reachable)}"
