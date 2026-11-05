@@ -226,6 +226,12 @@
         "arn:aws:states:${region}:${account_id}:stateMachine:${bucket_prefix}-p3-*",
         "arn:aws:scheduler:${region}:${account_id}:schedule/default/${bucket_prefix}-p3-*"
       ]
+    },
+    {
+      "Sid": "ValidateStateMachineDefinitionsWhichHaveNoName",
+      "Effect": "Allow",
+      "Action": "states:ValidateStateMachineDefinition",
+      "Resource": "arn:aws:states:${region}:${account_id}:stateMachine:*"
     }
   ]
 }

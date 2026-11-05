@@ -43,6 +43,7 @@ def record_review(
     role_arn: str,
     reviewer: str,
     reviewed_at: datetime | None = None,
+    re_review: bool = False,
 ) -> dict:
     reviewer = reviewer.strip()
     if not reviewer or len(reviewer) > 120:
@@ -53,9 +54,10 @@ def record_review(
     original = manifest_path.read_bytes()
     manifest = json.loads(original)
     record = manifest["roles"][stack][phase]
-    if record.get("status") != "pending":
+    status = record.get("status")
+    if status != "pending" and not (re_review and status == "reviewed"):
         raise RecordError(
-            f"{stack} {phase} is already {record.get('status')}; reset it to pending to re-review"
+            f"{stack} {phase} is already {status}; pass --re-review after the role changed to replace it"
         )
 
     timestamp = (reviewed_at or datetime.now(UTC)).astimezone(UTC).replace(microsecond=0)
@@ -94,6 +96,11 @@ def main() -> int:
         action="store_true",
         help="Confirm that you read the private source captures and accept the role's trust and permissions.",
     )
+    parser.add_argument(
+        "--re-review",
+        action="store_true",
+        help="Replace an existing review after the role's policies changed and were captured again.",
+    )
     args = parser.parse_args()
     if not args.confirm_reviewed:
         parser.error("read the private captures first, then pass --confirm-reviewed to record your review")
@@ -104,6 +111,7 @@ def main() -> int:
             phase=args.phase,
             role_arn=args.role_arn,
             reviewer=args.reviewer,
+            re_review=args.re_review,
         )
     except (RecordError, RoleCaptureError, KeyError) as exc:
         print(str(exc), file=sys.stderr)

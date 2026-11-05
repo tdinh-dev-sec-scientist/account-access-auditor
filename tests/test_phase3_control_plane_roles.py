@@ -189,6 +189,10 @@ def test_name_scoped_writes_stay_inside_the_bucket_prefix(documents):
                 for action in _actions(statement)
             ), statement["Sid"]
             continue
+        if _actions(statement) == ["states:ValidateStateMachineDefinition"]:
+            # Validation only checks a definition; AWS authorizes it on stateMachine:*.
+            assert _resources(statement) == ["arn:aws:states:us-east-1:111122223333:stateMachine:*"]
+            continue
         for resource in _resources(statement):
             assert (
                 "vorrin" in resource
