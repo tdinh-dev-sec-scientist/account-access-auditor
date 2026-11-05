@@ -231,10 +231,12 @@ resource "aws_cloudfront_distribution" "web" {
   }
 
   ordered_cache_behavior {
-    path_pattern               = "/api/*"
-    target_origin_id           = "regional-public-api"
-    viewer_protocol_policy     = "redirect-to-https"
-    allowed_methods            = ["GET", "HEAD", "POST"]
+    path_pattern           = "/api/*"
+    target_origin_id       = "regional-public-api"
+    viewer_protocol_policy = "redirect-to-https"
+    # CloudFront accepts only GET+HEAD, GET+HEAD+OPTIONS, or all seven methods.
+    # API Gateway defines only GET, HEAD, and POST; it rejects the others itself.
+    allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods             = ["GET", "HEAD"]
     cache_policy_id            = local.cloudfront_caching_disabled_policy_id
     origin_request_policy_id   = local.invite_only ? local.cloudfront_all_viewer_except_host_policy : aws_cloudfront_origin_request_policy.api[0].id

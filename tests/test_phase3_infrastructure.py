@@ -632,3 +632,20 @@ def test_console_scripts_are_served_as_javascript():
 
     for script in ("console.js", "status.js", "knowledge.js", "auth.js"):
         assert re.search(rf'"{re.escape(script)}"\s*=\s*"text/javascript; charset=utf-8"', stage3), script
+
+
+def test_cloudfront_behaviors_use_method_sets_cloudfront_accepts():
+    stage3 = (ROOT / "infra/phase3/control-plane/stage3.tf").read_text(encoding="utf-8")
+    accepted = [
+        {"GET", "HEAD"},
+        {"GET", "HEAD", "OPTIONS"},
+        {"DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"},
+    ]
+
+    method_sets = [
+        set(re.findall(r'"([A-Z]+)"', value))
+        for value in re.findall(r"allowed_methods\s*=\s*\[([^\]]*)\]", stage3)
+    ]
+    assert len(method_sets) == 2
+    assert all(methods in accepted for methods in method_sets), method_sets
+    assert "POST" in method_sets[1], "Rin needs POST through the /api/* behavior"

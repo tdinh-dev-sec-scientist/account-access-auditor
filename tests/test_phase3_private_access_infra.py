@@ -92,8 +92,8 @@ def test_cloudfront_forwards_authorization_without_caching_api_responses():
     stage3 = _tf("stage3.tf")
     behavior = _block(stage3, "ordered_cache_behavior")
 
-    assert 'path_pattern               = "/api/*"' in behavior
-    assert "cache_policy_id            = local.cloudfront_caching_disabled_policy_id" in behavior
+    assert 'path_pattern = "/api/*"' in _flat(behavior)
+    assert "cache_policy_id = local.cloudfront_caching_disabled_policy_id" in _flat(behavior)
     assert "local.invite_only ? local.cloudfront_all_viewer_except_host_policy" in behavior
     assert 'cloudfront_caching_disabled_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"' in _flat(stage3)
     assert 'cloudfront_all_viewer_except_host_policy = "b689b0a8-53d0-40ab-baf2-68738e2966ac"' in _flat(
