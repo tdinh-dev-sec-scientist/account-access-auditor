@@ -37,6 +37,22 @@
     };
   }
 
+  function signInRequired() {
+    return {
+      sourceLabel: "Sign in for live data",
+      sourceDetail: "Invite-only console · showing checked-in Moto reports until you sign in",
+      stateExplainer: "Live scan data and Rin are limited to invited users. This page is showing checked-in fixtures; fixture data is not a live scan.",
+    };
+  }
+
+  function signInFailed() {
+    return {
+      sourceLabel: "Sign-in did not complete",
+      sourceDetail: "Showing checked-in Moto reports · try signing in again",
+      stateExplainer: "Sign-in did not complete, so no live data was requested. This page is showing checked-in fixtures; fixture data is not a live scan.",
+    };
+  }
+
   function staticMode() {
     return {
       sourceLabel: "Static mode active",
@@ -122,5 +138,16 @@
     bubble.textContent = `Live answers are paused. This prepared answer uses ${source}.\n\n${answer}`;
   }
 
-  return { apiUnavailable, fixture, liveSnapshot, render, renderExplainer, renderRinFallback, renderSource, staticMode };
+  return {
+    apiUnavailable,
+    fixture,
+    liveSnapshot,
+    render,
+    renderExplainer,
+    renderRinFallback,
+    renderSource,
+    signInFailed,
+    signInRequired,
+    staticMode,
+  };
 });

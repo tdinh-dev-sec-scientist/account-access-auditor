@@ -630,5 +630,5 @@ def test_scan_image_has_a_human_verifiable_signed_digest_pinned_release_path():
 def test_console_scripts_are_served_as_javascript():
     stage3 = (ROOT / "infra/phase3/control-plane/stage3.tf").read_text(encoding="utf-8")
 
-    for script in ("console.js", "status.js", "knowledge.js"):
+    for script in ("console.js", "status.js", "knowledge.js", "auth.js"):
         assert re.search(rf'"{re.escape(script)}"\s*=\s*"text/javascript; charset=utf-8"', stage3), script

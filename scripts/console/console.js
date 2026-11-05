@@ -8,6 +8,10 @@
   const dialogTitle = document.getElementById("dialog-title");
   const statusUi = window.Phase3ConsoleStatus;
   const platformKnowledge = window.Phase3PlatformKnowledge;
+  const authLib = window.Phase3ConsoleAuth;
+  // null: no sign-in configured (public API or local fixture site).
+  let authSession = null;
+  let authRequired = false;
   const REPOSITORY_SOURCE_BASE = "https://github.com/tdinh-dev-sec-scientist/Vorrin/blob/main/";
   const fixtureProfiles = JSON.parse(dataNode.textContent).profiles;
   let profiles = { ...fixtureProfiles };
@@ -232,6 +236,104 @@
     }
   }
 
+  async function loadAuthConfig() {
+    try {
+      const response = await fetch("/auth-config.json", {
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
+        redirect: "error",
+        referrerPolicy: "no-referrer",
+        headers: { Accept: "application/json" },
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (_error) {
+      return null;
+    }
+  }
+
+  async function initAuth() {
+    const raw = await loadAuthConfig();
+    if (!raw || raw.mode !== "invite_only") return "public";
+    authRequired = true;
+    const config = authLib && authLib.validateConfig(raw, window.location.origin);
+    if (!config) return "unavailable";
+    let storage;
+    try {
+      storage = window.sessionStorage;
+    } catch (_error) {
+      storage = { getItem: () => null, setItem: () => {}, removeItem: () => {} };
+    }
+    authSession = authLib.createSession({
+      config,
+      storage,
+      cryptoImpl: window.crypto,
+      fetchImpl: window.fetch.bind(window),
+      location: window.location,
+      history: window.history,
+    });
+    let result = { status: "none" };
+    try {
+      result = await authSession.completeSignIn();
+    } catch (_error) {
+      result = { status: "error" };
+    }
+    authSession.load();
+    renderAuthButton();
+    return result.status === "error" ? "failed" : "ready";
+  }
+
+  function renderAuthButton() {
+    const button = document.getElementById("auth-button");
+    const label = document.getElementById("auth-label");
+    if (!button || !label) return;
+    if (!authSession) {
+      button.hidden = true;
+      return;
+    }
+    const active = authSession.current();
+    button.hidden = false;
+    label.textContent = active ? "Sign out" : "Sign in";
+    const description = active ? `Sign out${active.email ? ` ${active.email}` : ""}` : "Sign in with an invited account";
+    button.setAttribute("aria-label", description);
+    button.title = description;
+  }
+
+  function handleUnauthorized() {
+    if (authSession) authSession.signOutLocally();
+    renderAuthButton();
+    staticMode = false;
+    liveApiUnavailable = true;
+    statusUi.render(document, statusUi.signInRequired());
+    updateAssistantMode();
+  }
+
+  async function startLiveConsole() {
+    const authState = await initAuth();
+    if (authState === "unavailable") {
+      liveApiUnavailable = true;
+      statusUi.render(document, statusUi.apiUnavailable());
+      updateAssistantMode();
+      return;
+    }
+    if (authState === "failed") {
+      liveApiUnavailable = true;
+      statusUi.render(document, statusUi.signInFailed());
+      updateAssistantMode();
+      return;
+    }
+    if (authRequired && !(authSession && authSession.current())) {
+      handleUnauthorized();
+      return;
+    }
+    await loadLiveSnapshot();
+  }
+
+  function apiHeaders(extra) {
+    return { Accept: "application/json", ...extra, ...(authSession ? authSession.authorizationHeaders() : {}) };
+  }
+
   async function loadLiveSnapshot() {
     try {
       const apiUrl = new URL("/api/latest", window.location.href);
@@ -242,8 +344,12 @@
         credentials: "omit",
         redirect: "error",
         referrerPolicy: "no-referrer",
-        headers: { Accept: "application/json" },
+        headers: apiHeaders(),
       });
+      if (response.status === 401 && authRequired) {
+        handleUnauthorized();
+        return;
+      }
       if (!response.ok) throw new Error("live snapshot unavailable");
       const payload = await response.json();
       if (response.headers.get("X-Phase3-Static-Mode") === "true") {
@@ -1200,9 +1306,14 @@
         credentials: "omit",
         redirect: "error",
         referrerPolicy: "no-referrer",
-        headers: { Accept: "application/json", "Content-Type": "application/json" },
+        headers: apiHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ question, finding_id: finding.publicId, session_token: getRinSessionToken() }),
       });
+      if (response.status === 401 && authRequired) {
+        handleUnauthorized();
+        renderRinFixtureFallback(bubble, question);
+        return;
+      }
       const payload = await response.json();
       if (payload.status === "COMPLETE" && typeof payload.answer === "string") {
         const citations = Array.isArray(payload.citations) ? payload.citations.map((item) => `${item.id}: ${item.text}`).join("\n") : "";
@@ -1402,5 +1513,13 @@
   document.getElementById("nav-finding-count").textContent = String(current().openFindingCount);
   applyTheme(savedTheme(), false);
   setView("overview");
-  void loadLiveSnapshot();
+  const authButton = document.getElementById("auth-button");
+  if (authButton) {
+    authButton.addEventListener("click", () => {
+      if (!authSession) return;
+      if (authSession.current()) authSession.signOut();
+      else authSession.signIn().catch(() => statusUi.render(document, statusUi.signInFailed()));
+    });
+  }
+  void startLiveConsole();
 })();

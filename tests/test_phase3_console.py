@@ -139,12 +139,14 @@ def test_phase3_deploy_bundle_contains_only_allowlisted_console_assets(tmp_path)
         "console.js",
         "status.js",
         "knowledge.js",
+        "auth.js",
     }
     built_html = (output / "index.html").read_text(encoding="utf-8")
     built_script = (output / "console.js").read_text(encoding="utf-8")
     built_styles = (output / "console.css").read_text(encoding="utf-8")
     assert built_html.index('src="status.js"') < built_html.index('src="console.js"')
     assert built_html.index('src="knowledge.js"') < built_html.index('src="console.js"')
+    assert built_html.index('src="auth.js"') < built_html.index('src="console.js"')
     assert "Repository links show local design and tests, not live AWS proof" in built_script
     assert "Rin IAM policy" in built_script
     assert 'item.dataset.label = item.getAttribute("aria-label")' in built_script

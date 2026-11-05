@@ -18,6 +18,7 @@ locals {
     "console.js"   = "text/javascript; charset=utf-8"
     "status.js"    = "text/javascript; charset=utf-8"
     "knowledge.js" = "text/javascript; charset=utf-8"
+    "auth.js"      = "text/javascript; charset=utf-8"
   }
 }
 
