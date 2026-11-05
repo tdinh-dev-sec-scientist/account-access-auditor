@@ -1,0 +1,200 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadControlPlaneConfiguration",
+      "Effect": "Allow",
+      "Action": [
+        "acm:Describe*",
+        "acm:Get*",
+        "acm:List*",
+        "apigateway:GET",
+        "budgets:ListTagsForResource",
+        "budgets:ViewBudget",
+        "cloudfront:Describe*",
+        "cloudfront:Get*",
+        "cloudfront:List*",
+        "cloudwatch:Describe*",
+        "cloudwatch:Get*",
+        "cloudwatch:List*",
+        "cognito-idp:Describe*",
+        "cognito-idp:Get*",
+        "cognito-idp:List*",
+        "dynamodb:Describe*",
+        "dynamodb:Get*",
+        "dynamodb:List*",
+        "ec2:Describe*",
+        "ec2:Get*",
+        "ec2:List*",
+        "ecr:Describe*",
+        "ecr:Get*",
+        "ecr:List*",
+        "ecs:Describe*",
+        "ecs:Get*",
+        "ecs:List*",
+        "lambda:Describe*",
+        "lambda:Get*",
+        "lambda:List*",
+        "logs:Describe*",
+        "logs:Get*",
+        "logs:List*",
+        "s3:Describe*",
+        "s3:Get*",
+        "s3:List*",
+        "scheduler:Describe*",
+        "scheduler:Get*",
+        "scheduler:List*",
+        "secretsmanager:Describe*",
+        "secretsmanager:Get*",
+        "secretsmanager:List*",
+        "sns:Describe*",
+        "sns:Get*",
+        "sns:List*",
+        "states:Describe*",
+        "states:Get*",
+        "states:List*",
+        "wafv2:Describe*",
+        "wafv2:Get*",
+        "wafv2:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadOnlyControlPlaneRolesBoundaryAndOidcProvider",
+      "Effect": "Allow",
+      "Action": [
+        "iam:GetRole",
+        "iam:GetRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListInstanceProfilesForRole",
+        "iam:ListRoleTags",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:GetOpenIDConnectProvider"
+      ],
+      "Resource": [
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-p3-*",
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-phase3-*",
+        "arn:aws:iam::${account_id}:policy/${boundary_name}",
+        "arn:aws:iam::${account_id}:oidc-provider/token.actions.githubusercontent.com"
+      ]
+    },
+    {
+      "Sid": "ReadOnlySelectedStateBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation",
+        "s3:GetBucketVersioning"
+      ],
+      "Resource": "arn:aws:s3:::${state_bucket}"
+    },
+    {
+      "Sid": "ControlPlaneStateObjectOnly",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::${state_bucket}/phase3/control-plane/terraform.tfstate"
+    },
+    {
+      "Sid": "LockOnlySelectedStateTable",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:${region}:${account_id}:table/${lock_table}"
+    },
+    {
+      "Sid": "NeverReadObjectsOutsideStateAndWebAssets",
+      "Effect": "Deny",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "NotResource": [
+        "arn:aws:s3:::${state_bucket}/phase3/control-plane/terraform.tfstate",
+        "arn:aws:s3:::${bucket_prefix}-p3-web-${account_id}/*"
+      ]
+    },
+    {
+      "Sid": "NeverReadTableItems",
+      "Effect": "Deny",
+      "Action": [
+        "dynamodb:GetItem",
+        "dynamodb:BatchGetItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:GetRecords",
+        "dynamodb:ExportTableToPointInTime"
+      ],
+      "NotResource": [
+        "arn:aws:dynamodb:${region}:${account_id}:table/${lock_table}",
+        "arn:aws:dynamodb:${region}:${account_id}:table/${bucket_prefix}-p3-rin-feature"
+      ]
+    },
+    {
+      "Sid": "NeverReadSecretsOrLogData",
+      "Effect": "Deny",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "secretsmanager:PutSecretValue",
+        "logs:GetLogEvents",
+        "logs:FilterLogEvents",
+        "logs:StartQuery",
+        "logs:GetQueryResults",
+        "logs:StartLiveTail",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "cognito-idp:AdminGetUser",
+        "cognito-idp:ListUsers",
+        "lambda:InvokeFunction",
+        "states:StartExecution",
+        "ecs:RunTask",
+        "ecs:ExecuteCommand"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NeverTouchTheOrganizationOrOtherAccounts",
+      "Effect": "Deny",
+      "Action": [
+        "organizations:*",
+        "account:*",
+        "sts:AssumeRole",
+        "iam:CreateUser",
+        "iam:CreateAccessKey",
+        "iam:CreateLoginProfile",
+        "iam:CreatePolicy",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicy",
+        "iam:DeletePolicyVersion",
+        "iam:SetDefaultPolicyVersion",
+        "iam:AttachRolePolicy",
+        "iam:AttachUserPolicy",
+        "iam:AttachGroupPolicy",
+        "iam:DeleteRolePermissionsBoundary",
+        "iam:CreateOpenIDConnectProvider",
+        "iam:UpdateOpenIDConnectProviderThumbprint",
+        "iam:DeleteOpenIDConnectProvider",
+        "cognito-idp:AdminCreateUser",
+        "cognito-idp:AdminSetUserPassword",
+        "cognito-idp:AdminAddUserToGroup"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PlanNeverWrites",
+      "Effect": "Deny",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

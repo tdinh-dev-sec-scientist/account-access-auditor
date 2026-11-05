@@ -319,8 +319,9 @@ resource "aws_api_gateway_method" "rin_post" {
 }
 
 resource "aws_iam_role" "rin" {
-  count = var.enable_stage3 ? 1 : 0
-  name  = local.rin_name
+  count                = var.enable_stage3 ? 1 : 0
+  name                 = local.rin_name
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }]
@@ -387,8 +388,9 @@ resource "aws_dynamodb_table" "rin_quota" {
 }
 
 resource "aws_iam_role" "rin_quota" {
-  count = var.enable_stage3 ? 1 : 0
-  name  = "${var.bucket_prefix}-p3-rin-quota-writer"
+  count                = var.enable_stage3 ? 1 : 0
+  name                 = "${var.bucket_prefix}-p3-rin-quota-writer"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version   = "2012-10-17"
     Statement = [{ Effect = "Allow", Principal = { Service = "lambda.amazonaws.com" }, Action = "sts:AssumeRole" }]

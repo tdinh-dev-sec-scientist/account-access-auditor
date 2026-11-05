@@ -1,0 +1,231 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CreateWorkloadRolesOnlyWithTheOwnerBoundary",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:PutRolePermissionsBoundary"
+      ],
+      "Resource": [
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-p3-*",
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-phase3-*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PermissionsBoundary": "arn:aws:iam::${account_id}:policy/${boundary_name}"
+        }
+      }
+    },
+    {
+      "Sid": "ManageOnlyControlPlaneWorkloadRoles",
+      "Effect": "Allow",
+      "Action": [
+        "iam:DeleteRole",
+        "iam:UpdateRole",
+        "iam:UpdateRoleDescription",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-p3-*",
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-phase3-*"
+      ]
+    },
+    {
+      "Sid": "PassWorkloadRolesOnlyToTheirServices",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-p3-*",
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-phase3-*"
+      ],
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": [
+            "lambda.amazonaws.com",
+            "ecs-tasks.amazonaws.com",
+            "states.amazonaws.com",
+            "scheduler.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "CreateOnlyTheEcsServiceLinkedRole",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": "ecs.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "ManageOnlyPrefixedBuckets",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
+        "s3:PutBucketPolicy",
+        "s3:DeleteBucketPolicy",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:PutBucketVersioning",
+        "s3:PutEncryptionConfiguration",
+        "s3:PutLifecycleConfiguration",
+        "s3:PutBucketTagging",
+        "s3:PutBucketOwnershipControls"
+      ],
+      "Resource": "arn:aws:s3:::${bucket_prefix}-p3-*"
+    },
+    {
+      "Sid": "PublishOnlyWebAssets",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::${bucket_prefix}-p3-web-${account_id}/*"
+    },
+    {
+      "Sid": "ManageOnlyPrefixedTables",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:UpdateTable",
+        "dynamodb:UpdateTimeToLive",
+        "dynamodb:UpdateContinuousBackups",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:${region}:${account_id}:table/${bucket_prefix}-p3-*"
+      ]
+    },
+    {
+      "Sid": "WriteOnlyTheFeatureFlagItem",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem"
+      ],
+      "Resource": "arn:aws:dynamodb:${region}:${account_id}:table/${bucket_prefix}-p3-rin-feature"
+    },
+    {
+      "Sid": "ManageOnlyPrefixedFunctions",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:PutFunctionConcurrency",
+        "lambda:DeleteFunctionConcurrency",
+        "lambda:PublishVersion",
+        "lambda:TagResource",
+        "lambda:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:lambda:${region}:${account_id}:function:${bucket_prefix}-p3-*",
+        "arn:aws:lambda:${region}:${account_id}:function:${bucket_prefix}-phase3-*"
+      ]
+    },
+    {
+      "Sid": "ManageOnlyPrefixedLogGroups",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:TagResource",
+        "logs:UntagResource",
+        "logs:TagLogGroup",
+        "logs:UntagLogGroup"
+      ],
+      "Resource": [
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/lambda/${bucket_prefix}-p3-*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/lambda/${bucket_prefix}-phase3-*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/ecs/${bucket_prefix}-p3-*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/ecs/${bucket_prefix}-phase3-*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/lambda/${bucket_prefix}-p3-*:*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/lambda/${bucket_prefix}-phase3-*:*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/ecs/${bucket_prefix}-p3-*:*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/ecs/${bucket_prefix}-phase3-*:*"
+      ]
+    },
+    {
+      "Sid": "ManageOnlyTheScanImageRepository",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:CreateRepository",
+        "ecr:DeleteRepository",
+        "ecr:PutImageScanningConfiguration",
+        "ecr:PutImageTagMutability",
+        "ecr:SetRepositoryPolicy",
+        "ecr:DeleteRepositoryPolicy",
+        "ecr:PutLifecyclePolicy",
+        "ecr:DeleteLifecyclePolicy",
+        "ecr:TagResource",
+        "ecr:UntagResource"
+      ],
+      "Resource": "arn:aws:ecr:${region}:${account_id}:repository/${bucket_prefix}/*"
+    },
+    {
+      "Sid": "ManageOnlyPrefixedEcsClusters",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:CreateCluster",
+        "ecs:DeleteCluster",
+        "ecs:UpdateCluster",
+        "ecs:UpdateClusterSettings",
+        "ecs:PutClusterCapacityProviders",
+        "ecs:TagResource",
+        "ecs:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:ecs:${region}:${account_id}:cluster/${bucket_prefix}-p3-*",
+        "arn:aws:ecs:${region}:${account_id}:task-definition/${bucket_prefix}-p3-*:*"
+      ]
+    },
+    {
+      "Sid": "RegisterTaskDefinitionsWhichHaveNoResourceArn",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:RegisterTaskDefinition",
+        "ecs:DeregisterTaskDefinition",
+        "ecs:DeleteTaskDefinitions"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ManageOnlyPrefixedStepFunctionsAndSchedules",
+      "Effect": "Allow",
+      "Action": [
+        "states:CreateStateMachine",
+        "states:UpdateStateMachine",
+        "states:DeleteStateMachine",
+        "states:TagResource",
+        "states:UntagResource",
+        "scheduler:CreateSchedule",
+        "scheduler:UpdateSchedule",
+        "scheduler:DeleteSchedule",
+        "scheduler:TagResource",
+        "scheduler:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:states:${region}:${account_id}:stateMachine:${bucket_prefix}-p3-*",
+        "arn:aws:scheduler:${region}:${account_id}:schedule/default/${bucket_prefix}-p3-*"
+      ]
+    }
+  ]
+}

@@ -31,8 +31,9 @@ resource "aws_sns_topic_policy" "budget_kill" {
 }
 
 resource "aws_iam_role" "kill_switch" {
-  count = var.enable_stage4 ? 1 : 0
-  name  = local.kill_switch_name
+  count                = var.enable_stage4 ? 1 : 0
+  name                 = local.kill_switch_name
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

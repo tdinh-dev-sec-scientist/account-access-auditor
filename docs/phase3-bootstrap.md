@@ -107,7 +107,40 @@ python scripts/render_phase3_demo_bootstrap_roles.py --profile vorrin-demo-admin
 The script refuses a management-account profile. Then set
 `PHASE3_TERRAFORM_ROLE_ARN` in each of the two environments to its role ARN.
 
-## Organizations and control-plane roles
+## Control-plane roles
+
+The control plane runs in the management account. Its roles are rendered
+from `infra/phase3/policies/control-plane-*.json`:
+
+```sh
+python scripts/render_phase3_control_plane_roles.py --profile vorrin-admin --state-bucket <state-bucket> --lock-table <lock-table> --bucket-prefix <PHASE3_BUCKET_PREFIX>
+```
+
+Run the printed commands in order. They create:
+
+- `Phase3ControlPlaneWorkloadBoundary`, a managed policy that every role the
+  stack creates must carry as its permissions boundary. It is an explicit
+  allowlist of what the workloads call, grants no IAM action except passing
+  the stack's own roles, and allows `sts:AssumeRole` only on the demo
+  account's `AccountAccessAuditorReadOnly` role.
+- `Phase3ControlPlaneTerraformPlan`, which may read configuration but never
+  object, item, secret, or log data, and writes only its state lock.
+- `Phase3ControlPlaneTerraformApply`, whose inline core repeats those denies
+  and two attached `Phase3ControlPlaneTerraformApplyManage*` policies hold the
+  scoped writes. IAM limits one role's inline policies to 10,240 characters,
+  so the writes cannot fit inline. The apply role can create or change a role
+  only when it carries the workload boundary, can never change that boundary,
+  the `Phase3*` Terraform roles, or their policies, and cannot attach managed
+  policies or touch Organizations. Writes to name-addressable resources are
+  limited to the `<prefix>-p3-*` and `<prefix>-phase3-*` names. VPC, CloudFront,
+  Cognito, and task-definition writes cannot be scoped by name because AWS
+  generates their IDs, so those are limited to the action list instead.
+
+A custom domain (`domain_name`) also needs Route 53 and ACM permissions that
+these roles do not grant. Keep the CloudFront default domain, or add a
+reviewed statement for that hosted zone first.
+
+## Organizations and control-plane role evidence
 
 The org and control-plane roots also need separate plan and apply GitHub OIDC
 roles in their respective AWS accounts. Configure each role to trust only the

@@ -334,3 +334,13 @@ variable "github_subject_repository" {
     error_message = "github_subject_repository must use GitHub's immutable-ID subject format: owner@owner_id/repo@repo_id."
   }
 }
+
+variable "workload_permissions_boundary_name" {
+  description = "Owner-created managed policy every control-plane workload role must carry as its permissions boundary. The Terraform apply role can create roles only with this boundary and cannot change the policy."
+  type        = string
+  default     = "Phase3ControlPlaneWorkloadBoundary"
+  validation {
+    condition     = can(regex("^[A-Za-z0-9+=,.@_-]{1,128}$", var.workload_permissions_boundary_name))
+    error_message = "workload_permissions_boundary_name must be a valid IAM policy name."
+  }
+}
