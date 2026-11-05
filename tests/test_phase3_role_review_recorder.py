@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 from datetime import UTC, datetime
@@ -34,7 +33,23 @@ VALUES = {
 def _captured_repository(tmp_path: Path, *, trust=None) -> Path:
     evidence = tmp_path / "docs/evidence"
     evidence.mkdir(parents=True)
-    shutil.copy(ROOT / "docs/evidence/phase3-role-scope.json", evidence / "phase3-role-scope.json")
+    # A fresh manifest: the repository's own manifest may already hold real reviews.
+    pending = {
+        "status": "pending",
+        "role_arn_sha256": None,
+        "reviewed_by": None,
+        "reviewed_at": None,
+        "evidence": [],
+        "evidence_sha256": {},
+        "source_evidence_sha256": {},
+    }
+    manifest = {
+        "schema_version": 3,
+        "roles": {
+            stack: {"plan": dict(pending), "apply": dict(pending)} for stack in ("org", "control-plane")
+        },
+    }
+    (evidence / "phase3-role-scope.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     documents = render_documents(VALUES)
     iam = _FakeIam(role_arn=ROLE_ARN, boundary=False)
     iam.trust = documents["plan-trust"] if trust is None else trust

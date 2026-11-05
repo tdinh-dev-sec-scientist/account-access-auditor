@@ -78,6 +78,21 @@ jobs:
       TF_VAR_access_mode: ${{ vars.PHASE3_ACCESS_MODE || 'invite_only' }}
       TF_VAR_cognito_domain_prefix: ${{ vars.PHASE3_COGNITO_DOMAIN_PREFIX || '' }}
     steps:
+      # Values pasted into GitHub's variable form can carry an invisible
+      # trailing newline ("r-abcd\r\n"), which Terraform rejects. Strip line
+      # breaks and surrounding whitespace once; later steps read the result.
+      - name: Normalize configuration values
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in $(compgen -e | grep -E '^(TF_VAR_[A-Za-z0-9_]+|TF_STATE_(BUCKET|REGION|LOCK_TABLE)|PHASE3_AWS_ACCOUNT_ID)$'); do
+            value="$(printf '%s' "${!name}" | tr -d '\r\n' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+            if [[ "$value" != "${!name}" ]]; then
+              echo "Removed stray whitespace from $name"
+            fi
+            printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+          done
+
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.sha }}
