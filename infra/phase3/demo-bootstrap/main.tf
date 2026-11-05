@@ -1,8 +1,8 @@
 data "aws_partition" "current" {}
 
 locals {
-  github_plan_subject      = "repo:${var.github_repository}:environment:${var.github_plan_environment}"
-  github_apply_subject     = "repo:${var.github_repository}:environment:${var.github_apply_environment}"
+  github_plan_subject      = "repo:${var.github_subject_repository}:environment:${var.github_plan_environment}"
+  github_apply_subject     = "repo:${var.github_subject_repository}:environment:${var.github_apply_environment}"
   github_oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:oidc-provider/token.actions.githubusercontent.com"
   demo_bucket_arns = [
     "arn:${data.aws_partition.current.partition}:s3:::${var.bucket_prefix}-p3-demo-a-${var.demo_account_id}",

@@ -12,7 +12,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest import mock
 
-from phase3.role_evidence import ROLE_SOURCE_FILES
+from phase3.role_evidence import ROLE_SOURCE_FILES, github_environment_subject
 from scripts import validate_phase3_role_evidence as validate_cli
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -62,7 +62,9 @@ def _write_manifest(
                                     "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                                     "token.actions.githubusercontent.com:workflow": "Phase 3 Terraform",
                                     "token.actions.githubusercontent.com:ref": "refs/heads/main",
-                                    "token.actions.githubusercontent.com:sub": f"repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-{role_stack}-{role_phase}",
+                                    "token.actions.githubusercontent.com:sub": github_environment_subject(
+                                        f"phase3-{role_stack}-{role_phase}"
+                                    ),
                                 }
                             },
                         },
@@ -187,8 +189,8 @@ def test_plan_role_trust_policy_cannot_also_trust_the_apply_environment(tmp_path
     evidence = tmp_path / "docs/evidence" / relative
     trust = json.loads(evidence.read_text(encoding="utf-8"))
     trust["Statement"][0]["Condition"]["StringEquals"]["token.actions.githubusercontent.com:sub"] = [
-        "repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-org-plan",
-        "repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-org-apply",
+        github_environment_subject("phase3-org-plan"),
+        github_environment_subject("phase3-org-apply"),
     ]
     evidence.write_text(json.dumps(trust, sort_keys=True) + "\n", encoding="utf-8")
     manifest_path = tmp_path / "docs/evidence/phase3-role-scope.json"
@@ -276,7 +278,7 @@ def test_role_evidence_gate_rejects_wildcards_in_github_trust_subjects(tmp_path)
     evidence = tmp_path / "docs/evidence/terraform-roles/org/plan/trust-policy.json"
     trust = json.loads(evidence.read_text(encoding="utf-8"))
     trust["Statement"][0]["Condition"]["StringEquals"]["token.actions.githubusercontent.com:sub"] = (
-        "repo:tdinh-dev-sec-scientist/Vorrin:environment:phase3-org-*"
+        github_environment_subject("phase3-org-*")
     )
     evidence.write_text(json.dumps(trust, sort_keys=True) + "\n", encoding="utf-8")
     manifest_path = tmp_path / "docs/evidence/phase3-role-scope.json"
