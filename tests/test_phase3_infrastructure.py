@@ -625,3 +625,10 @@ def test_scan_image_has_a_human_verifiable_signed_digest_pinned_release_path():
     assert "cosign sign" in workflow
     assert "cosign verify" in workflow
     assert "ecr:PutImage" in (ROOT / "infra/phase3/control-plane/stage1.tf").read_text(encoding="utf-8")
+
+
+def test_console_scripts_are_served_as_javascript():
+    stage3 = (ROOT / "infra/phase3/control-plane/stage3.tf").read_text(encoding="utf-8")
+
+    for script in ("console.js", "status.js", "knowledge.js"):
+        assert re.search(rf'"{re.escape(script)}"\s*=\s*"text/javascript; charset=utf-8"', stage3), script

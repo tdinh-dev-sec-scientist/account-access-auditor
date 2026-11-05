@@ -13,9 +13,11 @@ locals {
   )
   web_files = var.enable_stage3 ? fileset(var.web_asset_dir, "**") : toset([])
   web_content_types = {
-    "index.html"  = "text/html; charset=utf-8"
-    "console.css" = "text/css; charset=utf-8"
-    "console.js"  = "text/javascript; charset=utf-8"
+    "index.html"   = "text/html; charset=utf-8"
+    "console.css"  = "text/css; charset=utf-8"
+    "console.js"   = "text/javascript; charset=utf-8"
+    "status.js"    = "text/javascript; charset=utf-8"
+    "knowledge.js" = "text/javascript; charset=utf-8"
   }
 }
 
