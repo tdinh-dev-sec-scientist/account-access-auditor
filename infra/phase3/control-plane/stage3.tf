@@ -20,6 +20,11 @@ locals {
     "knowledge.js" = "text/javascript; charset=utf-8"
     "auth.js"      = "text/javascript; charset=utf-8"
   }
+  # Managed CloudFront policies. AllViewerExceptHostHeader is the only way to
+  # forward the Authorization header to API Gateway while caching stays off.
+  cloudfront_caching_disabled_policy_id    = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+  cloudfront_all_viewer_except_host_policy = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+  console_connect_src                      = trimspace("'self' ${local.invite_only ? local.cognito_hosted_ui : ""}")
 }
 
 resource "aws_s3_bucket" "web" {
@@ -127,7 +132,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
       override                   = true
     }
     content_security_policy {
-      content_security_policy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+      content_security_policy = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ${local.console_connect_src}; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
       override                = true
     }
   }
@@ -141,7 +146,7 @@ resource "aws_cloudfront_response_headers_policy" "security" {
 }
 
 resource "aws_wafv2_web_acl" "cloudfront" {
-  count       = var.enable_stage3 ? 1 : 0
+  count       = var.enable_stage3 && local.waf_enabled ? 1 : 0
   provider    = aws.us_east_1
   name        = "${var.bucket_prefix}-p3-cloudfront"
   description = "Rate limit public console and API traffic at the edge."
@@ -195,7 +200,7 @@ resource "aws_cloudfront_distribution" "web" {
   default_root_object = "index.html"
   aliases             = var.domain_name == "" ? [] : [var.domain_name]
   price_class         = "PriceClass_100"
-  web_acl_id          = aws_wafv2_web_acl.cloudfront[0].arn
+  web_acl_id          = local.waf_enabled ? aws_wafv2_web_acl.cloudfront[0].arn : null
 
   origin {
     domain_name              = aws_s3_bucket.web[0].bucket_regional_domain_name
@@ -231,8 +236,8 @@ resource "aws_cloudfront_distribution" "web" {
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "POST"]
     cached_methods             = ["GET", "HEAD"]
-    cache_policy_id            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
-    origin_request_policy_id   = aws_cloudfront_origin_request_policy.api[0].id
+    cache_policy_id            = local.cloudfront_caching_disabled_policy_id
+    origin_request_policy_id   = local.invite_only ? local.cloudfront_all_viewer_except_host_policy : aws_cloudfront_origin_request_policy.api[0].id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security[0].id
     compress                   = true
   }
@@ -307,7 +312,8 @@ resource "aws_api_gateway_method" "rin_post" {
   rest_api_id   = aws_api_gateway_rest_api.public[0].id
   resource_id   = aws_api_gateway_resource.rin[0].id
   http_method   = "POST"
-  authorization = "NONE"
+  authorization = local.api_authorization
+  authorizer_id = local.api_authorizer_id
 }
 
 resource "aws_iam_role" "rin" {
@@ -547,7 +553,7 @@ resource "aws_lambda_function" "rin" {
   publish          = true
   depends_on       = [aws_iam_role_policy.rin_runtime, aws_iam_role_policy.rin_guardrail, aws_iam_role_policy.rin_logs]
   environment {
-    variables = {
+    variables = merge(local.access_environment, {
       PHASE3_PUBLIC_RESULTS_BUCKET   = aws_s3_bucket.public_results[0].bucket
       PHASE3_PUBLIC_INDEX_TABLE      = aws_dynamodb_table.public_index[0].name
       PHASE3_RIN_FEATURE_TABLE       = aws_dynamodb_table.rin_feature[0].name
@@ -558,7 +564,7 @@ resource "aws_lambda_function" "rin" {
       PHASE3_RIN_GUARDRAIL_VERSION   = var.rin_guardrail_version
       PHASE3_RIN_MAX_INPUT_TOKENS    = tostring(var.rin_max_input_tokens)
       PHASE3_RIN_MAX_OUTPUT_TOKENS   = tostring(var.rin_max_output_tokens)
-    }
+    })
   }
 }
 

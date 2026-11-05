@@ -5,13 +5,19 @@
 })(typeof globalThis === "undefined" ? this : globalThis, function createPhase3PlatformKnowledge() {
   "use strict";
 
-  const KNOWLEDGE_VERSION = "1.0.0";
+  const KNOWLEDGE_VERSION = "1.1.0";
   const entries = [
     {
       id: "phase3-status",
       match: /\bphase\s*3\b.*\b(live|deploy|status|complete|done|website|ready)\b|\b(is|has)\b.*\b(live|deployed|launched)\b.*\b(website|phase\s*3|demo)\b/i,
       text: "Phase 3 is not live yet. The local implementation exists, but no live stage gate has passed and no Phase 3 AWS resources have been created.",
       citations: ["docs/phase3-status.md · Stage status"],
+    },
+    {
+      id: "access-control",
+      match: /\b(sign[- ]?in|log[- ]?in|invite[ds]?|invite[- ]only|access control|private access|mfa)\b|\bwho can\b.*\b(use|access|see|sign)\b/i,
+      text: "The planned Phase 3 deployment defaults to invite-only access. The owner creates each account; there is no self sign-up. Users sign in through Cognito with mandatory MFA, and every API and Rin request needs a valid ID token, which the API re-checks. Rin's quota is counted per signed-in user. The saved fixtures on this page stay visible without signing in. Phase 3 is not deployed yet.",
+      citations: ["docs/private-access.md", "docs/phase3-access-mode-amendment.md"],
     },
     {
       id: "read-only-boundary",

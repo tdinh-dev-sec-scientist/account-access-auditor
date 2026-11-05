@@ -264,3 +264,62 @@ variable "certificate_arn" {
   type        = string
   default     = ""
 }
+
+variable "access_mode" {
+  description = "invite_only requires a Cognito sign-in for every API and Rin request; public keeps the anonymous read-only API."
+  type        = string
+  default     = "invite_only"
+  validation {
+    condition     = contains(["invite_only", "public"], var.access_mode)
+    error_message = "access_mode must be invite_only or public."
+  }
+}
+
+variable "cognito_domain_prefix" {
+  description = "Globally unique prefix for the Cognito Hosted UI domain (https://<prefix>.auth.<region>.amazoncognito.com)."
+  type        = string
+  default     = ""
+  validation {
+    condition = var.cognito_domain_prefix == "" || (
+      can(regex("^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])$", var.cognito_domain_prefix)) &&
+      !can(regex("aws|amazon|cognito", var.cognito_domain_prefix))
+    )
+    error_message = "cognito_domain_prefix must be 3-63 lowercase letters, numbers, or hyphens and must not contain aws, amazon, or cognito."
+  }
+}
+
+variable "auth_extra_callback_urls" {
+  description = "Additional exact HTTPS sign-in callback URLs, such as an alternate domain. Plain HTTP is rejected."
+  type        = list(string)
+  default     = []
+  validation {
+    condition     = alltrue([for url in var.auth_extra_callback_urls : can(regex("^https://[a-z0-9.-]+(?::[0-9]{2,5})?/[A-Za-z0-9/._-]*$", url))])
+    error_message = "auth_extra_callback_urls must be exact HTTPS URLs without query strings or fragments."
+  }
+}
+
+variable "enable_waf" {
+  description = "Attach AWS WAF rate limits. Defaults to true in public mode and false in invite_only mode, where the Cognito authorizer and API Gateway throttling bound traffic."
+  type        = bool
+  default     = null
+}
+
+variable "api_throttle_rate_limit" {
+  description = "Steady-state requests per second allowed by the API Gateway stage."
+  type        = number
+  default     = 2
+  validation {
+    condition     = var.api_throttle_rate_limit > 0 && var.api_throttle_rate_limit <= 100
+    error_message = "api_throttle_rate_limit must be between 0 and 100 requests per second."
+  }
+}
+
+variable "api_throttle_burst_limit" {
+  description = "Burst requests allowed by the API Gateway stage."
+  type        = number
+  default     = 10
+  validation {
+    condition     = var.api_throttle_burst_limit >= 1 && var.api_throttle_burst_limit <= 500 && floor(var.api_throttle_burst_limit) == var.api_throttle_burst_limit
+    error_message = "api_throttle_burst_limit must be a whole number between 1 and 500."
+  }
+}
