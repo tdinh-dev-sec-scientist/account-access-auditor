@@ -549,6 +549,7 @@ def test_bootstrap_stack_uses_a_named_limited_role_instead_of_account_admin():
         "iam:PutRolePolicy",
         "iam:GetRolePolicy",
         "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
         "s3:ListBucket",
         "s3:GetBucketLocation",
         "s3:GetBucketVersioning",

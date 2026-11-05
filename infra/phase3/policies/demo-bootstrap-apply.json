@@ -15,6 +15,7 @@
         "iam:GetRole",
         "iam:GetRolePolicy",
         "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
         "iam:UpdateAssumeRolePolicy",
         "iam:TagRole",
         "iam:UntagRole",
