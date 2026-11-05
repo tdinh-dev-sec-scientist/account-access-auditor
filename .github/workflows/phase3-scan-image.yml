@@ -86,4 +86,6 @@ jobs:
             --certificate-identity-regexp '^https://github.com/tdinh-dev-sec-scientist/Vorrin/.github/workflows/phase3-scan-image.yml@refs/heads/main$' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             "$IMAGE_URI"
-          printf '%s\n' "**Verified image URI for the reviewed Terraform variable `scan_container_image`:" "`$IMAGE_URI`" >> "$GITHUB_STEP_SUMMARY"
+          # Single quotes keep the Markdown backticks from running as commands.
+          printf '%s\n' '**Verified image URI** for the reviewed Terraform variable `scan_container_image`:' "\`$IMAGE_URI\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Verified image URI: $IMAGE_URI"

@@ -102,6 +102,17 @@ def test_a_role_cannot_be_recorded_twice(tmp_path):
         _record(root)
 
 
+def test_a_changed_role_can_be_re_reviewed(tmp_path):
+    root = _captured_repository(tmp_path)
+    _record(root)
+
+    record = _record(root, re_review=True, reviewed_at=datetime(2026, 11, 6, 9, 0, tzinfo=UTC))
+
+    assert record["status"] == "reviewed"
+    assert record["reviewed_at"] == "2026-11-06T09:00:00+00:00"
+    validate_role_scope_evidence(root=root, stack="org", phase="plan", role_arn=ROLE_ARN)
+
+
 def test_a_different_role_arn_is_rejected_before_anything_is_written(tmp_path):
     root = _captured_repository(tmp_path)
     before = (root / "docs/evidence/phase3-role-scope.json").read_bytes()
