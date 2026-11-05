@@ -83,7 +83,7 @@
         "status": "reviewed",
         "role_arn_sha256": "0b6251da87604181a5f4622ee286cd7dcc53afb207ca7ad68fe40f9aad625d80",
         "reviewed_by": "Truong Dinh",
-        "reviewed_at": "2026-11-05T20:35:01+00:00",
+        "reviewed_at": "2026-11-05T22:14:20+00:00",
         "evidence": [
           "terraform-roles/control-plane/apply/attached-policies.json",
           "terraform-roles/control-plane/apply/inline-policies.json",
