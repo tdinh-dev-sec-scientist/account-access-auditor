@@ -98,7 +98,7 @@ locals {
         Payload      = { "receipt.$" = "$.scan_receipt.receipt" }
       }
       OutputPath = "$.Payload"
-      End        = true
+      Next       = "ScanSucceeded"
       Catch = [{
         ErrorEquals = ["States.ALL"]
         ResultPath  = "$.publication_failure"
@@ -610,10 +610,16 @@ resource "aws_sfn_state_machine" "scan" {
     level = "OFF"
   }
 
-  definition = jsonencode({
-    Comment = var.enable_stage2 ? "Run a read-only Fargate demo scan, privately persist it, then publish only an allowlisted snapshot." : "Run a read-only Fargate demo scan and persist only through the private snapshot writer."
+  # Step Functions rejects unreachable states, so the publication states are
+  # included only when Stage 2 routes to them.
+  definition = var.enable_stage2 ? jsonencode({
+    Comment = "Run a read-only Fargate demo scan, privately persist it, then publish only an allowlisted snapshot."
     StartAt = "CreateScanRunId"
     States  = local.scan_workflow_states_with_publication
+    }) : jsonencode({
+    Comment = "Run a read-only Fargate demo scan and persist only through the private snapshot writer."
+    StartAt = "CreateScanRunId"
+    States  = local.scan_workflow_states
   })
 
   depends_on = [aws_iam_role_policy.workflow_invoke]
