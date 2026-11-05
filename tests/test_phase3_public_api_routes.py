@@ -362,6 +362,7 @@ def test_index_failures_are_reported_as_unavailable():
 
 
 def test_handler_fails_closed_without_configuration(monkeypatch):
+    monkeypatch.setenv("PHASE3_ACCESS_MODE", "public")
     for name in ("PHASE3_PUBLIC_RESULTS_BUCKET", "PHASE3_PUBLIC_INDEX_TABLE", "AWS_REGION"):
         monkeypatch.delenv(name, raising=False)
 
@@ -388,6 +389,7 @@ def test_handler_serves_reads_and_reports_static_mode(monkeypatch):
     monkeypatch.setenv("PHASE3_PUBLIC_INDEX_TABLE", TABLE)
     monkeypatch.setenv("PHASE3_FEATURE_TABLE", "phase3-features")
     monkeypatch.setenv("AWS_REGION", "us-east-1")
+    monkeypatch.setenv("PHASE3_ACCESS_MODE", "public")
 
     response = public_api.lambda_handler({"httpMethod": "GET", "path": "/api/runs"}, None)
 
@@ -403,6 +405,7 @@ def test_handler_fails_closed_when_static_mode_is_unreadable(monkeypatch):
     monkeypatch.setenv("PHASE3_PUBLIC_INDEX_TABLE", TABLE)
     monkeypatch.setenv("PHASE3_FEATURE_TABLE", "missing-feature-table")
     monkeypatch.setenv("AWS_REGION", "us-east-1")
+    monkeypatch.setenv("PHASE3_ACCESS_MODE", "public")
 
     response = public_api.lambda_handler({"httpMethod": "GET", "path": "/api/runs"}, None)
 

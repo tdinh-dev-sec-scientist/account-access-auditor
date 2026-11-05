@@ -107,6 +107,10 @@
           <svg class="icon" aria-hidden="true"><use id="theme-icon" href="#icon-sun"></use></svg>
           <span id="theme-label">Light</span>
         </button>
+        <button class="theme-toggle auth-button" id="auth-button" type="button" hidden aria-label="Sign in with an invited account" title="Sign in with an invited account">
+          <svg class="icon" aria-hidden="true"><use href="#icon-lock"></use></svg>
+          <span id="auth-label">Sign in</span>
+        </button>
         <span class="readonly-chip"><svg class="icon"><use href="#icon-lock"></use></svg> Read only</span>
       </header>
 
@@ -178,6 +182,7 @@
 
   <script type="application/json" id="console-data">{{CONSOLE_DATA}}</script>
   <script src="status.js" defer></script>
+  <script src="auth.js" defer></script>
   <script src="knowledge.js" defer></script>
   <script src="console.js" defer></script>
 </body>

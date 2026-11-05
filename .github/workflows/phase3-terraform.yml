@@ -74,6 +74,8 @@ jobs:
       TF_VAR_enable_stage2: ${{ vars.PHASE3_ENABLE_STAGE2 || 'false' }}
       TF_VAR_enable_stage3: ${{ vars.PHASE3_ENABLE_STAGE3 || 'false' }}
       TF_VAR_enable_stage4: ${{ vars.PHASE3_ENABLE_STAGE4 || 'false' }}
+      TF_VAR_access_mode: ${{ vars.PHASE3_ACCESS_MODE || 'invite_only' }}
+      TF_VAR_cognito_domain_prefix: ${{ vars.PHASE3_COGNITO_DOMAIN_PREFIX || '' }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -94,7 +96,11 @@ jobs:
         run: |
           set -euo pipefail
           python scripts/package_phase3_lambdas.py
-          python scripts/build_phase3_web.py
+          auth_args=()
+          if [ "$TF_VAR_access_mode" = "invite_only" ] && [ -n "$TF_VAR_cognito_domain_prefix" ]; then
+            auth_args=(--auth-origin "https://${TF_VAR_cognito_domain_prefix}.auth.${TF_VAR_aws_region}.amazoncognito.com")
+          fi
+          python scripts/build_phase3_web.py "${auth_args[@]}"
           (cd build/phase3 && sha256sum lambda.zip > lambda.zip.sha256)
           (cd build/phase3 && find web -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > web.sha256)
 

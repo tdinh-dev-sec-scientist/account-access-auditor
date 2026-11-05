@@ -202,6 +202,9 @@ generated evidence with `python scripts/collect_metrics.py`.
   permissions or prove exploitability.
 - The public demo is hosted on GitHub Pages with HTTPS. It has no application
   server, inbound listener, or project-managed firewall.
+- The Phase 3 live deployment defaults to invite-only access: Cognito sign-in
+  with mandatory MFA and PKCE, an authorizer on every API method, and per-user
+  Rin quotas. See [private access](docs/private-access.md).
 
 See [SECURITY.md](SECURITY.md) to report a vulnerability and
 [docs/threat-model.md](docs/threat-model.md) for the threat model.
@@ -252,6 +255,7 @@ scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup and
 - [Architecture decisions](docs/architecture/README.md)
 - [IaC scanning setup](docs/iac-scanning.md)
 - [Fleet scanning](docs/fleet-scanning.md)
+- [Private access and user management](docs/private-access.md)
 - [Operations and troubleshooting](docs/operations-runbook.md)
 - [Fixture environment](docs/test-environment.md)
 

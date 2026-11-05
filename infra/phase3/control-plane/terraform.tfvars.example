@@ -9,6 +9,13 @@ scan_schedule_enabled = false
 enable_stage2 = false
 enable_stage3 = false
 enable_stage4 = false
+# invite_only (default): Cognito sign-in with MFA for live data and Rin. public: anonymous read-only API with WAF.
+access_mode           = "invite_only"
+cognito_domain_prefix = "owner-unique-console-prefix"
+# WAF defaults to off in invite_only mode; API Gateway throttling always applies.
+# enable_waf               = false
+# api_throttle_rate_limit  = 2
+# api_throttle_burst_limit = 10
 rin_enabled = false
 # Keep Rin disabled until the owner confirms provider rates/budgets and publishes a Bedrock Guardrail.
 rin_guardrail_arn     = ""

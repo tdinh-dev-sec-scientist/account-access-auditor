@@ -13,6 +13,7 @@ import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import BotoCoreError, ClientError
 
+from .access import AccessConfigurationError, AccessDenied, authenticate
 from .publisher import MAX_PUBLIC_SNAPSHOT_BYTES, _unique_object
 from .redaction import PublicSnapshotError, validate_public_snapshot
 
@@ -311,6 +312,21 @@ def _response(
 def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
     """API Gateway proxy handler. The role only reads public-results resources."""
     del context
+    try:
+        access = authenticate(event, os.environ)
+    except AccessDenied:
+        return _private(
+            _response(
+                401, {"error": "UNAUTHENTICATED"}, headers={"WWW-Authenticate": "Bearer"}, no_store=True
+            )
+        )
+    except AccessConfigurationError:
+        return _private(_response(503, {"error": "PUBLIC_DATA_UNAVAILABLE"}, no_store=True))
+    response = _configured_response(event)
+    return _private(response) if access.invite_only else response
+
+
+def _configured_response(event: Any) -> dict[str, Any]:
     bucket = os.environ.get("PHASE3_PUBLIC_RESULTS_BUCKET", "").strip()
     table_name = os.environ.get("PHASE3_PUBLIC_INDEX_TABLE", "").strip()
     feature_table_name = os.environ.get("PHASE3_FEATURE_TABLE", "").strip()
@@ -331,6 +347,13 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
         return _response(503, {"error": "PUBLIC_DATA_UNAVAILABLE"}, no_store=True)
     response = public_response(event, store=store)
     response["headers"]["X-Phase3-Static-Mode"] = "true" if static_mode else "false"
+    return response
+
+
+def _private(response: dict[str, Any]) -> dict[str, Any]:
+    """Signed-in responses must never be stored by browsers or shared caches."""
+    response["headers"]["Cache-Control"] = "private, no-store"
+    response["headers"]["Vary"] = "Authorization"
     return response
 
 

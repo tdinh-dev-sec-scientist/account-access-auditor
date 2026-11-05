@@ -27,3 +27,23 @@ output "scan_workflow_arn" {
   description = "Scheduled, read-only scan workflow ARN."
   value       = var.enable_scan_pipeline ? aws_sfn_state_machine.scan[0].arn : null
 }
+
+output "access_mode" {
+  description = "invite_only (Cognito sign-in required) or public."
+  value       = var.access_mode
+}
+
+output "cognito_user_pool_id" {
+  description = "User pool for invited console users. Create users with aws cognito-idp admin-create-user."
+  value       = local.auth_enabled ? aws_cognito_user_pool.console[0].id : null
+}
+
+output "cognito_hosted_ui_url" {
+  description = "Hosted UI origin used by the console sign-in flow."
+  value       = local.auth_enabled ? local.cognito_hosted_ui : null
+}
+
+output "console_url" {
+  description = "HTTPS console origin served by CloudFront."
+  value       = var.enable_stage3 ? "${local.console_origin}/" : null
+}

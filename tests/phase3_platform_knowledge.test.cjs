@@ -15,14 +15,14 @@ function answerPlatformQuestion(question) {
 
 test("platform questions use versioned, cited approved knowledge", () => {
   const answer = answerPlatformQuestion("What does this platform do?");
-  assert.equal(answer.version, "1.0.0");
+  assert.equal(answer.version, "1.1.0");
   assert.match(answer.text, /read-only/i);
   assert.ok(answer.citations.includes("README.md · What Phase 2 includes"));
 });
 
 test("knowledge clearly reports that Phase 3 live acceptance is pending", () => {
   const answer = answerPlatformQuestion("Is the Phase 3 website live?");
-  assert.equal(answer.version, "1.0.0");
+  assert.equal(answer.version, "1.1.0");
   assert.match(answer.text, /no live stage gate has passed/i);
   assert.ok(answer.citations.includes("docs/phase3-status.md · Stage status"));
 });
@@ -95,6 +95,10 @@ test("natural topic questions resolve to the matching knowledge entry", () => {
     ["Which CIS control IDs are mapped?", "cis-coverage"],
     ["What rule IDs does the catalog cover?", "rule-catalog"],
     ["What is Rin's monthly budget?", "budget-status"],
+    ["Who can access the live console?", "access-control"],
+    ["How do I sign in?", "access-control"],
+    ["Is the console invite-only?", "access-control"],
+    ["Does sign-in require MFA?", "access-control"],
   ];
 
   for (const [question, expectedId] of cases) {

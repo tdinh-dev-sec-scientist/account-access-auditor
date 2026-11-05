@@ -654,7 +654,7 @@ def write_console(reports: dict[str, dict[str, Any]]) -> None:
         handle.write(template.replace("{{CONSOLE_DATA}}", data))
     # Keep the files referenced by index.html together. Missing one of these
     # leaves the app shell visible while the initial console render fails.
-    for name in ("console.css", "status.js", "knowledge.js", "console.js"):
+    for name in ("console.css", "status.js", "auth.js", "knowledge.js", "console.js"):
         shutil.copy(os.path.join(CONSOLE_SOURCE, name), os.path.join(console_dir, name))
 
 

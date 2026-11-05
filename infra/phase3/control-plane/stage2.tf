@@ -218,11 +218,11 @@ resource "aws_lambda_function" "public_api" {
     aws_iam_role_policy.public_api_feature_read
   ]
   environment {
-    variables = {
+    variables = merge(local.access_environment, {
       PHASE3_PUBLIC_RESULTS_BUCKET = aws_s3_bucket.public_results[0].bucket
       PHASE3_PUBLIC_INDEX_TABLE    = aws_dynamodb_table.public_index[0].name
       PHASE3_FEATURE_TABLE         = var.enable_stage3 ? aws_dynamodb_table.rin_feature[0].name : ""
-    }
+    })
   }
 }
 
@@ -254,7 +254,8 @@ resource "aws_api_gateway_method" "public_get" {
   rest_api_id   = aws_api_gateway_rest_api.public[0].id
   resource_id   = aws_api_gateway_resource.public_route[each.key].id
   http_method   = "GET"
-  authorization = "NONE"
+  authorization = local.api_authorization
+  authorizer_id = local.api_authorizer_id
 }
 
 resource "aws_api_gateway_method" "public_head" {
@@ -262,7 +263,8 @@ resource "aws_api_gateway_method" "public_head" {
   rest_api_id   = aws_api_gateway_rest_api.public[0].id
   resource_id   = aws_api_gateway_resource.public_route[each.key].id
   http_method   = "HEAD"
-  authorization = "NONE"
+  authorization = local.api_authorization
+  authorizer_id = local.api_authorizer_id
 }
 
 resource "aws_api_gateway_integration" "public_get" {
@@ -310,6 +312,8 @@ resource "aws_api_gateway_deployment" "public" {
     redeployment = sha1(jsonencode([
       aws_api_gateway_method.public_get,
       aws_api_gateway_method.public_head,
+      aws_api_gateway_method.rin_post,
+      aws_api_gateway_authorizer.cognito,
       aws_api_gateway_integration.public_get,
       aws_api_gateway_integration.public_head,
       aws_api_gateway_integration.rin_post,
@@ -335,7 +339,7 @@ resource "aws_api_gateway_stage" "public" {
 }
 
 resource "aws_wafv2_web_acl" "api_origin" {
-  count       = var.enable_stage2 ? 1 : 0
+  count       = var.enable_stage2 && local.waf_enabled ? 1 : 0
   name        = "${var.bucket_prefix}-p3-api-origin"
   description = "Rate limit the direct regional API origin."
   scope       = "REGIONAL"
@@ -369,7 +373,7 @@ resource "aws_wafv2_web_acl" "api_origin" {
 }
 
 resource "aws_wafv2_web_acl_association" "api_origin" {
-  count        = var.enable_stage2 ? 1 : 0
+  count        = var.enable_stage2 && local.waf_enabled ? 1 : 0
   resource_arn = "arn:${data.aws_partition.current.partition}:apigateway:${var.aws_region}::/restapis/${aws_api_gateway_rest_api.public[0].id}/stages/${aws_api_gateway_stage.public[0].stage_name}"
   web_acl_arn  = aws_wafv2_web_acl.api_origin[0].arn
 }

@@ -454,6 +454,7 @@ def _validate_stage_record(
     expected_demo_account_id_sha256: str | None = None,
     expected_daily_invocation_limit: int | None = None,
     expected_monthly_budget_usd: float | None = None,
+    expected_access_mode: str | None = None,
     require_runtime_bindings: bool = False,
 ) -> bool:
     required_fields = {"status", "reviewed_by", "reviewed_at", "criteria", "evidence", "evidence_sha256"}
@@ -526,6 +527,7 @@ def _validate_stage_record(
             expected_demo_account_id_sha256=expected_demo_account_id_sha256,
             expected_daily_invocation_limit=expected_daily_invocation_limit,
             expected_monthly_budget_usd=expected_monthly_budget_usd,
+            expected_access_mode=expected_access_mode,
         )
     except StageEvidenceError as exc:
         raise StageGateError(str(exc)) from None
@@ -542,6 +544,7 @@ def validate_stage_gates(
     expected_demo_account_id_sha256: str | None = None,
     expected_daily_invocation_limit: int | None = None,
     expected_monthly_budget_usd: float | None = None,
+    expected_access_mode: str | None = None,
     require_runtime_bindings: bool = False,
 ) -> None:
     """Reject later-stage configuration until every predecessor has evidence."""
@@ -549,6 +552,8 @@ def validate_stage_gates(
         type(stage) is not int or stage not in {2, 3, 4} for stage in enabled_stages
     ):
         raise StageGateError("enabled Phase 3 stages must be a subset of 2, 3, and 4")
+    if expected_access_mode not in {None, "invite_only", "public"}:
+        raise StageGateError("Phase 3 access mode must be invite_only or public")
     if 3 in enabled_stages and 2 not in enabled_stages:
         raise StageGateError("Stage 3 also requires Stage 2 resources to remain enabled")
     if 4 in enabled_stages and not {2, 3}.issubset(enabled_stages):
@@ -577,6 +582,7 @@ def validate_stage_gates(
             expected_demo_account_id_sha256=expected_demo_account_id_sha256,
             expected_daily_invocation_limit=expected_daily_invocation_limit,
             expected_monthly_budget_usd=expected_monthly_budget_usd,
+            expected_access_mode=expected_access_mode,
             require_runtime_bindings=require_runtime_bindings,
         )
         for name in STAGE_CRITERIA

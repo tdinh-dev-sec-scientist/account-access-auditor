@@ -4,15 +4,20 @@ from __future__ import annotations
 
 import copy
 import json
+import re
+import subprocess
+import sys
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from phase3.web_bundle import safe_fixture_profile
+from scripts.build_phase3_web import build_web_bundle
 
 ROOT = Path(__file__).resolve().parents[1]
 KEY = b"k" * 32
+HOSTED_UI = "https://vorrin-console.auth.us-east-1.amazoncognito.com"
 
 
 def _report(name: str = "aws_audit_results.json") -> dict[str, Any]:
@@ -117,3 +122,58 @@ def test_profile_rejects_malformed_reports(change, message):
 def test_profile_rejects_a_non_object_report():
     with pytest.raises(ValueError, match="fixture report is invalid"):
         _profile([])  # type: ignore[arg-type]
+
+
+def _meta_csp(html: str) -> str:
+    return re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)
+
+
+def test_bundle_meta_csp_allows_only_the_configured_hosted_ui(tmp_path):
+    output = build_web_bundle(tmp_path / "web", auth_origin=HOSTED_UI)
+    csp = _meta_csp((output / "index.html").read_text(encoding="utf-8"))
+
+    assert f"connect-src 'self' {HOSTED_UI};" in csp
+    assert "script-src 'self';" in csp
+
+
+def test_bundle_without_sign_in_keeps_connect_src_self(tmp_path):
+    output = build_web_bundle(tmp_path / "web")
+
+    assert "connect-src 'self';" in _meta_csp((output / "index.html").read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    "origin",
+    [
+        "https://attacker.example",
+        "http://vorrin-console.auth.us-east-1.amazoncognito.com",
+        "https://vorrin-console.auth.us-east-1.amazoncognito.com/",
+        "https://vorrin-console.auth.us-east-1.amazoncognito.com.attacker.example",
+        "https://x.auth.us-east-1.amazoncognito.com; script-src *",
+        "https://vorrin-console.auth.us-east-1.amazoncognito.com 'unsafe-inline'",
+    ],
+)
+def test_bundle_rejects_anything_but_a_cognito_hosted_ui_origin(tmp_path, origin):
+    with pytest.raises(ValueError, match="Cognito Hosted UI origin"):
+        build_web_bundle(tmp_path / "web", auth_origin=origin)
+    assert not (tmp_path / "web").exists()
+
+
+def test_bundle_cli_reports_an_invalid_origin(tmp_path):
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts/build_phase3_web.py"),
+            "--output",
+            str(tmp_path / "web"),
+            "--auth-origin",
+            "https://attacker.example",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 2
+    assert "Cognito Hosted UI origin" in result.stderr

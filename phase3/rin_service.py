@@ -14,6 +14,7 @@ import boto3
 
 from auditor.ai_analyst import AIAnalystError, _build_request, _openai_responses, _validate_model_output
 
+from .access import AccessConfigurationError, AccessDenied, authenticate
 from .public_api import STALE_AFTER_SECONDS, AwsPublicReadStore
 from .redaction import _contains_sensitive, validate_public_snapshot
 
@@ -51,7 +52,14 @@ def rin_response(
     guardrail_version: Any = None,
     guardrail: Any = None,
     now: datetime | None = None,
+    quota_identity: str | None = None,
 ) -> dict[str, Any]:
+    """Answer one question about one redacted finding.
+
+    quota_identity, when set, is a verified per-user key from the API
+    authorizer. It replaces the client-supplied session token for quota
+    accounting, so an invited user cannot reset their limit by changing it.
+    """
     if not isinstance(event, dict) or event.get("httpMethod") != "POST" or event.get("path") != "/api/rin":
         return _response(405, {"status": "UNAVAILABLE", "reason_code": "METHOD_NOT_ALLOWED"}, no_store=True)
     parsed = _parse_request(event)
@@ -156,7 +164,7 @@ def rin_response(
     if not callable(quota_consumer):
         return _response(503, {"status": "UNAVAILABLE", "reason_code": "QUOTA_UNAVAILABLE"}, no_store=True)
     try:
-        quota = quota_consumer(session_token)
+        quota = quota_consumer(quota_identity or session_token)
     except Exception:
         return _response(503, {"status": "UNAVAILABLE", "reason_code": "QUOTA_UNAVAILABLE"}, no_store=True)
     if not isinstance(quota, dict) or quota.get("allowed") is not True:
@@ -431,8 +439,31 @@ def _response(status_code: int, body: dict[str, Any], *, no_store: bool = False)
 
 
 def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
-    """Live provider path. Feature state, data, and quotas fail closed."""
+    """Live provider path. Identity, feature state, data, and quotas fail closed."""
     del context
+    try:
+        access = authenticate(event, os.environ)
+    except AccessDenied:
+        response = _response(401, {"status": "UNAVAILABLE", "reason_code": "UNAUTHENTICATED"}, no_store=True)
+        response["headers"]["WWW-Authenticate"] = "Bearer"
+        return _private(response)
+    except AccessConfigurationError:
+        return _private(
+            _response(
+                503, {"status": "UNAVAILABLE", "reason_code": "RIN_CONFIGURATION_UNAVAILABLE"}, no_store=True
+            )
+        )
+    response = _configured_rin_response(event, access_quota_identity=access.quota_identity)
+    return _private(response) if access.invite_only else response
+
+
+def _private(response: dict[str, Any]) -> dict[str, Any]:
+    response["headers"]["Cache-Control"] = "private, no-store"
+    response["headers"]["Vary"] = "Authorization"
+    return response
+
+
+def _configured_rin_response(event: Any, *, access_quota_identity: str | None) -> dict[str, Any]:
     region = os.environ.get("AWS_REGION", "").strip()
     bucket = os.environ.get("PHASE3_PUBLIC_RESULTS_BUCKET", "").strip()
     index_name = os.environ.get("PHASE3_PUBLIC_INDEX_TABLE", "").strip()
@@ -527,4 +558,5 @@ def lambda_handler(event: Any, context: Any) -> dict[str, Any]:
         guardrail_identifier=guardrail_identifier,
         guardrail_version=guardrail_version,
         guardrail=assess_guardrail if guardrail_client is not None else None,
+        quota_identity=access_quota_identity,
     )

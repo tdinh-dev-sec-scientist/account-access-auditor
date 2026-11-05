@@ -11,6 +11,11 @@ and `control-plane` roots. Each root was initialized with `-backend=false` and
 `-lockfile=readonly`; no AWS credentials were used. These local checks do not
 count as live acceptance.
 
+The owner selected invite-only access on 2026-11-05; see
+[private access](private-access.md) and the
+[access-mode amendment](phase3-access-mode-amendment.md), which records how
+the Stage 4 traffic-control evidence differs by mode.
+
 The README now gives visitors a short console walkthrough and links each view
 to its source report and JSON evidence. The demo video
 (`docs/media/vorrin-demo.mp4`) shows simulated and Moto-emulated data, not
@@ -22,7 +27,7 @@ a live AWS account.
 | --- | --- | --- |
 | Stage 1 — Demo account and scans | OU/SCP, guarded low-cost demo resources, read-only ECS Fargate scanner, scheduler, private snapshots, and drift history are implemented. | **Not passed.** No demo account or role has been provisioned, no scheduled scan has run, and the new/resolved drift evidence is absent. |
 | Stage 2 — Redaction, publication, and API | Versioned public schema, allowlist redaction, private-to-public publisher, last-good behavior, and GET/HEAD API are implemented and locally tested. | **Not passed.** Stage 1 has not passed. An owner-recorded AWS Pricing Calculator estimate and a monthly cap covering that estimate are also required before enablement. |
-| Stage 3 — Website and Rin | Sanitized bundle, same-origin API client, failure banners, fixture fallback, external-provider Rin path, input/output Bedrock Guardrail checks, session/daily quotas, and CloudFront/WAF/TLS Terraform are implemented. | **Not passed.** Stages 1–2, provider selection, current provider rates, secret rotation, a published and reviewed Guardrail version, logging review, and live browser/TLS/header/accessibility checks remain pending. Rin and hosting are disabled by default. |
+| Stage 3 — Website and Rin | Sanitized bundle, same-origin API client, failure banners, fixture fallback, external-provider Rin path, input/output Bedrock Guardrail checks, session/daily quotas, CloudFront/TLS Terraform, and invite-only access (Cognito sign-in with MFA and PKCE, an authorizer on every API method, per-user quotas; WAF in public mode) are implemented. | **Not passed.** Stages 1–2, provider selection, current provider rates, secret rotation, a published and reviewed Guardrail version, logging review, and live browser/TLS/header/accessibility checks remain pending. Rin and hosting are disabled by default. |
 | Stage 4 — Harden, document, and launch | AWS budget alerts, a separate daily-limit alert, atomic static-mode kill switch, and operational documentation are implemented. | **Not passed.** No deployment, actual cost record, external security scan, load test, or end-to-end kill-switch recovery measurement exists. |
 
 Later-stage code was prepared before the earlier live stage gates were met. This

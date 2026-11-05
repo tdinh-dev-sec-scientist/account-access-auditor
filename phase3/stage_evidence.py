@@ -548,7 +548,42 @@ def _validate_stage3_banners(evidence_root: Path, record: dict[str, Any]) -> Non
         raise StageEvidenceError("Stage 3 failure-banner evidence is incomplete or failed")
 
 
-def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
+_LOAD_FIELDS = {
+    "load_report_evidence_path",
+    "load_report_sha256",
+    "traffic_multipliers",
+    "cost_within_budget",
+}
+# In public mode, edge WAF rate rules bound anonymous traffic. In invite_only
+# mode there is no WAF: the Cognito authorizer must reject unauthenticated
+# requests and API Gateway stage throttling must bound signed-in traffic.
+_ACCESS_MODE_LOAD_CONTROLS = {
+    "public": {"waf_rate_limits_engaged"},
+    "invite_only": {"api_throttling_engaged", "unauthenticated_requests_rejected"},
+}
+
+
+def _load_controls_proven(load: Any, record: dict[str, Any], *, expected_access_mode: str | None) -> bool:
+    if not isinstance(load, dict):
+        return False
+    # Evidence recorded before access modes existed has no field and is public.
+    mode = load.get("access_mode", "public")
+    if mode not in _ACCESS_MODE_LOAD_CONTROLS:
+        return False
+    if expected_access_mode is not None and mode != expected_access_mode:
+        raise StageEvidenceError(
+            f"Stage 4 load/resilience evidence was recorded for {mode} access, not the deployed {expected_access_mode} mode"
+        )
+    controls = _ACCESS_MODE_LOAD_CONTROLS[mode]
+    fields = _LOAD_FIELDS | controls | ({"access_mode"} if "access_mode" in load else set())
+    return _reviewed_document(load, record, fields=fields) and all(
+        load.get(control) is True for control in controls
+    )
+
+
+def _validate_stage4(
+    evidence_root: Path, record: dict[str, Any], *, expected_access_mode: str | None = None
+) -> None:
     budget = _read_json(evidence_root, "stage4/budget-cutoff.json")
     if not _reviewed_document(
         budget,
@@ -597,17 +632,7 @@ def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
     load = _read_json(evidence_root, "stage4/load-resilience.json")
     multipliers = load.get("traffic_multipliers") if isinstance(load, dict) else None
     if (
-        not _reviewed_document(
-            load,
-            record,
-            fields={
-                "load_report_evidence_path",
-                "load_report_sha256",
-                "traffic_multipliers",
-                "waf_rate_limits_engaged",
-                "cost_within_budget",
-            },
-        )
+        not _load_controls_proven(load, record, expected_access_mode=expected_access_mode)
         or not _bound_report(
             evidence_root,
             load,
@@ -620,11 +645,10 @@ def _validate_stage4(evidence_root: Path, record: dict[str, Any]) -> None:
         or any(not _finite_number(value, positive=True) for value in multipliers)
         or len(set(multipliers)) != len(multipliers)
         or max(multipliers) <= 1
-        or load.get("waf_rate_limits_engaged") is not True
         or load.get("cost_within_budget") is not True
     ):
         raise StageEvidenceError(
-            "Stage 4 load/resilience evidence does not prove WAF limits and budget control"
+            "Stage 4 load/resilience evidence does not prove its access-mode traffic limits and budget control"
         )
 
     actuals = _read_json(evidence_root, "stage4/actual-monthly-cost.json")
@@ -695,6 +719,7 @@ def validate_stage_evidence(
     expected_demo_account_id_sha256: str | None = None,
     expected_daily_invocation_limit: int | None = None,
     expected_monthly_budget_usd: float | None = None,
+    expected_access_mode: str | None = None,
 ) -> None:
     """Reject placeholder artifacts that do not substantiate a plan criterion."""
     validators = {
@@ -714,7 +739,9 @@ def validate_stage_evidence(
             ),
             _validate_stage3_banners(root, stage_record),
         ),
-        "stage4": _validate_stage4,
+        "stage4": lambda root, stage_record: _validate_stage4(
+            root, stage_record, expected_access_mode=expected_access_mode
+        ),
     }
     try:
         validators[stage_name](evidence_root, record)

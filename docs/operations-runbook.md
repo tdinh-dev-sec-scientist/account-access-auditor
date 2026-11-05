@@ -125,6 +125,10 @@ reviewed.** Phase 3 AWS resources have not been deployed. The owner has
 authorized only the plan-scoped write roles in [Phase 3 status](phase3-status.md);
 the target scan role, public API, and Rin remain read-only toward AWS.
 
+Live data and Rin default to invite-only access. Set
+`PHASE3_COGNITO_DOMAIN_PREFIX` before the control-plane plan, and follow
+[private access](private-access.md) to invite, list, and remove users.
+
 ### Preflight and deployment sequence
 
 1. Create or select an encrypted, versioned, access-controlled S3 state bucket

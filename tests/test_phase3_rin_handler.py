@@ -77,11 +77,13 @@ def wired(monkeypatch):
         monkeypatch.setattr(rin_service, "rin_response", fake_rin_response)
         for name, value in BASE_ENV.items():
             monkeypatch.setenv(name, value)
+        monkeypatch.setenv("PHASE3_ACCESS_MODE", "public")
         monkeypatch.setenv("PHASE3_RIN_PROVIDER_SECRET_ARN", secret["ARN"])
         yield {"features": features, "captured": captured, "quota": quota}
 
 
 def test_handler_reports_missing_configuration(monkeypatch):
+    monkeypatch.setenv("PHASE3_ACCESS_MODE", "public")
     monkeypatch.delenv("AWS_REGION", raising=False)
 
     response = rin_service.lambda_handler({}, None)
@@ -93,6 +95,7 @@ def test_handler_reports_missing_configuration(monkeypatch):
 def test_handler_fails_closed_when_clients_cannot_be_built(monkeypatch):
     for name, value in BASE_ENV.items():
         monkeypatch.setenv(name, value)
+    monkeypatch.setenv("PHASE3_ACCESS_MODE", "public")
 
     def broken_session(**_kwargs):
         raise RuntimeError("no credentials")

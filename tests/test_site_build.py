@@ -127,6 +127,7 @@ def test_read_only_console_is_built_as_a_separate_workspace(site, index):
     assert (console / "console.css").exists()
     assert (console / "status.js").exists()
     assert (console / "knowledge.js").exists()
+    assert (console / "auth.js").exists()
     assert (console / "console.js").exists()
     assert 'href="console/"' in index
 
