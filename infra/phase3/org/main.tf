@@ -31,7 +31,19 @@ resource "aws_organizations_account" "demo" {
 
   lifecycle {
     prevent_destroy = true
+    # Organizations cannot report these after an account exists, so an
+    # imported account would otherwise show a forced replacement.
+    ignore_changes = [role_name, iam_user_access_to_billing]
   }
+}
+
+# Adopt a demo account the owner already created (for example with
+# `aws organizations create-account`) instead of creating a second one. Its
+# name and email must match demo_account_name and demo_account_email.
+import {
+  for_each = var.existing_demo_account_id == "" ? toset([]) : toset([var.existing_demo_account_id])
+  to       = aws_organizations_account.demo
+  id       = each.value
 }
 
 resource "aws_organizations_policy" "demo_guardrails" {

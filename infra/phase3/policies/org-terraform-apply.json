@@ -1,0 +1,127 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadOrganizationStructureAndGuardrails",
+      "Effect": "Allow",
+      "Action": [
+        "organizations:DescribeAccount",
+        "organizations:DescribeCreateAccountStatus",
+        "organizations:DescribeOrganization",
+        "organizations:DescribeOrganizationalUnit",
+        "organizations:DescribePolicy",
+        "organizations:ListAccountsForParent",
+        "organizations:ListChildren",
+        "organizations:ListOrganizationalUnitsForParent",
+        "organizations:ListParents",
+        "organizations:ListPolicies",
+        "organizations:ListPoliciesForTarget",
+        "organizations:ListRoots",
+        "organizations:ListTagsForResource",
+        "organizations:ListTargetsForPolicy"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CreateTheDemoAccountWhenNoneIsImported",
+      "Effect": "Allow",
+      "Action": ["organizations:CreateAccount"],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ManageOrganizationalUnitsUnderTheRootOnly",
+      "Effect": "Allow",
+      "Action": ["organizations:CreateOrganizationalUnit", "organizations:UpdateOrganizationalUnit"],
+      "Resource": [
+        "arn:aws:organizations::${account_id}:root/${organization_id}/${root_id}",
+        "arn:aws:organizations::${account_id}:ou/${organization_id}/ou-*"
+      ]
+    },
+    {
+      "Sid": "MoveOnlyTheDemoAccountBetweenTheRootAndOUs",
+      "Effect": "Allow",
+      "Action": ["organizations:MoveAccount"],
+      "Resource": [
+        "arn:aws:organizations::${account_id}:account/${organization_id}/${demo_account_id}",
+        "arn:aws:organizations::${account_id}:root/${organization_id}/${root_id}",
+        "arn:aws:organizations::${account_id}:ou/${organization_id}/ou-*"
+      ]
+    },
+    {
+      "Sid": "ManageServiceControlPoliciesOnly",
+      "Effect": "Allow",
+      "Action": ["organizations:CreatePolicy", "organizations:UpdatePolicy"],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": { "organizations:PolicyType": "SERVICE_CONTROL_POLICY" }
+      }
+    },
+    {
+      "Sid": "AttachServiceControlPoliciesToOUsNeverTheRoot",
+      "Effect": "Allow",
+      "Action": ["organizations:AttachPolicy"],
+      "Resource": [
+        "arn:aws:organizations::${account_id}:policy/${organization_id}/service_control_policy/p-*",
+        "arn:aws:organizations::${account_id}:ou/${organization_id}/ou-*"
+      ],
+      "Condition": {
+        "StringEquals": { "organizations:PolicyType": "SERVICE_CONTROL_POLICY" }
+      }
+    },
+    {
+      "Sid": "TagOnlyPhase3OrganizationResources",
+      "Effect": "Allow",
+      "Action": ["organizations:TagResource", "organizations:UntagResource"],
+      "Resource": [
+        "arn:aws:organizations::${account_id}:account/${organization_id}/${demo_account_id}",
+        "arn:aws:organizations::${account_id}:ou/${organization_id}/ou-*",
+        "arn:aws:organizations::${account_id}:policy/${organization_id}/service_control_policy/p-*"
+      ]
+    },
+    {
+      "Sid": "DenyDestructiveOrEscalatingOrganizationChanges",
+      "Effect": "Deny",
+      "Action": [
+        "organizations:AcceptHandshake",
+        "organizations:CloseAccount",
+        "organizations:CreateGovCloudAccount",
+        "organizations:DeleteOrganization",
+        "organizations:DeleteOrganizationalUnit",
+        "organizations:DeletePolicy",
+        "organizations:DeleteResourcePolicy",
+        "organizations:DeregisterDelegatedAdministrator",
+        "organizations:DetachPolicy",
+        "organizations:DisableAWSServiceAccess",
+        "organizations:DisablePolicyType",
+        "organizations:EnableAWSServiceAccess",
+        "organizations:EnableAllFeatures",
+        "organizations:EnablePolicyType",
+        "organizations:InviteAccountToOrganization",
+        "organizations:LeaveOrganization",
+        "organizations:PutResourcePolicy",
+        "organizations:RegisterDelegatedAdministrator",
+        "organizations:RemoveAccountFromOrganization",
+        "sts:AssumeRole"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ReadOnlySelectedStateBucket",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation", "s3:GetBucketVersioning"],
+      "Resource": "arn:aws:s3:::${state_bucket}"
+    },
+    {
+      "Sid": "WriteOnlyOrgStateObject",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject"],
+      "Resource": "arn:aws:s3:::${state_bucket}/phase3/org/terraform.tfstate"
+    },
+    {
+      "Sid": "LockOnlySelectedStateTable",
+      "Effect": "Allow",
+      "Action": ["dynamodb:DescribeTable", "dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:DeleteItem"],
+      "Resource": "arn:aws:dynamodb:${region}:${account_id}:table/${lock_table}"
+    }
+  ]
+}

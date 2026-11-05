@@ -46,6 +46,7 @@ jobs:
       TF_VAR_demo_account_name: ${{ vars.PHASE3_DEMO_ACCOUNT_NAME || 'guardrails-phase3-demo' }}
       TF_VAR_demo_account_email: ${{ secrets.PHASE3_DEMO_ACCOUNT_EMAIL }}
       TF_VAR_demo_ou_name: ${{ vars.PHASE3_DEMO_OU_NAME || 'GuardrailsPhase3Demo' }}
+      TF_VAR_existing_demo_account_id: ${{ vars.PHASE3_EXISTING_DEMO_ACCOUNT_ID || '' }}
       TF_VAR_organization_root_id: ${{ vars.PHASE3_ORGANIZATION_ROOT_ID }}
       TF_VAR_scan_task_role_arn: ${{ vars.PHASE3_SCAN_TASK_ROLE_ARN }}
       TF_VAR_github_repository: ${{ vars.PHASE3_GITHUB_REPOSITORY || 'tdinh-dev-sec-scientist/Vorrin' }}
