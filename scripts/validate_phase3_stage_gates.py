@@ -68,6 +68,14 @@ def _runtime_bindings() -> tuple[str | None, int | None, float | None]:
     return account_hash, daily_cap, float(monthly) if monthly is not None else None
 
 
+def _access_mode() -> str:
+    # Mirrors the Terraform default so an unset variable binds to invite_only.
+    mode = os.environ.get("TF_VAR_access_mode", "invite_only").strip() or "invite_only"  # noqa: SIM112
+    if mode not in {"invite_only", "public"}:
+        raise StageGateError("TF_VAR_access_mode must be invite_only or public")
+    return mode
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
@@ -83,6 +91,7 @@ def main() -> int:
             expected_demo_account_id_sha256=account_hash,
             expected_daily_invocation_limit=daily_cap,
             expected_monthly_budget_usd=provider_budget,
+            expected_access_mode=_access_mode(),
             require_runtime_bindings=True,
         )
     except StageGateError as exc:
