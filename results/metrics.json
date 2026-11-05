@@ -79,13 +79,13 @@
       "command": "pytest tests/test_fixture_manifest.py"
     },
     "tests": {
-      "total": 1456,
-      "passed": 1456,
+      "total": 1528,
+      "passed": 1528,
       "failed": 0,
-      "skipped": 13,
+      "skipped": 16,
       "exit_code": 0,
       "source_command": "pytest",
-      "value": 1456,
+      "value": 1528,
       "evidence": "results/metrics_sources.json",
       "command": "pytest"
     },
@@ -113,9 +113,9 @@
         "auditor/rules/s3_rules.py",
         "auditor/severity.py"
       ],
-      "overall_percent": 86.46,
-      "overall_branch_inclusive_percent": 86.46,
-      "overall_statements": 7646,
+      "overall_percent": 86.62,
+      "overall_branch_inclusive_percent": 86.62,
+      "overall_statements": 7738,
       "evidence": "results/coverage.json",
       "command": "pytest --cov=auditor --cov=phase3 --cov-report=json:results/coverage.json"
     },
