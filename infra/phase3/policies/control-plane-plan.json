@@ -81,6 +81,12 @@
       ]
     },
     {
+      "Sid": "ValidateStateMachineDefinitionsWhichHaveNoName",
+      "Effect": "Allow",
+      "Action": "states:ValidateStateMachineDefinition",
+      "Resource": "arn:aws:states:${region}:${account_id}:stateMachine:*"
+    },
+    {
       "Sid": "ReadOnlySelectedStateBucket",
       "Effect": "Allow",
       "Action": [
