@@ -3,22 +3,54 @@
   "roles": {
     "org": {
       "plan": {
-        "status": "pending",
-        "role_arn_sha256": null,
-        "reviewed_by": null,
-        "reviewed_at": null,
-        "evidence": [],
-        "evidence_sha256": {},
-        "source_evidence_sha256": {}
+        "status": "reviewed",
+        "role_arn_sha256": "1bfce674bbfa105d2fa5e970f42c7cb54ad226204f01949cdc13e8cd327658ad",
+        "reviewed_by": "Truong Dinh",
+        "reviewed_at": "2026-11-05T17:10:32+00:00",
+        "evidence": [
+          "terraform-roles/org/plan/attached-policies.json",
+          "terraform-roles/org/plan/inline-policies.json",
+          "terraform-roles/org/plan/permissions-boundary.json",
+          "terraform-roles/org/plan/trust-policy.json"
+        ],
+        "evidence_sha256": {
+          "terraform-roles/org/plan/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "terraform-roles/org/plan/inline-policies.json": "06c6c378190edbdd21627e79a0bd6da082322fe8461f8995f0b9210ac542dfcd",
+          "terraform-roles/org/plan/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          "terraform-roles/org/plan/trust-policy.json": "686282e0ba0535f95c60888b9dbcd4b5485a83cef4ddffbba8140d83a3c2ec25"
+        },
+        "source_evidence_sha256": {
+          ".private-role-captures/org/plan/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          ".private-role-captures/org/plan/capture-metadata.json": "984cfbde5e686509723716d66b92dbdb3084ce18ed738d1e6e2277aff1516668",
+          ".private-role-captures/org/plan/inline-policies.json": "ac6c8869a061efbd148fd8c8423f7c2d03ded31e1b639d14bf93d14bb3d08775",
+          ".private-role-captures/org/plan/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          ".private-role-captures/org/plan/trust-policy.json": "f43e8826b3b6961d32417fa205c71c8c1ae10678f262a6ae47e30800c20b4088"
+        }
       },
       "apply": {
-        "status": "pending",
-        "role_arn_sha256": null,
-        "reviewed_by": null,
-        "reviewed_at": null,
-        "evidence": [],
-        "evidence_sha256": {},
-        "source_evidence_sha256": {}
+        "status": "reviewed",
+        "role_arn_sha256": "ac3e3adef7029289efc5d26abf1eaf29e52a13389d78d10e56e2e373a83fae51",
+        "reviewed_by": "Truong Dinh",
+        "reviewed_at": "2026-11-05T17:10:35+00:00",
+        "evidence": [
+          "terraform-roles/org/apply/attached-policies.json",
+          "terraform-roles/org/apply/inline-policies.json",
+          "terraform-roles/org/apply/permissions-boundary.json",
+          "terraform-roles/org/apply/trust-policy.json"
+        ],
+        "evidence_sha256": {
+          "terraform-roles/org/apply/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "terraform-roles/org/apply/inline-policies.json": "fddb0497faa824ba45fcf7817ead6099033d33dd0ea29510a5df9c3b0a4ded1a",
+          "terraform-roles/org/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          "terraform-roles/org/apply/trust-policy.json": "1d09967c42ca2c5823070a52fca4b6047a95ddeba07b7957fba870881a91859d"
+        },
+        "source_evidence_sha256": {
+          ".private-role-captures/org/apply/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          ".private-role-captures/org/apply/capture-metadata.json": "65f0142e9fae961cd26167881f1129142a86c248f15cd9f0c299acbdd820c9f1",
+          ".private-role-captures/org/apply/inline-policies.json": "690e9b569bc74c14f770836768f40c0033c65a1395d8edd43552e8a9c36e262d",
+          ".private-role-captures/org/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          ".private-role-captures/org/apply/trust-policy.json": "2f4c651b68bb37490ea4cdf048a9db37f7c3048133c13f58e6d9643d2016264d"
+        }
       }
     },
     "control-plane": {

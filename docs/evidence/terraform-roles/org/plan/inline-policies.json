@@ -1,0 +1,60 @@
+[
+  {
+    "PolicyDocument": {
+      "Statement": [
+        {
+          "Action": [
+            "organizations:DescribeAccount",
+            "organizations:DescribeCreateAccountStatus",
+            "organizations:DescribeOrganization",
+            "organizations:DescribeOrganizationalUnit",
+            "organizations:DescribePolicy",
+            "organizations:ListAccountsForParent",
+            "organizations:ListChildren",
+            "organizations:ListOrganizationalUnitsForParent",
+            "organizations:ListParents",
+            "organizations:ListPolicies",
+            "organizations:ListPoliciesForTarget",
+            "organizations:ListRoots",
+            "organizations:ListTagsForResource",
+            "organizations:ListTargetsForPolicy"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:ListBucket",
+            "s3:GetBucketLocation",
+            "s3:GetBucketVersioning"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:GetObject"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "dynamodb:DescribeTable",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:DeleteItem"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:dynamodb:us-east-1:<TARGET_ACCOUNT>:table/<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        }
+      ],
+      "Version": "2012-10-17"
+    },
+    "PolicyName": "<POLICY_NAME>"
+  }
+]
