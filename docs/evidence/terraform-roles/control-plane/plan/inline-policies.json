@@ -1,0 +1,205 @@
+[
+  {
+    "PolicyDocument": {
+      "Statement": [
+        {
+          "Action": [
+            "acm:Describe*",
+            "acm:Get*",
+            "acm:List*",
+            "apigateway:GET",
+            "budgets:ListTagsForResource",
+            "budgets:ViewBudget",
+            "cloudfront:Describe*",
+            "cloudfront:Get*",
+            "cloudfront:List*",
+            "cloudwatch:Describe*",
+            "cloudwatch:Get*",
+            "cloudwatch:List*",
+            "cognito-idp:Describe*",
+            "cognito-idp:Get*",
+            "cognito-idp:List*",
+            "dynamodb:Describe*",
+            "dynamodb:Get*",
+            "dynamodb:List*",
+            "ec2:Describe*",
+            "ec2:Get*",
+            "ec2:List*",
+            "ecr:Describe*",
+            "ecr:Get*",
+            "ecr:List*",
+            "ecs:Describe*",
+            "ecs:Get*",
+            "ecs:List*",
+            "lambda:Describe*",
+            "lambda:Get*",
+            "lambda:List*",
+            "logs:Describe*",
+            "logs:Get*",
+            "logs:List*",
+            "s3:Describe*",
+            "s3:Get*",
+            "s3:List*",
+            "scheduler:Describe*",
+            "scheduler:Get*",
+            "scheduler:List*",
+            "secretsmanager:Describe*",
+            "secretsmanager:Get*",
+            "secretsmanager:List*",
+            "sns:Describe*",
+            "sns:Get*",
+            "sns:List*",
+            "states:Describe*",
+            "states:Get*",
+            "states:List*",
+            "wafv2:Describe*",
+            "wafv2:Get*",
+            "wafv2:List*"
+          ],
+          "Effect": "Allow",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "iam:GetRole",
+            "iam:GetRolePolicy",
+            "iam:ListRolePolicies",
+            "iam:ListAttachedRolePolicies",
+            "iam:ListInstanceProfilesForRole",
+            "iam:ListRoleTags",
+            "iam:GetPolicy",
+            "iam:GetPolicyVersion",
+            "iam:GetOpenIDConnectProvider"
+          ],
+          "Effect": "Allow",
+          "Resource": [
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>",
+            "arn:aws:iam::<TARGET_ACCOUNT>:role/<RESOURCE_PATTERN>",
+            "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
+            "arn:aws:iam::<TARGET_ACCOUNT>:oidc-provider/<RESOURCE>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:ListBucket",
+            "s3:GetBucketLocation",
+            "s3:GetBucketVersioning"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:GetObject"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "dynamodb:DescribeTable",
+            "dynamodb:GetItem",
+            "dynamodb:PutItem",
+            "dynamodb:DeleteItem"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:dynamodb:us-east-1:<TARGET_ACCOUNT>:table/<RESOURCE>",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:GetObject",
+            "s3:GetObjectVersion"
+          ],
+          "Effect": "Deny",
+          "NotResource": [
+            "arn:aws:s3:::<RESOURCE>",
+            "arn:aws:s3:::<RESOURCE_PATTERN>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "dynamodb:GetItem",
+            "dynamodb:BatchGetItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+            "dynamodb:GetRecords",
+            "dynamodb:ExportTableToPointInTime"
+          ],
+          "Effect": "Deny",
+          "NotResource": [
+            "arn:aws:dynamodb:us-east-1:<TARGET_ACCOUNT>:table/<RESOURCE>",
+            "arn:aws:dynamodb:us-east-1:<TARGET_ACCOUNT>:table/<RESOURCE>"
+          ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "secretsmanager:GetSecretValue",
+            "secretsmanager:PutSecretValue",
+            "logs:GetLogEvents",
+            "logs:FilterLogEvents",
+            "logs:StartQuery",
+            "logs:GetQueryResults",
+            "logs:StartLiveTail",
+            "ecr:GetDownloadUrlForLayer",
+            "ecr:BatchGetImage",
+            "cognito-idp:AdminGetUser",
+            "cognito-idp:ListUsers",
+            "lambda:InvokeFunction",
+            "states:StartExecution",
+            "ecs:RunTask",
+            "ecs:ExecuteCommand"
+          ],
+          "Effect": "Deny",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "organizations:*",
+            "account:*",
+            "sts:AssumeRole",
+            "iam:CreateUser",
+            "iam:CreateAccessKey",
+            "iam:CreateLoginProfile",
+            "iam:CreatePolicy",
+            "iam:CreatePolicyVersion",
+            "iam:DeletePolicy",
+            "iam:DeletePolicyVersion",
+            "iam:SetDefaultPolicyVersion",
+            "iam:AttachRolePolicy",
+            "iam:AttachUserPolicy",
+            "iam:AttachGroupPolicy",
+            "iam:DeleteRolePermissionsBoundary",
+            "iam:CreateOpenIDConnectProvider",
+            "iam:UpdateOpenIDConnectProviderThumbprint",
+            "iam:DeleteOpenIDConnectProvider",
+            "cognito-idp:AdminCreateUser",
+            "cognito-idp:AdminSetUserPassword",
+            "cognito-idp:AdminAddUserToGroup"
+          ],
+          "Effect": "Deny",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": [
+            "s3:PutObject",
+            "s3:DeleteObject"
+          ],
+          "Effect": "Deny",
+          "Resource": "*",
+          "Sid": "<STATEMENT_ID>"
+        }
+      ],
+      "Version": "2012-10-17"
+    },
+    "PolicyName": "<POLICY_NAME>"
+  }
+]

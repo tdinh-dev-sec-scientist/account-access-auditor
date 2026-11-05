@@ -55,22 +55,54 @@
     },
     "control-plane": {
       "plan": {
-        "status": "pending",
-        "role_arn_sha256": null,
-        "reviewed_by": null,
-        "reviewed_at": null,
-        "evidence": [],
-        "evidence_sha256": {},
-        "source_evidence_sha256": {}
+        "status": "reviewed",
+        "role_arn_sha256": "8b25277cc37f8601be56283845045b6cfafb1d1e94bc7e8839b8d80d1ab7e95c",
+        "reviewed_by": "Truong Dinh",
+        "reviewed_at": "2026-11-05T20:14:15+00:00",
+        "evidence": [
+          "terraform-roles/control-plane/plan/attached-policies.json",
+          "terraform-roles/control-plane/plan/inline-policies.json",
+          "terraform-roles/control-plane/plan/permissions-boundary.json",
+          "terraform-roles/control-plane/plan/trust-policy.json"
+        ],
+        "evidence_sha256": {
+          "terraform-roles/control-plane/plan/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          "terraform-roles/control-plane/plan/inline-policies.json": "afd850d699908cdeed92ab616af70288b23d9c730e0fb1554fd46f899dd838b1",
+          "terraform-roles/control-plane/plan/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          "terraform-roles/control-plane/plan/trust-policy.json": "facde397472a1d7b8e7844dc3efad76485ec19fa5bb0c8e9d36af21c15678153"
+        },
+        "source_evidence_sha256": {
+          ".private-role-captures/control-plane/plan/attached-policies.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+          ".private-role-captures/control-plane/plan/capture-metadata.json": "34c7226eb3ad949c8ba4673002917e3091872a6c93669966eee959dcca28eef5",
+          ".private-role-captures/control-plane/plan/inline-policies.json": "1245b1349047400033e762b8e166e2d7c4a814795e88df6c9b03af2975615fef",
+          ".private-role-captures/control-plane/plan/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          ".private-role-captures/control-plane/plan/trust-policy.json": "132ff60e5e0f81264d7f59dfcfcd5881a25e90e81e58606d7615387f379a7b56"
+        }
       },
       "apply": {
-        "status": "pending",
-        "role_arn_sha256": null,
-        "reviewed_by": null,
-        "reviewed_at": null,
-        "evidence": [],
-        "evidence_sha256": {},
-        "source_evidence_sha256": {}
+        "status": "reviewed",
+        "role_arn_sha256": "0b6251da87604181a5f4622ee286cd7dcc53afb207ca7ad68fe40f9aad625d80",
+        "reviewed_by": "Truong Dinh",
+        "reviewed_at": "2026-11-05T20:35:01+00:00",
+        "evidence": [
+          "terraform-roles/control-plane/apply/attached-policies.json",
+          "terraform-roles/control-plane/apply/inline-policies.json",
+          "terraform-roles/control-plane/apply/permissions-boundary.json",
+          "terraform-roles/control-plane/apply/trust-policy.json"
+        ],
+        "evidence_sha256": {
+          "terraform-roles/control-plane/apply/attached-policies.json": "f0a4efdf46136b791d1f6d237a4e7772132bca44f5cd719768d12c8f7e1cf3f7",
+          "terraform-roles/control-plane/apply/inline-policies.json": "f1fbd7a567d7d44bf3d943c9f5a8fd9b5d1a9b3cc25dcf549be57ce9d84c9af0",
+          "terraform-roles/control-plane/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          "terraform-roles/control-plane/apply/trust-policy.json": "0cfdfa337e1f6a3b4b3df75a7d4e33d61b6f61932ee5f7a944d9be6643ece846"
+        },
+        "source_evidence_sha256": {
+          ".private-role-captures/control-plane/apply/attached-policies.json": "21647e450779067312ef73f688a95150845b32f992e836fccce18562325b2cac",
+          ".private-role-captures/control-plane/apply/capture-metadata.json": "ee7af8c4f697dff5fab2ac04aaebdbfcaee14a09c80c6f72ee78f6a143bab96b",
+          ".private-role-captures/control-plane/apply/inline-policies.json": "c5e2bb29d9ef9776d2edbe6a98d9edb6863ba89580e92b011471892642d488bc",
+          ".private-role-captures/control-plane/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
+          ".private-role-captures/control-plane/apply/trust-policy.json": "eb2b47b6c6bb6c6fc642bc22c2dbb5c61d1eb46907a074c8f6aa8edddcf2dee0"
+        }
       }
     }
   }
