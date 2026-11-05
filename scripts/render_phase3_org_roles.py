@@ -55,9 +55,16 @@ def render_documents(values: dict[str, str]) -> dict[str, dict[str, Any]]:
         value = values.get(name)
         if not isinstance(value, str) or not re.fullmatch(pattern, value):
             raise RenderError(f"{name} is missing or invalid")
+    return render_role_set(ROLES, values)
+
+
+def render_role_set(
+    roles: dict[str, tuple[str, str, str]], values: dict[str, str]
+) -> dict[str, dict[str, Any]]:
+    """Fill the shared OIDC trust template and each role's permission template."""
     documents: dict[str, dict[str, Any]] = {}
     trust_template = (POLICIES / "github-oidc-trust.json").read_text(encoding="utf-8")
-    for phase, (_role, environment, permission_file) in ROLES.items():
+    for phase, (_role, environment, permission_file) in roles.items():
         substitutions = {
             **values,
             "github_subject_repository": GITHUB_SUBJECT_REPOSITORY,
@@ -107,14 +114,19 @@ def write_documents(documents: dict[str, dict[str, Any]], output: Path) -> None:
         (output / f"{name}.json").write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
 
 
-def commands(output: Path, profile: str | None) -> list[str]:
+def commands(
+    output: Path,
+    profile: str | None,
+    roles: dict[str, tuple[str, str, str]] | None = None,
+    stack: str = "org",
+) -> list[str]:
     flag = f" --profile {profile}" if profile else ""
     lines = []
-    for phase, (role, _environment, _file) in ROLES.items():
+    for phase, (role, _environment, _file) in (roles or ROLES).items():
         lines.append(
             f"aws iam create-role{flag} --role-name {role} --max-session-duration 3600 "
             f"--assume-role-policy-document file://{output / f'{phase}-trust.json'} "
-            f'--description "Phase 3 org Terraform {phase} role for GitHub OIDC" --query Role.Arn --output text'
+            f'--description "Phase 3 {stack} Terraform {phase} role for GitHub OIDC" --query Role.Arn --output text'
         )
         lines.append(
             f"aws iam put-role-policy{flag} --role-name {role} --policy-name {role} "

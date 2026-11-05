@@ -74,6 +74,39 @@ To adopt a demo account that already exists, set the repository variable
 `PHASE3_DEMO_ACCOUNT_EMAIL` secret match it exactly. The org stack then imports
 the account instead of creating a second one.
 
+Service control policies are disabled in a new organization, and the org
+apply role deliberately cannot enable organization-wide policy types. Enable
+them once, as an administrator, before the first org apply; otherwise
+attaching the demo guardrail fails with `PolicyTypeNotEnabledException`:
+
+```sh
+aws organizations enable-policy-type --profile vorrin-admin --root-id <root-id> --policy-type SERVICE_CONTROL_POLICY
+```
+
+AWS attaches the built-in `FullAWSAccess` policy everywhere when SCPs are
+enabled, so no account loses access; only the demo OU receives the guardrail.
+
+## Demo-bootstrap roles in the demo account
+
+The demo-bootstrap roles live in the demo account, so that stack keeps its
+state in the demo account too. Create a versioned, encrypted, public-access-
+blocked bucket and a `LockID` lock table there. The demo guardrail SCP denies
+bucket policies outside the CloudTrail bucket, so this state bucket has no
+bucket policy. Set these as environment variables (not repository variables)
+in both `phase3-demo-bootstrap-plan` and `phase3-demo-bootstrap-apply`, which
+override the repository values for that stack only: `PHASE3_AWS_ACCOUNT_ID`
+(the demo account), `PHASE3_TF_STATE_BUCKET`, and `PHASE3_TF_STATE_LOCK_TABLE`.
+
+Render the two roles with a demo-account profile, review the files, and run
+the printed commands:
+
+```sh
+python scripts/render_phase3_demo_bootstrap_roles.py --profile vorrin-demo-admin --state-bucket <demo-state-bucket> --lock-table <demo-lock-table>
+```
+
+The script refuses a management-account profile. Then set
+`PHASE3_TERRAFORM_ROLE_ARN` in each of the two environments to its role ARN.
+
 ## Organizations and control-plane roles
 
 The org and control-plane roots also need separate plan and apply GitHub OIDC
