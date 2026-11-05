@@ -12,6 +12,16 @@ permissions:
   id-token: write
 
 jobs:
+  claims:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Show the OIDC claims AWS will see (claim values only, never the token)
+        run: |
+          token="$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)"
+          payload="$(printf '%s' "$token" | cut -d. -f2 | tr '_-' '/+')"
+          while [ $(( ${#payload} % 4 )) -ne 0 ]; do payload="${payload}="; done
+          printf '%s' "$payload" | base64 -d | jq '{sub, aud, iss, ref, workflow, repository, repository_owner, job_workflow_ref}'
+
   probe:
     runs-on: ubuntu-latest
     strategy:
