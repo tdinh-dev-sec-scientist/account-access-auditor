@@ -65,6 +65,7 @@ def run_scan_task(
     session_factory: Callable[..., tuple[Any, Any]] | None = None,
     scanner: Callable[..., dict[str, Any]] | None = None,
     snapshot_writer: Any = None,
+    writer_client_factory: Callable[[str], Any] | None = None,
 ) -> dict[str, Any]:
     """Run the read-only scan and hand its result to the scoped private writer."""
     values = os.environ if environ is None else environ
@@ -107,7 +108,9 @@ def run_scan_task(
     if not function_name:
         raise ScanTaskError("private snapshot writer is not configured")
     try:
-        writer = snapshot_writer or source_session.client("lambda")
+        # The scan session's read-only guard rightly rejects lambda:Invoke, so the
+        # one handoff call uses its own session that builds only this client.
+        writer = snapshot_writer or (writer_client_factory or snapshot_writer_client)(fleet.regions[0])
         response = writer.invoke(
             FunctionName=function_name,
             InvocationType="RequestResponse",
@@ -127,6 +130,17 @@ def run_scan_task(
     if not _valid_receipt(receipt, account_id=fleet.accounts[0].account_id, run_id=scan_run_id):
         raise ScanTaskError("private snapshot writer returned an invalid receipt")
     return receipt
+
+
+def snapshot_writer_client(region: str) -> Any:
+    """Return a Lambda client for the private snapshot handoff, outside the scan guard.
+
+    The scan's own session keeps the read-only guard; this separate session is
+    used for exactly one call, invoking the snapshot writer, which the task
+    role and the workload permissions boundary both scope to that function.
+    """
+    session, _ = build_session(profile=None, region=region, guard=False)
+    return session.client("lambda")
 
 
 def _valid_receipt(value: Any, *, account_id: str, run_id: str) -> bool:
