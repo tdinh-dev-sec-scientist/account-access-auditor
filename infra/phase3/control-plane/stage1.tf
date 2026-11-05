@@ -1,12 +1,13 @@
 locals {
-  private_bucket_name      = "${var.bucket_prefix}-p3-private-${data.aws_caller_identity.current.account_id}"
-  private_table_name       = "${var.bucket_prefix}-p3-private-runs"
-  scan_worker_name         = "${var.bucket_prefix}-p3-scan-worker"
-  snapshot_writer_name     = "${var.bucket_prefix}-p3-snapshot-writer"
-  target_role_arn          = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:role/AccountAccessAuditorReadOnly"
-  scan_cluster_name        = "${var.bucket_prefix}-p3-scan"
-  github_image_subject     = "repo:${var.github_subject_repository}:environment:${var.github_image_environment}"
-  github_oidc_provider_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+  private_bucket_name               = "${var.bucket_prefix}-p3-private-${data.aws_caller_identity.current.account_id}"
+  private_table_name                = "${var.bucket_prefix}-p3-private-runs"
+  scan_worker_name                  = "${var.bucket_prefix}-p3-scan-worker"
+  snapshot_writer_name              = "${var.bucket_prefix}-p3-snapshot-writer"
+  target_role_arn                   = "arn:${data.aws_partition.current.partition}:iam::${var.demo_account_id}:role/AccountAccessAuditorReadOnly"
+  scan_cluster_name                 = "${var.bucket_prefix}-p3-scan"
+  github_image_subject              = "repo:${var.github_subject_repository}:environment:${var.github_image_environment}"
+  github_oidc_provider_arn          = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
+  workload_permissions_boundary_arn = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:policy/${var.workload_permissions_boundary_name}"
 
   scan_workflow_states = {
     CreateScanRunId = {
@@ -248,7 +249,8 @@ resource "aws_cloudwatch_log_group" "scan_task" {
 }
 
 resource "aws_iam_role" "scan_task" {
-  name = local.scan_worker_name
+  name                 = local.scan_worker_name
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -282,7 +284,8 @@ resource "aws_iam_role_policy" "scan_task_invoke_private_writer" {
 }
 
 resource "aws_iam_role" "snapshot_writer" {
-  name = "${var.bucket_prefix}-p3-snapshot-writer"
+  name                 = "${var.bucket_prefix}-p3-snapshot-writer"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -351,7 +354,8 @@ resource "aws_ecs_cluster" "scan" {
 }
 
 resource "aws_iam_role" "scan_task_execution" {
-  name = "${var.bucket_prefix}-p3-scan-task-execution"
+  name                 = "${var.bucket_prefix}-p3-scan-task-execution"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -455,7 +459,8 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 resource "aws_iam_role" "scan_image_publisher" {
-  name = "${var.bucket_prefix}-p3-scan-image-publisher"
+  name                 = "${var.bucket_prefix}-p3-scan-image-publisher"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -539,8 +544,9 @@ resource "aws_ecs_task_definition" "scan" {
 }
 
 resource "aws_iam_role" "workflow" {
-  count = var.enable_scan_pipeline ? 1 : 0
-  name  = "${var.bucket_prefix}-p3-scan-workflow"
+  count                = var.enable_scan_pipeline ? 1 : 0
+  name                 = "${var.bucket_prefix}-p3-scan-workflow"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -614,8 +620,9 @@ resource "aws_sfn_state_machine" "scan" {
 }
 
 resource "aws_iam_role" "scheduler" {
-  count = var.enable_scan_pipeline ? 1 : 0
-  name  = "${var.bucket_prefix}-p3-scan-scheduler"
+  count                = var.enable_scan_pipeline ? 1 : 0
+  name                 = "${var.bucket_prefix}-p3-scan-scheduler"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

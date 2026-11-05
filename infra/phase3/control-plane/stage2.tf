@@ -90,8 +90,9 @@ resource "aws_secretsmanager_secret" "pseudonym_key" {
 }
 
 resource "aws_iam_role" "publisher" {
-  count = var.enable_stage2 ? 1 : 0
-  name  = local.publisher_name
+  count                = var.enable_stage2 ? 1 : 0
+  name                 = local.publisher_name
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -159,8 +160,9 @@ resource "aws_lambda_function" "publisher" {
 }
 
 resource "aws_iam_role" "public_api" {
-  count = var.enable_stage2 ? 1 : 0
-  name  = "${var.bucket_prefix}-p3-public-api"
+  count                = var.enable_stage2 ? 1 : 0
+  name                 = "${var.bucket_prefix}-p3-public-api"
+  permissions_boundary = local.workload_permissions_boundary_arn
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{

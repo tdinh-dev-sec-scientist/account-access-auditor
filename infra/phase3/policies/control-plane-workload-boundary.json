@@ -1,0 +1,118 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PrefixedObjectsAndTableItems",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:UpdateItem",
+        "dynamodb:DeleteItem",
+        "dynamodb:Query"
+      ],
+      "Resource": [
+        "arn:aws:s3:::${bucket_prefix}-p3-*/*",
+        "arn:aws:dynamodb:${region}:${account_id}:table/${bucket_prefix}-p3-*",
+        "arn:aws:dynamodb:${region}:${account_id}:table/${bucket_prefix}-p3-*/index/*"
+      ]
+    },
+    {
+      "Sid": "PrefixedSecretsFunctionsWorkflowsAndTopics",
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "lambda:InvokeFunction",
+        "states:StartExecution",
+        "sns:Publish"
+      ],
+      "Resource": [
+        "arn:aws:secretsmanager:${region}:${account_id}:secret:${bucket_prefix}/phase3/*",
+        "arn:aws:lambda:${region}:${account_id}:function:${bucket_prefix}-p3-*",
+        "arn:aws:states:${region}:${account_id}:stateMachine:${bucket_prefix}-p3-*",
+        "arn:aws:sns:${region}:${account_id}:${bucket_prefix}-p3-*",
+        "arn:aws:sns:${region}:${account_id}:${bucket_prefix}-phase3-*"
+      ]
+    },
+    {
+      "Sid": "OwnLogStreams",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": [
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/lambda/${bucket_prefix}-p3-*:*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/lambda/${bucket_prefix}-phase3-*:*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/ecs/${bucket_prefix}-p3-*:*",
+        "arn:aws:logs:${region}:${account_id}:log-group:/aws/ecs/${bucket_prefix}-phase3-*:*"
+      ]
+    },
+    {
+      "Sid": "ScanImageRepositoryOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:BatchGetImage",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeImages",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:InitiateLayerUpload",
+        "ecr:PutImage",
+        "ecr:UploadLayerPart"
+      ],
+      "Resource": "arn:aws:ecr:${region}:${account_id}:repository/${bucket_prefix}/*"
+    },
+    {
+      "Sid": "EcrLoginHasNoResourceArn",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "RunOnlyThePrefixedScanTask",
+      "Effect": "Allow",
+      "Action": [
+        "ecs:RunTask",
+        "ecs:StopTask",
+        "ecs:DescribeTasks"
+      ],
+      "Resource": [
+        "arn:aws:ecs:${region}:${account_id}:task-definition/${bucket_prefix}-p3-*:*",
+        "arn:aws:ecs:${region}:${account_id}:task/${bucket_prefix}-p3-*/*"
+      ]
+    },
+    {
+      "Sid": "StepFunctionsEcsSyncRule",
+      "Effect": "Allow",
+      "Action": [
+        "events:PutTargets",
+        "events:PutRule",
+        "events:DescribeRule"
+      ],
+      "Resource": "arn:aws:events:${region}:${account_id}:rule/StepFunctionsGetEventsForECSTaskRule"
+    },
+    {
+      "Sid": "PassOnlyControlPlaneWorkloadRoles",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::${account_id}:role/${bucket_prefix}-p3-*"
+      ]
+    },
+    {
+      "Sid": "AssumeOnlyTheDemoReadOnlyTarget",
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::${demo_account_id}:role/AccountAccessAuditorReadOnly"
+    },
+    {
+      "Sid": "ApplyOnlyAccountGuardrails",
+      "Effect": "Allow",
+      "Action": "bedrock:ApplyGuardrail",
+      "Resource": "arn:aws:bedrock:${region}:${account_id}:guardrail/*"
+    }
+  ]
+}
