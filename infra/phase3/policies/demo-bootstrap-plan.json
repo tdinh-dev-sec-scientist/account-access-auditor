@@ -10,7 +10,7 @@
     {
       "Sid": "ReadOnlyDemoTerraformRoles",
       "Effect": "Allow",
-      "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies"],
+      "Action": ["iam:GetRole", "iam:GetRolePolicy", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies"],
       "Resource": [
         "arn:aws:iam::${demo_account_id}:role/Phase3DemoTerraformPlan",
         "arn:aws:iam::${demo_account_id}:role/Phase3DemoTerraformApply"
