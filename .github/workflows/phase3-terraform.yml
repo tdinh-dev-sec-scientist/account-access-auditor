@@ -93,6 +93,23 @@ jobs:
             fi
             printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
           done
+          # Accept the extra sign-in callbacks as plain URLs separated by commas
+          # or spaces, with or without JSON brackets and quotes, and hand
+          # Terraform a well-formed JSON list.
+          callbacks="$(printf '%s' "${TF_VAR_auth_extra_callback_urls:-}" | tr -d '[]"`'"'"'\r' | tr ',[:space:]' '\n\n' | sed '/^$/d')"
+          json='['
+          while IFS= read -r url; do
+            [[ -z "$url" ]] && continue
+            if [[ ! "$url" =~ ^https://[a-z0-9.-]+(:[0-9]{2,5})?/[A-Za-z0-9/._-]*$ ]]; then
+              echo "::error::PHASE3_AUTH_EXTRA_CALLBACK_URLS entry is not an exact HTTPS URL ending in /: $url"
+              exit 1
+            fi
+            [[ "$json" != '[' ]] && json+=','
+            json+="\"$url\""
+          done <<< "$callbacks"
+          json+=']'
+          echo "Extra sign-in callbacks: $json"
+          printf 'TF_VAR_auth_extra_callback_urls=%s\n' "$json" >> "$GITHUB_ENV"
 
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
