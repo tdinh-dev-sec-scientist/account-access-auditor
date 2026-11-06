@@ -54,7 +54,6 @@ resource "aws_iam_role_policy_attachment" "target_readonly" {
 
 resource "aws_s3_bucket" "demo_a" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
-  #checkov:skip=CKV2_AWS_6:This resource intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
   bucket        = local.demo_a_bucket_name
   force_destroy = false
 
@@ -67,6 +66,7 @@ resource "aws_s3_bucket" "demo_a" {
 
 resource "aws_s3_bucket" "demo_b" {
   #checkov:skip=CKV_AWS_145:SSE-S3 keeps the disposable demo bucket encrypted without KMS request costs.
+  #checkov:skip=CKV2_AWS_6:This resource intentionally models bucket-level drift; account-level blocking and the SCP prevent public exposure.
   bucket        = local.demo_b_bucket_name
   force_destroy = false
 
@@ -116,13 +116,15 @@ resource "aws_s3_bucket_ownership_controls" "demo_b" {
 }
 
 # Intentional but non-exposing drift: account-level protection remains on,
-# bucket A has two disabled controls, and the SCP prevents public ACL/policy writes.
+# and the SCP prevents public ACL/policy writes. The Stage 1 drift review moved
+# the two disabled controls from bucket A to bucket B, so one scheduled scan
+# records bucket A's finding as resolved and bucket B's as new.
 resource "aws_s3_bucket_public_access_block" "demo_a" {
   bucket                  = aws_s3_bucket.demo_a.id
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = false
-  restrict_public_buckets = false
+  block_public_policy     = true
+  restrict_public_buckets = true
   depends_on              = [aws_s3_account_public_access_block.demo]
 }
 
@@ -130,8 +132,8 @@ resource "aws_s3_bucket_public_access_block" "demo_b" {
   bucket                  = aws_s3_bucket.demo_b.id
   block_public_acls       = true
   ignore_public_acls      = true
-  block_public_policy     = true
-  restrict_public_buckets = true
+  block_public_policy     = false
+  restrict_public_buckets = false
   depends_on              = [aws_s3_account_public_access_block.demo]
 }
 
