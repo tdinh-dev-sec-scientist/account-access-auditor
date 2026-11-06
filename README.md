@@ -192,6 +192,24 @@ generated evidence with `python scripts/collect_metrics.py`.
 
 <!-- END GENERATED METRICS -->
 
+## Live deployment status
+
+Phase 3 is deployed to a dedicated AWS Organizations demo account in stages.
+Each stage turns on only after the previous one has reviewed acceptance
+evidence in [`docs/evidence/`](docs/evidence/phase3-stage-acceptance.json);
+Terraform refuses to enable it otherwise.
+
+| Stage | Scope | Status |
+| --- | --- | --- |
+| 1 | Scheduled scans: EventBridge Scheduler every six hours, Step Functions, a cosign-signed Fargate scan image, a read-only cross-account role, private snapshots, drift history | Live; acceptance review in progress |
+| 2 | Redacted results and the public read-only API | Waiting on Stage 1 |
+| 3 | Invite-only console with Cognito sign-in, and Rin | Waiting on Stage 2 |
+| 4 | Budget cutoff, kill switch, and load tests | Waiting on Stage 3 |
+
+Deployments run through GitHub OIDC roles pinned to protected environments,
+with a permissions boundary on every role Terraform creates and an SCP that
+protects the audit trail and the read-only role.
+
 ## Security and scope
 
 - The AWS collector uses read-only operations. It does not create, update, or
@@ -246,7 +264,7 @@ scanners. See [IaC scanning](docs/iac-scanning.md) for local scanner setup and
   policy shape alone.
 - Add checks for more services, such as EC2 security groups and KMS key
   policies.
-- Complete live AWS acceptance of the Phase 3 scheduled demo.
+- Complete live acceptance of Phase 3 Stages 2 to 4.
 
 ## Documentation
 
