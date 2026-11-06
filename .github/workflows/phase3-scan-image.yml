@@ -8,6 +8,7 @@ on:
       - requirements-phase3-lambda.txt
       - auditor/**
       - phase3/**
+      - compliance/**
       - .github/workflows/phase3-scan-image.yml
   workflow_dispatch:
 
