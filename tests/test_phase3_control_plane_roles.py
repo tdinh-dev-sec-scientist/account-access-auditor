@@ -305,3 +305,16 @@ def test_discovery_requires_the_management_account(monkeypatch):
     assert re.fullmatch(r"[0-9]{12}", found["account_id"])
     assert re.fullmatch(r"[0-9]{12}", found["demo_account_id"])
     assert found["account_id"] != found["demo_account_id"]
+
+
+def test_apply_role_can_tag_web_assets_when_the_provider_sets_default_tags():
+    """aws_s3_object sends the provider's default_tags with PutObject, which S3
+    authorizes as s3:PutObjectTagging as well."""
+    root = Path(__file__).resolve().parents[1]
+    versions = (root / "infra/phase3/control-plane/versions.tf").read_text(encoding="utf-8")
+    manage = json.loads((root / "infra/phase3/policies/control-plane-apply-manage-1.json").read_text())
+    web = next(s for s in manage["Statement"] if s.get("Sid") == "PublishOnlyWebAssets")
+
+    assert "default_tags" in versions
+    assert {"s3:PutObject", "s3:PutObjectTagging", "s3:DeleteObjectTagging"} <= set(web["Action"])
+    assert web["Resource"].endswith("-p3-web-${account_id}/*")
