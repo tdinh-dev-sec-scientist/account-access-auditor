@@ -174,7 +174,7 @@
     }
   },
   {
-    "DefaultVersionId": "v1",
+    "DefaultVersionId": "v3",
     "PolicyArn": "arn:aws:iam::<TARGET_ACCOUNT>:policy/<RESOURCE>",
     "PolicyDocument": {
       "Statement": [
@@ -263,6 +263,8 @@
         {
           "Action": [
             "s3:PutObject",
+            "s3:PutObjectTagging",
+            "s3:DeleteObjectTagging",
             "s3:DeleteObject"
           ],
           "Effect": "Allow",
@@ -402,6 +404,12 @@
             "arn:aws:states:us-east-1:<TARGET_ACCOUNT>:stateMachine:<RESOURCE_PATTERN>",
             "arn:aws:scheduler:us-east-1:<TARGET_ACCOUNT>:schedule/<RESOURCE_PATTERN>"
           ],
+          "Sid": "<STATEMENT_ID>"
+        },
+        {
+          "Action": "states:ValidateStateMachineDefinition",
+          "Effect": "Allow",
+          "Resource": "arn:aws:states:us-east-1:<TARGET_ACCOUNT>:stateMachine:<RESOURCE_PATTERN>",
           "Sid": "<STATEMENT_ID>"
         }
       ],

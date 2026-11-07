@@ -83,7 +83,7 @@
         "status": "reviewed",
         "role_arn_sha256": "0b6251da87604181a5f4622ee286cd7dcc53afb207ca7ad68fe40f9aad625d80",
         "reviewed_by": "Truong Dinh",
-        "reviewed_at": "2026-11-05T22:14:20+00:00",
+        "reviewed_at": "2026-11-07T19:31:52+00:00",
         "evidence": [
           "terraform-roles/control-plane/apply/attached-policies.json",
           "terraform-roles/control-plane/apply/inline-policies.json",
@@ -91,13 +91,13 @@
           "terraform-roles/control-plane/apply/trust-policy.json"
         ],
         "evidence_sha256": {
-          "terraform-roles/control-plane/apply/attached-policies.json": "f0a4efdf46136b791d1f6d237a4e7772132bca44f5cd719768d12c8f7e1cf3f7",
+          "terraform-roles/control-plane/apply/attached-policies.json": "10bf0ec42b476491532542b68087558f0c267b3c461c7bd7bf7fc7d1d53d7f4b",
           "terraform-roles/control-plane/apply/inline-policies.json": "f1fbd7a567d7d44bf3d943c9f5a8fd9b5d1a9b3cc25dcf549be57ce9d84c9af0",
           "terraform-roles/control-plane/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
           "terraform-roles/control-plane/apply/trust-policy.json": "0cfdfa337e1f6a3b4b3df75a7d4e33d61b6f61932ee5f7a944d9be6643ece846"
         },
         "source_evidence_sha256": {
-          ".private-role-captures/control-plane/apply/attached-policies.json": "21647e450779067312ef73f688a95150845b32f992e836fccce18562325b2cac",
+          ".private-role-captures/control-plane/apply/attached-policies.json": "50ad0478769c53756d8b509d0af188f0f891739cd237755d1560e7373e7605dd",
           ".private-role-captures/control-plane/apply/capture-metadata.json": "ee7af8c4f697dff5fab2ac04aaebdbfcaee14a09c80c6f72ee78f6a143bab96b",
           ".private-role-captures/control-plane/apply/inline-policies.json": "c5e2bb29d9ef9776d2edbe6a98d9edb6863ba89580e92b011471892642d488bc",
           ".private-role-captures/control-plane/apply/permissions-boundary.json": "38e0b9de817f645c4bec37c0d4a3e58baecccb040f5718dc069a72c7385a0bed",
