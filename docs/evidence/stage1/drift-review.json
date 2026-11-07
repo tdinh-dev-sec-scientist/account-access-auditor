@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "reviewed_by": "Truong Dinh",
+  "reviewed_at": "2026-11-07T12:32:59-05:00",
+  "terraform_change_sha256": "5caff4ceb46db0524d632fc266ec68eee0ef66fc8b2097f039b7978d5e961fbb",
+  "previous_scan_run_id": "fc95eeb5-ff91-45ac-acf1-c2dc2cb287b9",
+  "current_scan_run_id": "e2845d9c-afcd-49e3-aeab-f32df9717064",
+  "new_finding_ids": [
+    "b41c23b3396e5610"
+  ],
+  "resolved_finding_ids": [
+    "e262fb962c762934"
+  ]
+}
