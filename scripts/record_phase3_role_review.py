@@ -48,7 +48,9 @@ def record_review(
     reviewer = reviewer.strip()
     if not reviewer or len(reviewer) > 120:
         raise RecordError("reviewer must be a name of 1 to 120 characters")
-    digests = verify_role_capture(root=root, stack=stack, phase=phase, role_arn=role_arn)
+    digests = verify_role_capture(
+        root=root, stack=stack, phase=phase, role_arn=role_arn, allow_superseded_review=re_review
+    )
 
     manifest_path = root / MANIFEST
     original = manifest_path.read_bytes()
