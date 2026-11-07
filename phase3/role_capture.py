@@ -577,11 +577,15 @@ def verify_role_capture(
     stack: str,
     phase: str,
     role_arn: str,
+    allow_superseded_review: bool = False,
 ) -> dict[str, dict[str, str]]:
     """Verify that private source captures produce the checked-in projection.
 
     This read-only local verification never changes the role-scope manifest or
     review status. A human reviewer must still evaluate the policy semantics.
+    ``allow_superseded_review`` skips only the comparison with an earlier
+    review's digests, for a re-review after the role changed and was captured
+    again; the capture itself is still verified in full.
     """
     if stack not in ROLE_EVIDENCE_FILES or phase not in ROLE_EVIDENCE_FILES[stack]:
         raise RoleCaptureError("Only the org/control-plane plan and apply roles can be verified")
@@ -672,7 +676,7 @@ def verify_role_capture(
     record = manifest.get("roles", {}).get(stack, {}).get(phase) if isinstance(manifest, dict) else None
     if not isinstance(manifest, dict) or manifest.get("schema_version") != 3 or not isinstance(record, dict):
         raise RoleCaptureError("Phase 3 role-scope manifest does not match its schema")
-    if record.get("status") == "reviewed":
+    if record.get("status") == "reviewed" and not allow_superseded_review:
         fingerprint = hashlib.sha256(role_arn.encode("utf-8")).hexdigest()
         if (
             record.get("role_arn_sha256") != fingerprint
@@ -680,7 +684,7 @@ def verify_role_capture(
             or record.get("source_evidence_sha256") != source_digests
         ):
             raise RoleCaptureError("Reviewed manifest digests do not match the verified capture")
-    elif record.get("status") != "pending":
+    elif record.get("status") not in {"pending", "reviewed"}:
         raise RoleCaptureError("Phase 3 role-scope status is invalid")
     return {"evidence_sha256": projection_digests, "source_evidence_sha256": source_digests}
 

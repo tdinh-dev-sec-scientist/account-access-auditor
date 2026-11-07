@@ -225,3 +225,35 @@ def test_a_role_with_several_managed_policies_can_be_recorded(tmp_path):
     )
     assert len(attached) == 2
     assert attached[0]["PolicyArn"] == attached[1]["PolicyArn"]
+
+
+def _recapture_with_changed_policy(root: Path) -> None:
+    """Replace the capture as an owner would after a policy update."""
+    import shutil
+
+    for directory in (
+        "docs/evidence/terraform-roles/org/plan",
+        "docs/evidence/.private-role-captures/org/plan",
+    ):
+        shutil.rmtree(root / directory)
+    documents = render_documents(VALUES)
+    iam = _FakeIam(role_arn=ROLE_ARN, boundary=False)
+    iam.trust = documents["plan-trust"]
+    changed = json.loads(json.dumps(documents["plan-permissions"]))
+    changed["Statement"][0]["Action"] = sorted({*changed["Statement"][0]["Action"], "s3:GetObjectTagging"})
+    iam.policy = changed
+    capture_role_evidence(root=root, stack="org", phase="plan", role_arn=ROLE_ARN, iam_client=iam)
+
+
+def test_a_role_whose_policy_changed_is_re_reviewed_against_the_new_capture(tmp_path):
+    root = _captured_repository(tmp_path)
+    first = dict(_record(root))
+    _recapture_with_changed_policy(root)
+
+    with pytest.raises(Exception, match="do not match"):
+        _record(root)  # without --re-review the stale review is reported, nothing written
+
+    record = _record(root, re_review=True, reviewed_at=datetime(2026, 11, 6, 9, 0, tzinfo=UTC))
+
+    assert record["evidence_sha256"] != first["evidence_sha256"]
+    validate_role_scope_evidence(root=root, stack="org", phase="plan", role_arn=ROLE_ARN)
