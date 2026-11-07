@@ -201,8 +201,8 @@ Terraform refuses to enable it otherwise.
 
 | Stage | Scope | Status |
 | --- | --- | --- |
-| 1 | Scheduled scans: EventBridge Scheduler every six hours, Step Functions, a cosign-signed Fargate scan image, a read-only cross-account role, private snapshots, drift history | Live; acceptance review in progress |
-| 2 | Redacted results and the public read-only API | Waiting on Stage 1 |
+| 1 | Scheduled scans: EventBridge Scheduler every six hours, Step Functions, a cosign-signed Fargate scan image, a read-only cross-account role, private snapshots, drift history | Live; acceptance passed (two consecutive scheduled scans with reviewed drift) |
+| 2 | Redacted results and the public read-only API | Unlocked; deployment next |
 | 3 | Invite-only console with Cognito sign-in, and Rin | Waiting on Stage 2 |
 | 4 | Budget cutoff, kill switch, and load tests | Waiting on Stage 3 |
 

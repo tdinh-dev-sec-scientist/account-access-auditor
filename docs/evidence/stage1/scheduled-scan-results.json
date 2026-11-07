@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "reviewed_by": "Truong Dinh",
+  "reviewed_at": "2026-11-07T12:32:59-05:00",
+  "target_account_label": "demo-account",
+  "target_account_id_sha256": "e1be71fd2c1b9c1a54968202c2ab743b166cd9923eb5273522c4d34fe6bd43f4",
+  "schedule_execution_log_evidence_path": "stage1/schedule-execution-log.json",
+  "schedule_execution_log_sha256": "fefd71cd14657f2073e1463d555055a5e79876235145e29af18f7b6ab6c597b3",
+  "consecutive_schedule_runs": true,
+  "scans": [
+    {
+      "scan_run_id": "fc95eeb5-ff91-45ac-acf1-c2dc2cb287b9",
+      "trigger": "scheduled",
+      "status": "complete",
+      "started_at": "2026-11-07T11:09:36Z",
+      "completed_at": "2026-11-07T11:09:39Z",
+      "snapshot_sha256": "b424e54470d356c808d616b3ef326f3df31da11a7e0b940cd683b7803cee3c2a"
+    },
+    {
+      "scan_run_id": "e2845d9c-afcd-49e3-aeab-f32df9717064",
+      "trigger": "scheduled",
+      "status": "complete",
+      "started_at": "2026-11-07T17:09:40Z",
+      "completed_at": "2026-11-07T17:09:45Z",
+      "snapshot_sha256": "80f48b23611791ca7db7152fe0e9ab544e065e8160cb36a43c2f4d19f676d048"
+    }
+  ]
+}
