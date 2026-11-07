@@ -25,6 +25,7 @@ import json
 import os
 import secrets
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -35,6 +36,32 @@ DEFAULT_OUTPUT = ROOT / "build/phase3/id-token"
 
 class TokenError(RuntimeError):
     pass
+
+
+def tls_context():
+    """Verifying TLS context that works on python.org macOS builds.
+
+    Those builds do not read the system keychain, so the default context finds
+    no CA certificates. Use certifi when installed, else the CA bundle botocore
+    ships; verification stays on either way.
+    """
+    import ssl
+
+    try:
+        import certifi
+
+        return ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        pass
+    try:
+        import botocore
+
+        bundle = Path(botocore.__file__).with_name("cacert.pem")
+        if bundle.is_file():
+            return ssl.create_default_context(cafile=str(bundle))
+    except ImportError:
+        pass
+    return ssl.create_default_context()
 
 
 def pkce_pair() -> tuple[str, str]:
@@ -96,10 +123,16 @@ def exchange(base: str, client_id: str, redirect_uri: str, code: str, verifier: 
         method="POST",
     )
     try:
-        with (opener or urllib.request.urlopen)(request, timeout=30) as response:
+        if opener is None:
+            response_context = urllib.request.urlopen(request, timeout=30, context=tls_context())
+        else:
+            response_context = opener(request, timeout=30)
+        with response_context as response:
             payload = json.loads(response.read())
     except urllib.error.HTTPError as exc:
         raise TokenError(f"token exchange failed with HTTP {exc.code}; sign in again") from None
+    except urllib.error.URLError as exc:
+        raise TokenError(f"could not reach the sign-in service: {exc.reason}") from None
     token = payload.get("id_token")
     if not isinstance(token, str) or token.count(".") != 2:
         raise TokenError("the token response has no ID token")
