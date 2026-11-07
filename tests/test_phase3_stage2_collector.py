@@ -296,3 +296,46 @@ def test_main_blocks_a_published_snapshot_with_a_leak(monkeypatch, tmp_path, cap
     assert code == 1
     assert "private identifiers" in capsys.readouterr().err
     assert not (evidence / "stage2").exists()
+
+
+# -- TLS on python.org macOS builds --------------------------------------------------
+
+
+def test_tls_context_loads_ca_certificates_without_a_system_store(tmp_path, monkeypatch):
+    import ssl
+    import subprocess
+    import sys
+
+    empty = tmp_path / "empty.pem"
+    empty.write_text("")
+    # A process whose OpenSSL finds no system CA store, like python.org builds on macOS.
+    env = {**__import__("os").environ, "SSL_CERT_FILE": str(empty), "SSL_CERT_DIR": str(tmp_path)}
+    probe = (
+        "import ssl, sys; sys.path.insert(0, '.');"
+        "from scripts.phase3_id_token import tls_context as a;"
+        "from scripts.collect_phase3_stage2_evidence import tls_context as b;"
+        "print(ssl.create_default_context().cert_store_stats()['x509_ca'],"
+        " a().cert_store_stats()['x509_ca'], b().cert_store_stats()['x509_ca'],"
+        " a().verify_mode == ssl.CERT_REQUIRED and a().check_hostname)"
+    )
+    out = subprocess.run([sys.executable, "-c", probe], env=env, capture_output=True, text=True, check=True)
+    default, token_cas, collector_cas, verifying = out.stdout.split()
+    assert int(default) == 0
+    assert int(token_cas) > 100 and int(collector_cas) > 100
+    assert verifying == "True"
+    assert ssl.CERT_REQUIRED
+
+
+def test_exchange_uses_the_verifying_context_and_reports_network_errors(monkeypatch):
+    import urllib.error
+
+    seen = {}
+
+    def fake_urlopen(request, timeout, context):
+        seen["context"] = context
+        raise urllib.error.URLError("certificate verify failed")
+
+    monkeypatch.setattr(token_tool.urllib.request, "urlopen", fake_urlopen)
+    with pytest.raises(token_tool.TokenError, match="could not reach the sign-in service"):
+        token_tool.exchange("https://base", "c", "https://r/", "code", "verifier")
+    assert seen["context"].check_hostname is True
