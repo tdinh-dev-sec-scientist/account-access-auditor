@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "reviewed_by": "Truong Dinh",
+  "reviewed_at": "2026-11-07T12:32:59-05:00",
+  "complete_export": true,
+  "export_window_start": "2026-11-07T11:09:15.303000Z",
+  "export_window_end": "2026-11-07T17:10:15.337000Z",
+  "scheduled_executions": [
+    {
+      "scan_run_id": "fc95eeb5-ff91-45ac-acf1-c2dc2cb287b9",
+      "scheduled_at": "2026-11-07T11:09:00Z",
+      "workflow_started_at": "2026-11-07T11:09:15.303000Z",
+      "scan_started_at": "2026-11-07T11:09:36Z",
+      "status": "complete",
+      "snapshot_sha256": "b424e54470d356c808d616b3ef326f3df31da11a7e0b940cd683b7803cee3c2a"
+    },
+    {
+      "scan_run_id": "e2845d9c-afcd-49e3-aeab-f32df9717064",
+      "scheduled_at": "2026-11-07T17:09:00Z",
+      "workflow_started_at": "2026-11-07T17:09:15.291000Z",
+      "scan_started_at": "2026-11-07T17:09:40Z",
+      "status": "complete",
+      "snapshot_sha256": "80f48b23611791ca7db7152fe0e9ab544e065e8160cb36a43c2f4d19f676d048"
+    }
+  ]
+}

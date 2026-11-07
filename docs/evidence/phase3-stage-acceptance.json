@@ -2,16 +2,26 @@
   "schema_version": 3,
   "stages": {
     "stage1": {
-      "status": "pending",
-      "reviewed_by": null,
-      "reviewed_at": null,
+      "status": "passed",
+      "reviewed_by": "Truong Dinh",
+      "reviewed_at": "2026-11-07T12:32:59-05:00",
       "criteria": {
-        "two_consecutive_scheduled_scans": false,
-        "reviewed_new_and_resolved_drift": false,
-        "read_only_target_role_evidence": false
+        "two_consecutive_scheduled_scans": true,
+        "reviewed_new_and_resolved_drift": true,
+        "read_only_target_role_evidence": true
       },
-      "evidence": [],
-      "evidence_sha256": {}
+      "evidence": [
+        "stage1/scheduled-scan-results.json",
+        "stage1/schedule-execution-log.json",
+        "stage1/drift-review.json",
+        "stage1/read-only-role-review.json"
+      ],
+      "evidence_sha256": {
+        "stage1/scheduled-scan-results.json": "e8672f0940ecff8b7ad0f8de8e846af002080fd25989ae6bb17fd356dc886bf4",
+        "stage1/schedule-execution-log.json": "fefd71cd14657f2073e1463d555055a5e79876235145e29af18f7b6ab6c597b3",
+        "stage1/drift-review.json": "86d826e9dd873d37a58a7076ba8a6dfe04169acb05798d61423a181e37545882",
+        "stage1/read-only-role-review.json": "8aabd7f2072f9168bbfe0957691d4273fd7bc68bc30af9d45d2dcd709e7478c2"
+      }
     },
     "stage2": {
       "status": "pending",

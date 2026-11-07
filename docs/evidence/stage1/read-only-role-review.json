@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "reviewed_by": "Truong Dinh",
+  "reviewed_at": "2026-11-07T12:32:59-05:00",
+  "role_arn_sha256": "6eb2b1c14340101fd59e7faff5ab64f5d5009b7144b3fbb6e12a8dbfd66f6122",
+  "policy_evidence_sha256": "2dad900c439299aeb0f2833c95f206857370e3625cc1ccf7cddfb27eed70ff2f",
+  "effective_write_actions": []
+}
