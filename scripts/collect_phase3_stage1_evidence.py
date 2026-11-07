@@ -373,7 +373,9 @@ def main() -> int:
             finding = next(
                 t["finding"] for t in runs[1]["snapshot"]["drift"] if t["fingerprint"] == fingerprint
             )
-            print(f"  {label}: {fingerprint} {finding.get('rule_id')} {finding.get('title')}")
+            print(
+                f"  {label}: {fingerprint} {finding.get('scanner_rule_id') or finding.get('rule_id')} {finding.get('resource_reference', '')}"
+            )
     print(f"{TARGET_ROLE}: {len(policies)} policies, no non-read actions")
 
     if not args.confirm_reviewed:

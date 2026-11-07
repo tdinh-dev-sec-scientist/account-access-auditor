@@ -370,7 +370,7 @@ def _collect_scope(
                 run_id=run_id,
                 account_ref=account_ref,
                 region=finding_region,
-                service=finding.service,
+                service=service,
             )
         )
     for service in services:
