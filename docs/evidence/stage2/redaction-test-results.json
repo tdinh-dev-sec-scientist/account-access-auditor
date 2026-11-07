@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "reviewed_by": "Truong Dinh",
+  "reviewed_at": "2026-11-07T13:50:13-05:00",
+  "test_suite_sha256": "a59777976964d2f85846b5d9ca42f518652f1516d7b9a7ed274db46f12b9d9f5",
+  "passed_case_categories": [
+    "access_key",
+    "account_id",
+    "arn",
+    "email",
+    "ip_address",
+    "stable_pseudonym",
+    "unknown_field"
+  ],
+  "failed_case_ids": [],
+  "leaked_identifier_count": 0,
+  "published_unapproved_fields": 0
+}

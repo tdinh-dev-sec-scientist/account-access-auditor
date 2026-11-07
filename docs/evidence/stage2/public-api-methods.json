@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "reviewed_by": "Truong Dinh",
+  "reviewed_at": "2026-11-07T13:50:13-05:00",
+  "method_results": {
+    "GET": "served",
+    "HEAD": "served",
+    "OPTIONS": "rejected",
+    "PATCH": "rejected",
+    "POST": "rejected",
+    "PUT": "rejected",
+    "DELETE": "rejected",
+    "TRACE": "rejected",
+    "CONNECT": "rejected"
+  }
+}
