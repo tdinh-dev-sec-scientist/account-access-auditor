@@ -225,7 +225,7 @@ test("a matching callback exchanges the code with PKCE and no client secret", as
   );
   assert.deepEqual(second.calls.replace, [`${ORIGIN}/`]);
   assert.equal(second.storage.getItem(auth.PENDING_KEY), null);
-  assert.match(second.session.authorizationHeaders().Authorization, /^Bearer [^.]+\.[^.]+\.[^.]+$/);
+  assert.match(second.session.authorizationHeaders().Authorization, /^[^.\s]+\.[^.\s]+\.[^.\s]+$/);
 });
 
 test("a callback with a forged state never contacts the token endpoint", async () => {

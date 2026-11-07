@@ -152,7 +152,7 @@ def https_requester(host: str, path: str, token: str):
     def request(method: str) -> int | None:
         connection = http.client.HTTPSConnection(host, timeout=30)
         try:
-            connection.request(method, path, headers={"Authorization": f"Bearer {token}"})
+            connection.request(method, path, headers={"Authorization": token})
             return connection.getresponse().status
         except (OSError, http.client.HTTPException):
             return None
@@ -165,7 +165,7 @@ def https_requester(host: str, path: str, token: str):
 def fetch(host: str, path: str, token: str) -> tuple[int, bytes]:
     connection = http.client.HTTPSConnection(host, timeout=30)
     try:
-        connection.request("GET", path, headers={"Authorization": f"Bearer {token}"})
+        connection.request("GET", path, headers={"Authorization": token})
         response = connection.getresponse()
         return response.status, response.read()
     finally:

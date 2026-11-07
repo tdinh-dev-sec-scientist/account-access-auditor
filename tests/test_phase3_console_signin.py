@@ -112,7 +112,7 @@ class FakeCloud:
         if url.path.startswith("/api/"):
             header = request.headers.get("authorization", "")
             self.api.append((url.path, header))
-            if not self.issued or header != f"Bearer {self.issued}":
+            if not self.issued or header != self.issued:
                 return route.fulfill(
                     status=401, content_type="application/json", body='{"error":"UNAUTHENTICATED"}'
                 )
@@ -193,7 +193,7 @@ def test_sign_in_uses_pkce_and_loads_live_data_with_the_bearer_token(browser, cl
     assert len(cloud.authorize["state"]) >= 32 and len(cloud.authorize["nonce"]) >= 32
     assert len(cloud.token_requests) == 1
     assert page.url == f"{ORIGIN}/"
-    assert ("/api/latest", f"Bearer {cloud.issued}") in cloud.api
+    assert ("/api/latest", cloud.issued) in cloud.api
     assert "invitee@example.com" in (page.get_attribute("#auth-button", "title") or "")
 
     page.reload()

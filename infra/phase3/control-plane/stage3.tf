@@ -22,9 +22,8 @@ locals {
   }
   # Managed CloudFront policies. AllViewerExceptHostHeader is the only way to
   # forward the Authorization header to API Gateway while caching stays off.
-  cloudfront_caching_disabled_policy_id    = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
-  cloudfront_all_viewer_except_host_policy = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
-  console_connect_src                      = trimspace("'self' ${local.invite_only ? local.cognito_hosted_ui : ""}")
+  cloudfront_caching_disabled_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+  console_connect_src                   = trimspace("'self' ${local.invite_only ? local.cognito_hosted_ui : ""}")
 }
 
 resource "aws_s3_bucket" "web" {
@@ -95,6 +94,31 @@ resource "aws_cloudfront_cache_policy" "web" {
     cookies_config { cookie_behavior = "none" }
     headers_config { header_behavior = "none" }
     query_strings_config { query_string_behavior = "none" }
+  }
+}
+
+# CloudFront forwards the Authorization header to an origin only when a cache
+# policy includes it; an origin request policy cannot. In invite_only mode the
+# API behavior therefore keys on Authorization. Nothing is actually cached:
+# the default TTL is 0 and every signed-in response is private, no-store.
+resource "aws_cloudfront_cache_policy" "api_auth" {
+  count       = var.enable_stage3 && local.invite_only ? 1 : 0
+  name        = "${var.bucket_prefix}-p3-api-auth"
+  comment     = "Forward the Cognito ID token to the API; responses are private, no-store."
+  min_ttl     = 0
+  default_ttl = 0
+  max_ttl     = 1
+  parameters_in_cache_key_and_forwarded_to_origin {
+    enable_accept_encoding_gzip   = false
+    enable_accept_encoding_brotli = false
+    cookies_config { cookie_behavior = "none" }
+    headers_config {
+      header_behavior = "whitelist"
+      headers {
+        items = ["Authorization"]
+      }
+    }
+    query_strings_config { query_string_behavior = "all" }
   }
 }
 
@@ -238,8 +262,8 @@ resource "aws_cloudfront_distribution" "web" {
     # API Gateway defines only GET, HEAD, and POST; it rejects the others itself.
     allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods             = ["GET", "HEAD"]
-    cache_policy_id            = local.cloudfront_caching_disabled_policy_id
-    origin_request_policy_id   = local.invite_only ? local.cloudfront_all_viewer_except_host_policy : aws_cloudfront_origin_request_policy.api[0].id
+    cache_policy_id            = local.invite_only ? aws_cloudfront_cache_policy.api_auth[0].id : local.cloudfront_caching_disabled_policy_id
+    origin_request_policy_id   = aws_cloudfront_origin_request_policy.api[0].id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.security[0].id
     compress                   = true
   }

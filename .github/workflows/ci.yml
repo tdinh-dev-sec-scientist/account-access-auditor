@@ -29,6 +29,8 @@ jobs:
           tags: phase3-scan:test
       - name: Check the non-root scan task entry point
         run: docker run --rm --entrypoint python phase3-scan:test -c "import auditor.fleet_scan, phase3.scan_task"
+      - name: Check the image ships every data file a scan reads
+        run: docker run --rm --entrypoint python phase3-scan:test -c "from auditor.compliance import load_mapping; load_mapping()"
 
   phase3-terraform:
     runs-on: ubuntu-latest
