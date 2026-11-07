@@ -232,7 +232,9 @@
 
     function authorizationHeaders() {
       const active = current();
-      return active ? { Authorization: `Bearer ${active.idToken}` } : {};
+      // API Gateway's Cognito user pool authorizer takes the raw ID token as the
+      // Authorization header value, without a "Bearer" scheme prefix.
+      return active ? { Authorization: active.idToken } : {};
     }
 
     return { load, current, signIn, signOut, signOutLocally, completeSignIn, authorizationHeaders };

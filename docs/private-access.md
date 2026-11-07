@@ -24,7 +24,7 @@ sequenceDiagram
   H->>B: redirect with one-time code (after password + TOTP MFA)
   B->>H: /oauth2/token (code + code_verifier, no client secret)
   H->>B: ID token (60 minutes)
-  B->>CF: GET /api/latest, Authorization: Bearer <ID token>
+  B->>CF: GET /api/latest, Authorization: <ID token>
   CF->>G: forwards Authorization (caching disabled)
   G->>G: Cognito authorizer: signature, expiry, user pool
   G->>L: verified claims

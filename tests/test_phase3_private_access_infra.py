@@ -93,12 +93,18 @@ def test_cloudfront_forwards_authorization_without_caching_api_responses():
     behavior = _block(stage3, "ordered_cache_behavior")
 
     assert 'path_pattern = "/api/*"' in _flat(behavior)
-    assert "cache_policy_id = local.cloudfront_caching_disabled_policy_id" in _flat(behavior)
-    assert "local.invite_only ? local.cloudfront_all_viewer_except_host_policy" in behavior
+    # Only a cache policy can forward Authorization; invite_only keys on it with no caching.
+    assert (
+        "cache_policy_id = local.invite_only ? aws_cloudfront_cache_policy.api_auth[0].id "
+        ": local.cloudfront_caching_disabled_policy_id"
+    ) in _flat(behavior)
+    assert "origin_request_policy_id = aws_cloudfront_origin_request_policy.api[0].id" in _flat(behavior)
     assert 'cloudfront_caching_disabled_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"' in _flat(stage3)
-    assert 'cloudfront_all_viewer_except_host_policy = "b689b0a8-53d0-40ab-baf2-68738e2966ac"' in _flat(
-        stage3
-    )
+    auth_cache = _flat(_block(stage3, 'resource "aws_cloudfront_cache_policy" "api_auth"'))
+    assert 'items = ["Authorization"]' in auth_cache
+    assert "default_ttl = 0" in auth_cache and "max_ttl = 1" in auth_cache
+    request_policy = _flat(_block(stage3, 'resource "aws_cloudfront_origin_request_policy" "api"'))
+    assert "Authorization" not in request_policy
 
 
 def test_csp_allows_only_the_cognito_hosted_ui_beyond_self():
@@ -106,8 +112,8 @@ def test_csp_allows_only_the_cognito_hosted_ui_beyond_self():
 
     assert "connect-src ${local.console_connect_src}" in stage3
     assert (
-        'console_connect_src                      = trimspace("\'self\' ${local.invite_only ? local.cognito_hosted_ui : ""}")'
-        in stage3
+        'console_connect_src = trimspace("\'self\' ${local.invite_only ? local.cognito_hosted_ui : ""}")'
+        in _flat(stage3)
     )
     assert (
         'cognito_hosted_ui = var.cognito_domain_prefix == "" ? "" : "https://${var.cognito_domain_prefix}.auth.${var.aws_region}.amazoncognito.com"'
