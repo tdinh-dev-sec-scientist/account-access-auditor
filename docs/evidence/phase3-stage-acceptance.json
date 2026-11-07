@@ -24,16 +24,24 @@
       }
     },
     "stage2": {
-      "status": "pending",
-      "reviewed_by": null,
-      "reviewed_at": null,
+      "status": "passed",
+      "reviewed_by": "Truong Dinh",
+      "reviewed_at": "2026-11-07T13:50:13-05:00",
       "criteria": {
-        "redaction_and_secret_tests": false,
-        "publisher_failure_atomicity": false,
-        "public_api_method_tests": false
+        "redaction_and_secret_tests": true,
+        "publisher_failure_atomicity": true,
+        "public_api_method_tests": true
       },
-      "evidence": [],
-      "evidence_sha256": {}
+      "evidence": [
+        "stage2/redaction-test-results.json",
+        "stage2/publisher-failure.json",
+        "stage2/public-api-methods.json"
+      ],
+      "evidence_sha256": {
+        "stage2/redaction-test-results.json": "129c6d891effc1584e20dfdcb442269efe08a68bb386443f02d5e71d02947f0c",
+        "stage2/publisher-failure.json": "1dcb3e7414a093cb7a023b4d784f31261eac359c23949021b6e46d14c3d70d00",
+        "stage2/public-api-methods.json": "978c557389299fa34b3f66a9ac78e058c31760cea701e0a4eca1dd1fe2a5aa12"
+      }
     },
     "stage3": {
       "status": "pending",

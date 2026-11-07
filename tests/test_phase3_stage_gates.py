@@ -1008,17 +1008,18 @@ def test_stage_reports_must_match_their_bound_source_files(tmp_path, report_path
 
 def test_workflow_gate_cli_allows_disabled_stages_but_blocks_stage_two(tmp_path):
     script = Path(__file__).resolve().parents[1] / "scripts/validate_phase3_stage_gates.py"
-    # Run against a pending Stage 1 record so the result does not depend on the
+    # Run against all-pending stage records so the result does not depend on the
     # repository's real, checked-in acceptance evidence.
     manifest = json.loads((script.parents[1] / "docs/evidence/phase3-stage-acceptance.json").read_text())
-    manifest["stages"]["stage1"] = {
-        "status": "pending",
-        "reviewed_by": None,
-        "reviewed_at": None,
-        "criteria": dict.fromkeys(manifest["stages"]["stage1"]["criteria"], False),
-        "evidence": [],
-        "evidence_sha256": {},
-    }
+    for name, stage in manifest["stages"].items():
+        manifest["stages"][name] = {
+            "status": "pending",
+            "reviewed_by": None,
+            "reviewed_at": None,
+            "criteria": dict.fromkeys(stage["criteria"], False),
+            "evidence": [],
+            "evidence_sha256": {},
+        }
     (tmp_path / "docs/evidence").mkdir(parents=True)
     (tmp_path / "docs/evidence/phase3-stage-acceptance.json").write_text(json.dumps(manifest))
     environment = {
